@@ -51,7 +51,7 @@ For Jellyfin 10.11.x use upstream version 0.6.1.
 Setup is **automatic** (since 12.1.0):
 
 - For **every user** the plugin creates two libraries ("Empfohlene Filme – *name*" and "Empfohlene Serien – *name*") on server start, when a user is created, and before every recommendation refresh. Existing recommendation libraries are detected by path and reused.
-- **Library access:** every user only sees their own recommendation libraries. Users with "access to all libraries" are switched to an explicit list of all regular libraries plus their own recommendations; libraries added later are granted to them automatically. If an admin later removes a library from such a user, the user is treated as deliberately restricted and no longer receives new libraries automatically. Users that were already restricted keep their selection.
+- **Library access:** every user only sees their own recommendation libraries. Users with "access to all libraries" are switched to an explicit list of all existing libraries plus their own recommendations, so they keep seeing everything they saw before. Libraries created later are **not** granted to anyone automatically – grant them per user under Dashboard → Users → Library Access. Users that were already restricted keep their selection.
 - When a user is deleted, their recommendation libraries are removed (media files are untouched).
 - Settings: **Dashboard → Plugins → Local Recommendations → Setup** – toggle automatic creation and access management, change the library name templates (`{user}` = username) and run the setup immediately.
 

@@ -25,7 +25,6 @@ namespace Jellyfin.Plugin.LocalRecs.VirtualLibrary
         private readonly IUserManager _userManager;
         private readonly VirtualLibraryManager _virtualLibraryManager;
         private readonly Func<PluginConfiguration?> _getConfiguration;
-        private readonly Action _saveConfiguration;
         private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
 
         /// <summary>
@@ -36,22 +35,19 @@ namespace Jellyfin.Plugin.LocalRecs.VirtualLibrary
         /// <param name="userManager">User manager.</param>
         /// <param name="virtualLibraryManager">Virtual library manager.</param>
         /// <param name="getConfiguration">Liefert die aktuelle Plugin-Konfiguration.</param>
-        /// <param name="saveConfiguration">Speichert die Plugin-Konfiguration.</param>
         /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
         public LibraryProvisioningService(
             ILogger<LibraryProvisioningService> logger,
             ILibraryManager libraryManager,
             IUserManager userManager,
             VirtualLibraryManager virtualLibraryManager,
-            Func<PluginConfiguration?> getConfiguration,
-            Action saveConfiguration)
+            Func<PluginConfiguration?> getConfiguration)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _libraryManager = libraryManager ?? throw new ArgumentNullException(nameof(libraryManager));
             _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
             _virtualLibraryManager = virtualLibraryManager ?? throw new ArgumentNullException(nameof(virtualLibraryManager));
             _getConfiguration = getConfiguration ?? throw new ArgumentNullException(nameof(getConfiguration));
-            _saveConfiguration = saveConfiguration ?? throw new ArgumentNullException(nameof(saveConfiguration));
         }
 
         /// <summary>
@@ -132,7 +128,7 @@ namespace Jellyfin.Plugin.LocalRecs.VirtualLibrary
 
                 if (manageAccess)
                 {
-                    result.UsersUpdated = await SyncLibraryAccessAsync(users, folders, config, cancellationToken).ConfigureAwait(false);
+                    result.UsersUpdated = await SyncLibraryAccessAsync(users, folders, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (result.LibrariesCreated > 0 || result.UsersUpdated > 0)
@@ -159,21 +155,14 @@ namespace Jellyfin.Plugin.LocalRecs.VirtualLibrary
         public async Task RemoveUserLibrariesAsync(Guid userId)
         {
             var config = _getConfiguration() ?? new PluginConfiguration();
+            if (!config.AutoCreateLibraries)
+            {
+                return;
+            }
 
             await _lock.WaitAsync().ConfigureAwait(false);
             try
             {
-                if (config.ManagedAllLibrariesUserIds.Contains(userId))
-                {
-                    config.ManagedAllLibrariesUserIds = config.ManagedAllLibrariesUserIds.Where(id => id != userId).ToArray();
-                    _saveConfiguration();
-                }
-
-                if (!config.AutoCreateLibraries)
-                {
-                    return;
-                }
-
                 var userPaths = new[]
                 {
                     _virtualLibraryManager.GetUserLibraryPath(userId, LocalMediaType.Movie),
@@ -279,7 +268,6 @@ namespace Jellyfin.Plugin.LocalRecs.VirtualLibrary
         private async Task<int> SyncLibraryAccessAsync(
             List<User> users,
             List<VirtualFolderInfo> folders,
-            PluginConfiguration config,
             CancellationToken cancellationToken)
         {
             var basePath = _virtualLibraryManager.VirtualLibraryBasePath;
@@ -319,11 +307,6 @@ namespace Jellyfin.Plugin.LocalRecs.VirtualLibrary
                 .Where(id => id != Guid.Empty && !allRecIds.Contains(id))
                 .ToHashSet();
 
-            // Libraries added since the last run are passed on to users who originally had access to all libraries
-            var knownIds = config.KnownLibraryIds.ToHashSet();
-            var newRegularIds = knownIds.Count == 0 ? new HashSet<Guid>() : regularIds.Where(id => !knownIds.Contains(id)).ToHashSet();
-
-            var managed = config.ManagedAllLibrariesUserIds.ToHashSet();
             var updatedUsers = 0;
 
             foreach (var user in users)
@@ -343,28 +326,16 @@ namespace Jellyfin.Plugin.LocalRecs.VirtualLibrary
                 if (policy.EnableAllFolders)
                 {
                     // "Zugriff auf alle Bibliotheken" würde auch die Empfehlungen der anderen freigeben:
-                    // auf eine explizite Liste aller normalen Bibliotheken plus der eigenen Empfehlungen umstellen
+                    // auf eine explizite Liste aller vorhandenen normalen Bibliotheken plus der eigenen
+                    // Empfehlungen umstellen. Später angelegte Bibliotheken gibt der Admin selbst frei.
                     enabled = new HashSet<Guid>(regularIds);
                     enabled.UnionWith(own);
-                    managed.Add(user.Id);
                 }
                 else
                 {
                     enabled = new HashSet<Guid>(before);
                     enabled.RemoveWhere(id => allRecIds.Contains(id) && !own.Contains(id));
                     enabled.UnionWith(own);
-
-                    // Hat ein Admin dem Benutzer inzwischen eine Bibliothek weggenommen, ist er bewusst
-                    // eingeschränkt und bekommt neue Bibliotheken nicht mehr automatisch
-                    if (managed.Contains(user.Id) && !knownIds.Where(regularIds.Contains).All(before.Contains))
-                    {
-                        managed.Remove(user.Id);
-                    }
-
-                    if (managed.Contains(user.Id))
-                    {
-                        enabled.UnionWith(newRegularIds);
-                    }
 
                     if (enabled.SetEquals(before))
                     {
@@ -385,17 +356,6 @@ namespace Jellyfin.Plugin.LocalRecs.VirtualLibrary
                 {
                     _logger.LogError(ex, "Konnte Bibliothekszugriff für Benutzer {Username} nicht anpassen", user.Username);
                 }
-            }
-
-            var existingUserIds = users.Select(u => u.Id).ToHashSet();
-            managed.IntersectWith(existingUserIds);
-
-            var configChanged = !managed.SetEquals(config.ManagedAllLibrariesUserIds) || !regularIds.SetEquals(knownIds);
-            if (configChanged)
-            {
-                config.ManagedAllLibrariesUserIds = managed.ToArray();
-                config.KnownLibraryIds = regularIds.ToArray();
-                _saveConfiguration();
             }
 
             return updatedUsers;

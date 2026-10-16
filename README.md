@@ -47,11 +47,11 @@ Für Jellyfin 10.11.x bitte die Original-Version 0.6.1 verwenden.
 
 ### Variante B: Manuell
 
-1. [`release/jellyfin-plugin-localrecs-v12.1.0.zip`](release/jellyfin-plugin-localrecs-v12.1.0.zip) herunterladen und entpacken.
+1. [`release/jellyfin-plugin-localrecs-v12.1.1.zip`](release/jellyfin-plugin-localrecs-v12.1.1.zip) herunterladen und entpacken.
 2. Die Datei `Jellyfin.Plugin.LocalRecs.dll` in einen neuen Ordner im Plugin-Verzeichnis legen, z. B.
-   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.1.0.0/`
-   - Docker: `/config/plugins/LocalRecs_12.1.0.0/`
-   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.1.0.0\`
+   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.1.1.0/`
+   - Docker: `/config/plugins/LocalRecs_12.1.1.0/`
+   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.1.1.0\`
 3. Jellyfin-Server neu starten.
 
 ## Einrichtung
@@ -60,9 +60,10 @@ Die Einrichtung läuft **automatisch** – du musst keine Bibliotheken mehr von 
 
 - Für **jeden Benutzer** legt das Plugin zwei Bibliotheken an: „Empfohlene Filme – *Name*“ und „Empfohlene Serien – *Name*“. Das passiert beim Serverstart, sobald ein neuer Benutzer angelegt wird, und vor jeder Aktualisierung der Empfehlungen.
 - **Zugriffsrechte:** Jeder Benutzer sieht nur seine eigenen Empfehlungs-Bibliotheken.
-  - Benutzer mit „Zugriff auf alle Bibliotheken“ werden dafür auf eine Liste aller normalen Bibliotheken plus ihrer eigenen Empfehlungen umgestellt. Später neu angelegte Bibliotheken werden ihnen automatisch freigegeben.
-  - Nimmst du so einem Benutzer später von Hand eine Bibliothek weg, gilt er als bewusst eingeschränkt und bekommt neue Bibliotheken nicht mehr automatisch.
+  - Benutzer mit „Zugriff auf alle Bibliotheken“ werden dafür auf eine Liste aller **vorhandenen** Bibliotheken plus ihrer eigenen Empfehlungen umgestellt. Sie sehen also weiterhin alles, was sie vorher gesehen haben.
+  - **Neue Bibliotheken werden niemandem automatisch freigegeben.** Wer eine neue Bibliothek sehen soll, gibst du wie gewohnt unter Dashboard → Benutzer → Bibliothekszugriff frei (praktisch, wenn eine Bibliothek nur für einen Benutzer gedacht ist).
   - Bei Benutzern, die du schon von Hand eingeschränkt hast, bleibt die Auswahl erhalten. Es werden nur die eigenen Empfehlungen ergänzt und fremde entfernt.
+  - Neu angelegte Benutzer bekommen die Bibliotheken, die du beim Anlegen auswählst. Lässt du dort „Zugriff auf alle Bibliotheken“ angehakt, sieht der Benutzer alle vorhandenen Bibliotheken – also auch solche, die nur für einen anderen Benutzer gedacht sind. Für solche Fälle beim Anlegen die Bibliotheken einzeln auswählen.
 - Wird ein Benutzer gelöscht, entfernt das Plugin auch seine Empfehlungs-Bibliotheken (die Medien selbst bleiben unberührt).
 - Schon von Hand angelegte Empfehlungs-Bibliotheken werden anhand ihres Pfads erkannt und weiterverwendet.
 

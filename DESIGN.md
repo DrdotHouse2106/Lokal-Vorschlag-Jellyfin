@@ -412,7 +412,7 @@ libraries via `ILibraryManager.AddVirtualFolder` and manages access via `IUserMa
 - Runs on server start (after `CoreStartupHasCompleted`), on `UserCreatedEventArgs`, before each refresh task and via `POST /LocalRecs/Setup/Provision`
 - `UserDeletedEventArgs` removes libraries whose locations point only to the deleted user's directories
 - Access: own recommendation libraries are added, other users' recommendation libraries are removed from `EnabledFolders`
-- Users with `EnableAllFolders` are switched to an explicit list (all regular libraries + own recommendations) and remembered in `ManagedAllLibrariesUserIds`; regular libraries that appear later (compared to `KnownLibraryIds`) are granted to them. If an admin removes a known library from such a user, the user is dropped from that list (treated as deliberately restricted)
+- Users with `EnableAllFolders` are switched to an explicit list (all existing regular libraries + own recommendations). Libraries created later are not granted automatically; the admin decides per user (libraries are sometimes meant for a single user only)
 - `BlockedMediaFolders` is deliberately not used: when it is non-empty Jellyfin ignores `EnabledFolders`, which could widen access for restricted users
 - Both behaviours can be disabled (`AutoCreateLibraries`, `AutoManageLibraryAccess`); then the Setup tab shows the paths for manual setup
 

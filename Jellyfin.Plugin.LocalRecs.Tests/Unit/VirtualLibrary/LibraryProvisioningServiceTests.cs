@@ -34,7 +34,6 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.VirtualLibrary
         private readonly Dictionary<Guid, UserPolicy> _policies = new Dictionary<Guid, UserPolicy>();
         private readonly PluginConfiguration _config = new PluginConfiguration();
         private readonly LibraryProvisioningService _service;
-        private int _saveCount;
 
         public LibraryProvisioningServiceTests()
         {
@@ -77,8 +76,7 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.VirtualLibrary
                 _libraryManager.Object,
                 _userManager.Object,
                 _virtualLibraryManager,
-                () => _config,
-                () => _saveCount++);
+                () => _config);
         }
 
         public void Dispose()
@@ -160,8 +158,6 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.VirtualLibrary
             annaPolicy.EnableAllFolders.Should().BeFalse();
             annaPolicy.EnabledFolders.Should().BeEquivalentTo(new[] { movies, shows }.Concat(RecIds(anna)));
             annaPolicy.EnabledFolders.Should().NotIntersectWith(RecIds(ben));
-            _config.ManagedAllLibrariesUserIds.Should().BeEquivalentTo(new[] { anna.Id, ben.Id });
-            _saveCount.Should().BeGreaterThan(0);
         }
 
         [Fact]
@@ -175,7 +171,6 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.VirtualLibrary
             await _service.ProvisionAllAsync(false, CancellationToken.None);
 
             _policies[anna.Id].EnabledFolders.Should().BeEquivalentTo(new[] { movies }.Concat(RecIds(anna)));
-            _config.ManagedAllLibrariesUserIds.Should().NotContain(anna.Id);
             _policies[ben.Id].EnabledFolders.Should().NotIntersectWith(RecIds(anna));
         }
 
@@ -196,18 +191,20 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.VirtualLibrary
         }
 
         [Fact]
-        public async Task ProvisionAll_NewLibrary_IsGrantedOnlyToFormerAllLibrariesUsers()
+        public async Task ProvisionAll_NewLibrary_IsNotGrantedToAnyUser()
         {
             var movies = AddFolder("Filme", CollectionTypeOptions.movies, "/media/filme");
             var anna = AddUser("Anna");
             var ben = AddUser("Ben", allFolders: false, enabled: new[] { movies });
             await _service.ProvisionAllAsync(false, CancellationToken.None);
 
-            var music = AddFolder("Musik", CollectionTypeOptions.music, "/media/musik");
+            // Admin legt eine Bibliothek nur für Ben an und gibt sie ihm von Hand frei
+            var extra = AddFolder("Nur für Ben", CollectionTypeOptions.movies, "/media/ben");
+            _policies[ben.Id].EnabledFolders = _policies[ben.Id].EnabledFolders.Append(extra).ToArray();
             await _service.ProvisionAllAsync(false, CancellationToken.None);
 
-            _policies[anna.Id].EnabledFolders.Should().Contain(music);
-            _policies[ben.Id].EnabledFolders.Should().NotContain(music);
+            _policies[anna.Id].EnabledFolders.Should().NotContain(extra);
+            _policies[ben.Id].EnabledFolders.Should().Contain(extra);
         }
 
         [Fact]
@@ -223,25 +220,6 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.VirtualLibrary
 
             _policies[anna.Id].EnabledFolders.Should().Contain(movies);
             _policies[anna.Id].EnabledFolders.Should().NotContain(shows);
-        }
-
-        [Fact]
-        public async Task ProvisionAll_UserRestrictedByAdminAfterwards_DoesNotGetNewLibraries()
-        {
-            var movies = AddFolder("Filme", CollectionTypeOptions.movies, "/media/filme");
-            var shows = AddFolder("Serien", CollectionTypeOptions.tvshows, "/media/serien");
-            var anna = AddUser("Anna");
-            await _service.ProvisionAllAsync(false, CancellationToken.None);
-
-            // Admin schränkt Anna nachträglich auf "Filme" ein
-            _policies[anna.Id].EnabledFolders = new[] { movies }.Concat(RecIds(anna)).ToArray();
-            await _service.ProvisionAllAsync(false, CancellationToken.None);
-
-            var music = AddFolder("Musik", CollectionTypeOptions.music, "/media/musik");
-            await _service.ProvisionAllAsync(false, CancellationToken.None);
-
-            _policies[anna.Id].EnabledFolders.Should().NotContain(music).And.NotContain(shows);
-            _config.ManagedAllLibrariesUserIds.Should().NotContain(anna.Id);
         }
 
         [Fact]
@@ -267,7 +245,6 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.VirtualLibrary
             await _service.RemoveUserLibrariesAsync(anna.Id);
 
             _folders.Select(f => f.Name).Should().BeEquivalentTo(new[] { "Filme", "Empfohlene Filme – Ben", "Empfohlene Serien – Ben" });
-            _config.ManagedAllLibrariesUserIds.Should().NotContain(anna.Id);
         }
 
         private static UserPolicy ClonePolicy(UserPolicy policy)

@@ -52,8 +52,7 @@ namespace Jellyfin.Plugin.LocalRecs
                     sp.GetRequiredService<MediaBrowser.Controller.Library.ILibraryManager>(),
                     sp.GetRequiredService<MediaBrowser.Controller.Library.IUserManager>(),
                     sp.GetRequiredService<VirtualLibraryManager>(),
-                    () => Plugin.Instance?.Configuration,
-                    () => Plugin.Instance?.SaveConfiguration()));
+                    () => Plugin.Instance?.Configuration));
 
             serviceCollection.AddSingleton(sp =>
             {

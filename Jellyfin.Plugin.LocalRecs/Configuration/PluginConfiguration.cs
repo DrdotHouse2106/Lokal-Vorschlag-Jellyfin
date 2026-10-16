@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using MediaBrowser.Model.Plugins;
 
@@ -29,8 +28,6 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             AutoManageLibraryAccess = true;
             MovieLibraryNameTemplate = "Empfohlene Filme – {user}";
             TvLibraryNameTemplate = "Empfohlene Serien – {user}";
-            ManagedAllLibrariesUserIds = Array.Empty<Guid>();
-            KnownLibraryIds = Array.Empty<Guid>();
         }
 
         /// <summary>
@@ -53,17 +50,6 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Gets or sets the name template for TV recommendation libraries ("{user}" = username).
         /// </summary>
         public string TvLibraryNameTemplate { get; set; }
-
-        /// <summary>
-        /// Gets or sets the users that originally had access to all libraries before the plugin
-        /// switched them to an explicit library list. New libraries are passed on to these users.
-        /// </summary>
-        public Guid[] ManagedAllLibrariesUserIds { get; set; }
-
-        /// <summary>
-        /// Gets or sets the regular (non-recommendation) libraries known at the last access sync.
-        /// </summary>
-        public Guid[] KnownLibraryIds { get; set; }
 
         /// <summary>
         /// Gets or sets the number of movie recommendations to generate per user.
