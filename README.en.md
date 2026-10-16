@@ -41,7 +41,8 @@ For Jellyfin 10.11.x use upstream version 0.6.1.
 
 1. **Add plugin repository:**  
    Dashboard → Plugins → Repositories → Add  
-   `https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/manifest.json`
+   `https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/manifest.json`  
+   (the shared plugin repository [DrdotHouse2106/Jellyfin-Plugins](https://github.com/DrdotHouse2106/Jellyfin-Plugins); the old URL `https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/manifest.json` keeps working)
 
 2. **Install plugin:**  
    Dashboard → Plugins → Catalog → Install "Local Recommendations"

@@ -42,12 +42,14 @@ Für Jellyfin 10.11.x bitte die Original-Version 0.6.1 verwenden.
 
 ### Variante A: Über das Plugin-Repository
 
-> Funktioniert nur, wenn dieses GitHub-Repository **öffentlich** ist.
+Das Plugin steht im gemeinsamen Plugin-Repository [DrdotHouse2106/Jellyfin-Plugins](https://github.com/DrdotHouse2106/Jellyfin-Plugins), das alle eigenen Jellyfin-Plugins bündelt.
 
 1. Dashboard → Plugins → Repositories → Hinzufügen
-   `https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/manifest.json`
+   `https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/manifest.json`
 2. Dashboard → Plugins → Katalog → „Local Recommendations“ installieren
 3. Jellyfin-Server neu starten
+
+Hast du früher das Repository `https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/manifest.json` eingetragen, funktioniert es weiter. Trag aber besser nur noch das gemeinsame Repository oben ein, damit das Plugin nicht doppelt im Katalog auftaucht.
 
 ### Variante B: Manuell
 
