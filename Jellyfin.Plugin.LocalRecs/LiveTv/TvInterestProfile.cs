@@ -34,7 +34,8 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         /// <param name="titleKey">Normalized title key (see <see cref="LiveTvText.NormalizeTitle"/>).</param>
         /// <param name="people">People.</param>
         /// <param name="weight">Weight of the signal.</param>
-        public void Add(IEnumerable<string>? genres, string? titleKey, IEnumerable<string>? people, float weight)
+        /// <param name="sport">Detected sport (see <see cref="LiveTvText.DetectSport"/>), if any.</param>
+        public void Add(IEnumerable<string>? genres, string? titleKey, IEnumerable<string>? people, float weight, string? sport = null)
         {
             if (weight <= 0)
             {
@@ -54,6 +55,12 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             if (!string.IsNullOrEmpty(titleKey))
             {
                 _titles[titleKey] = _titles.GetValueOrDefault(titleKey) + weight;
+            }
+
+            if (!string.IsNullOrEmpty(sport))
+            {
+                var sportKey = SportKey(sport);
+                _titles[sportKey] = _titles.GetValueOrDefault(sportKey) + weight;
             }
 
             foreach (var person in (people ?? Enumerable.Empty<string>()).Select(LiveTvText.NormalizeFeature).Where(p => p.Length > 0).Distinct())
@@ -84,13 +91,24 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         }
 
         /// <summary>
+        /// Checks whether the user has watched this kind of sport (e.g. "fußball").
+        /// </summary>
+        /// <param name="sport">Sport.</param>
+        /// <returns>True if the sport was watched before.</returns>
+        public bool HasSport(string? sport)
+        {
+            return !string.IsNullOrEmpty(sport) && _titles.ContainsKey(SportKey(sport));
+        }
+
+        /// <summary>
         /// Scores a program against the profile.
         /// </summary>
         /// <param name="genres">Genres of the program.</param>
         /// <param name="titleKey">Normalized title key of the program.</param>
         /// <param name="people">People of the program.</param>
+        /// <param name="sport">Detected sport of the program, if any.</param>
         /// <returns>Score (0 = no match).</returns>
-        public float Score(IEnumerable<string>? genres, string? titleKey, IEnumerable<string>? people)
+        public float Score(IEnumerable<string>? genres, string? titleKey, IEnumerable<string>? people, string? sport = null)
         {
             if (!_normalized)
             {
@@ -102,7 +120,9 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 ? 0f
                 : genreList.Sum(g => _genres.GetValueOrDefault(g)) / (float)Math.Sqrt(genreList.Count);
 
-            var titleScore = string.IsNullOrEmpty(titleKey) ? 0f : _titles.GetValueOrDefault(titleKey);
+            var titleScore = Math.Max(
+                string.IsNullOrEmpty(titleKey) ? 0f : _titles.GetValueOrDefault(titleKey),
+                string.IsNullOrEmpty(sport) ? 0f : _titles.GetValueOrDefault(SportKey(sport)));
 
             var peopleScore = (people ?? Enumerable.Empty<string>())
                 .Select(LiveTvText.NormalizeFeature)
@@ -114,6 +134,8 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 + (TitleFactor * titleScore)
                 + (PeopleFactor * Math.Min(peopleScore, 1f));
         }
+
+        private static string SportKey(string sport) => "sport:" + sport;
 
         private static void ScaleToMax(Dictionary<string, float> weights)
         {

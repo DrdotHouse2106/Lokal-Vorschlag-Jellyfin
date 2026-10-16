@@ -51,11 +51,11 @@ Für Jellyfin 10.11.x bitte die Original-Version 0.6.1 verwenden.
 
 ### Variante B: Manuell
 
-1. [`release/jellyfin-plugin-localrecs-v12.3.1.zip`](release/jellyfin-plugin-localrecs-v12.3.1.zip) herunterladen und entpacken.
+1. [`release/jellyfin-plugin-localrecs-v12.3.2.zip`](release/jellyfin-plugin-localrecs-v12.3.2.zip) herunterladen und entpacken.
 2. Die Datei `Jellyfin.Plugin.LocalRecs.dll` in einen neuen Ordner im Plugin-Verzeichnis legen, z. B.
-   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.3.1.0/`
-   - Docker: `/config/plugins/LocalRecs_12.3.1.0/`
-   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.3.1.0\`
+   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.3.2.0/`
+   - Docker: `/config/plugins/LocalRecs_12.3.2.0/`
+   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.3.2.0\`
 3. Jellyfin-Server neu starten.
 
 ## Einrichtung
@@ -70,7 +70,7 @@ Im Plugin unter **Einstellungen → Startseite** siehst du, ob alles verbunden i
 
 - **Mitschreiben:** Jellyfin meldet beim Live-TV nur den Sender. Das Plugin schaut im EPG nach, welche Sendung gerade lief, und zählt die Minuten pro Sendung – bei allen Apps, auch den TV-Apps.
 - **Senderwechsel (z. B. Fußball-Konferenz):** Jede Sendung bekommt ihre eigenen Minuten. Da alle Spiele „Fußball“ heißen bzw. das Genre „Sport“ haben, addieren sie sich beim Interesse. Wer samstags zwischen Sky 1 und Sky 2 springt, bekommt danach kommende Fußballspiele empfohlen.
-- **Sport nur bei passendem Titel:** Bei Sportsendungen reicht das Genre „Sport“ nicht – wer Fußball schaut, bekommt kein Handball, Golf oder Tennis vorgeschlagen.
+- **Sportart-Erkennung:** Das Plugin erkennt die Sportart aus Genre, Titel und Episodentitel (z. B. „Fußball“, „1. Bundesliga“, „Bundesliga 26/27“, „Handball: Bundesliga“). Sportsendungen werden nur bei gleicher Sportart empfohlen – wer Fußball schaut, bekommt alle Fußballspiele (Sky, DAZN, Sportdigital …), aber kein Handball, Golf oder Tennis. Mehrere Spiele gleichzeitig werden einzeln angezeigt.
 - **Zappen** (kürzer als 3 Minuten) wird ignoriert. **Nachrichten, News und Wetter** werden ignoriert, weil sie oft nur nebenbei laufen (einstellbar).
 - **„Heute im TV für dich“:** Sendungen der nächsten 24 Stunden (einstellbar), die zu Live-TV-Verlauf und Bibliothek passen. Läuft eine Serie, die du in der Bibliothek schaust, steht sie weit vorne. Jede Sendung erscheint nur einmal (nächster Termin).
 - **Bibliothek:** Wurde ein Titel insgesamt mindestens 15 Minuten live geschaut und gibt es ihn auch in der Bibliothek, zählt er dort als gesehen und beeinflusst die Film- und Serien-Empfehlungen.

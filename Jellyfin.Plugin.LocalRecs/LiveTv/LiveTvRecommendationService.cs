@@ -86,11 +86,11 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             return programs
                 .Where(p => !LiveTvText.IsExcluded(p.Genres, excludedGenres) && !watchedBroadcasts.Contains(p.BroadcastKey))
 
-                // Sport nur bei passendem Titel: wer Fußball schaut, bekommt kein Handball, Golf oder Tennis
-                .Where(p => !p.IsSports || profile.HasTitle(p.TitleKey))
-                .Select(p => (Program: p, Score: profile.Score(p.Genres, p.TitleKey, p.People)))
+                // Sport nur bei gleicher Sportart oder gleichem Titel: wer Fußball schaut, bekommt kein Handball, Golf oder Tennis
+                .Where(p => !p.IsSports || profile.HasSport(p.Sport) || profile.HasTitle(p.TitleKey))
+                .Select(p => (Program: p, Score: profile.Score(p.Genres, p.TitleKey, p.People, p.Sport)))
                 .Where(x => x.Score >= MinScore)
-                .GroupBy(x => x.Program.TitleKey.Length > 0 ? x.Program.TitleKey : x.Program.BroadcastKey)
+                .GroupBy(x => DedupeKey(x.Program))
                 .Select(g => g.OrderBy(x => x.Program.StartDate).First()) // pro Sendung nur der nächste Termin
                 .OrderByDescending(x => x.Score)
                 .ThenBy(x => x.Program.StartDate)
@@ -115,6 +115,24 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             var items = ComputeRecommendedPrograms(userId, now);
             _cache[userId] = (now, items);
             return items;
+        }
+
+        /// <summary>
+        /// Key used to show each show only once. Sports broadcasts are distinguished by their pairing
+        /// (episode title), so several football games can be recommended at the same time.
+        /// </summary>
+        private static string DedupeKey(ProgramCandidate program)
+        {
+            if (program.IsSports)
+            {
+                var key = LiveTvText.NormalizeFeature(program.Title) + "|" + LiveTvText.NormalizeFeature(program.EpisodeTitle);
+                if (key.Length > 1)
+                {
+                    return key;
+                }
+            }
+
+            return program.TitleKey.Length > 0 ? program.TitleKey : program.BroadcastKey;
         }
 
         private IReadOnlyList<BaseItem> ComputeRecommendedPrograms(Guid userId, DateTime now)
@@ -155,7 +173,20 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 Genres = p.Genres ?? Array.Empty<string>(),
                 People = Array.Empty<string>(),
                 StartDate = p.StartDate,
-                IsSports = p.IsSports || LiveTvText.IsSportsGenre(p.Genres)
+                Title = p.Name ?? string.Empty,
+                EpisodeTitle = p.EpisodeTitle,
+                Sport = LiveTvText.DetectSport(p.Genres, p.Name, p.EpisodeTitle, p.SeriesName)
+            }).Select(c =>
+            {
+                var taggedAsSports = ((LiveTvProgram)c.Item!).IsSports;
+                if (c.Sport == null && taggedAsSports)
+                {
+                    // Als Sport markiert, aber Genre ohne Sportart: Sportart aus dem Titel bestimmen
+                    c.Sport = LiveTvText.DetectSport(null, c.Title, c.EpisodeTitle);
+                }
+
+                c.IsSports = c.Sport != null || LiveTvText.IsSportsGenre(c.Genres) || taggedAsSports;
+                return c;
             });
 
             var watchedKeys = watchedEntries.Select(e => e.BroadcastKey).ToHashSet();
@@ -184,7 +215,8 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             {
                 var hours = (float)Math.Min(entry.Minutes, 180) / 60f;
                 var decay = WeightCalculator.ExponentialDecay((now - entry.LastWatched).TotalDays, config.RecencyDecayHalfLifeDays);
-                profile.Add(entry.Genres, LiveTvText.TitleKey(entry), entry.People, hours * decay);
+                var sport = LiveTvText.DetectSport(entry.Genres, entry.Title, entry.EpisodeTitle, entry.SeriesName);
+                profile.Add(entry.Genres, LiveTvText.TitleKey(entry), entry.People, hours * decay, sport);
             }
 
             // 2. Bibliothek: gesehene Filme
@@ -262,6 +294,21 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             /// Gets or sets a value indicating whether the program is a sports broadcast.
             /// </summary>
             public bool IsSports { get; set; }
+
+            /// <summary>
+            /// Gets or sets the detected sport (e.g. "fußball"), if any.
+            /// </summary>
+            public string? Sport { get; set; }
+
+            /// <summary>
+            /// Gets or sets the program title.
+            /// </summary>
+            public string Title { get; set; } = string.Empty;
+
+            /// <summary>
+            /// Gets or sets the episode title (for sports usually the pairing).
+            /// </summary>
+            public string? EpisodeTitle { get; set; }
         }
     }
 }

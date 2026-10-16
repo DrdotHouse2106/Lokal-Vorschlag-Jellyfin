@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "12.3.2.0",
+        "changelog": "Sportart-Erkennung / Sport detection\n- Erkennt die Sportart aus Genre, Titel und Episodentitel (Fußball bei Sky, DAZN, Sportdigital …)\n- Fußball-Fans bekommen alle Fußballspiele, aber kein Handball, Golf oder Tennis\n- Mehrere Spiele mit gleichem Titel werden einzeln angezeigt\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.3.2.zip",
+        "checksum": "7840568ca73f39519d5a9e18a549d786",
+        "timestamp": "2026-10-16T22:00:00Z"
+      },
+      {
         "version": "12.3.1.0",
         "changelog": "Sport nur bei passendem Titel / Sports only for matching titles\n- „Heute im TV für dich“ schlägt Sportsendungen nur vor, wenn der Titel passt (Fußball-Fans bekommen kein Handball, Golf oder Tennis)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

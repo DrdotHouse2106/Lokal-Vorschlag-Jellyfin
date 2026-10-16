@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.3.2] - 2026-10-16
+
+### Changed
+
+- **Sport detection** for "Heute im TV für dich" based on real EPG data: the sport is detected from genres first ("Fußball", "1. Bundesliga", "Handball", …), then from title/episode title if the program is a sports program or has no genre ("Bundesliga 26/27", "Bundesliga: …", "Fußball: Champions League"). Sports programs are recommended if the sport matches what the user watched, so football fans get football from all providers (Sky, DAZN, Sportdigital) but no handball, golf or tennis.
+- Several sports broadcasts with the same title (e.g. multiple Champions League games) are shown individually (deduplicated by title + pairing instead of title only).
+- Short abbreviations (NFL, ATP, …) only match whole words; titles of non-sports programs are not used for sport detection (e.g. "Tatort: Bundesliga-Mord").
+
 ## [12.3.1] - 2026-10-16
 
 ### Fixed

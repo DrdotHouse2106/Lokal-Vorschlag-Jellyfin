@@ -61,6 +61,51 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.LiveTv
             ranked.Select(p => p.TitleKey).Should().Equal("fußball");
         }
 
+        [Theory]
+        [InlineData("Fußball: Champions League", "Manchester City – Paris Saint-Germain", "Fußball", "fußball")]
+        [InlineData("Bundesliga 26/27", "1. FC Köln – Borussia M'gladbach", "Sport", "fußball")]
+        [InlineData("Estudiantes (ARG) – Flamengo (BRA)", null, "Fußball", "fußball")]
+        [InlineData("Bundesliga: Eintracht Frankfurt – 1. FC Köln", null, "Sports", "fußball")]
+        [InlineData("Handball: Bundesliga", "HC Elbflorenz – Die Eulen Ludwigshafen", "Handball", "handball")]
+        [InlineData("Handball: 2. Bundesliga", "7. Spieltag: SG Flensburg-Handewitt – Füchse Berlin", "Sport", "handball")]
+        [InlineData("Golf: Ryder Cup", null, "Sport", "golf")]
+        [InlineData("NHL: Bruins – Rangers", null, "Sport", "eishockey")]
+        [InlineData("Sportschau", null, "Sportmagazin", null)]
+        [InlineData("Die Rosenheim-Cops", "Mord im Golfclub", "Krimiserie", null)]
+        [InlineData("Tatort: Bundesliga-Mord", null, "Krimi", null)]
+        [InlineData("Fußballmagazin", null, "Fußballmagazin", "fußball")]
+        [InlineData("Darts: WM", null, null, "darts")]
+        public void DetectSport_RecognizesRealEpgTitles(string title, string? episode, string? genre, string? expected)
+        {
+            LiveTvText.DetectSport(genre == null ? null : new[] { genre }, title, episode).Should().Be(expected);
+        }
+
+        [Fact]
+        public void FootballFan_GetsAllFootballGames_FromAllProviders_ButNoHandball()
+        {
+            // Mitgeschaut: Sky-Konferenz (Titel „Fußball: Bundesliga“, Genre Fußball)
+            var profile = new TvInterestProfile();
+            profile.Add(new[] { "Fußball" }, "fußball", null, 2f, "fußball");
+
+            var ranked = LiveTvRecommendationService.Rank(
+                profile,
+                new[]
+                {
+                    SportProgram("Bundesliga 26/27", "1. FC Köln – Borussia M'gladbach", "Sport", hours: 1),
+                    SportProgram("Fußball: Champions League", "Manchester City – Paris Saint-Germain", "Fußball", hours: 2),
+                    SportProgram("Fußball: Champions League", "Real Madrid – Inter Mailand", "Fußball", hours: 2),
+                    SportProgram("Estudiantes (ARG) – Flamengo (BRA)", null, "Fußball", hours: 3),
+                    SportProgram("Handball: Bundesliga", "SG Flensburg-Handewitt – Füchse Berlin", "Handball", hours: 1),
+                    SportProgram("Golf: Ryder Cup", null, "Sport", hours: 1)
+                },
+                NoExclusions,
+                NoneWatched,
+                10);
+
+            ranked.Should().HaveCount(4);
+            ranked.Should().OnlyContain(p => p.Sport == "fußball");
+        }
+
         [Fact]
         public void SameShowOnSeveralDates_OnlyNextAiringIsShown()
         {
@@ -126,6 +171,23 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.LiveTv
             var programs = Enumerable.Range(1, 10).Select(i => Program("Krimi " + i, "Krimi", hours: i));
 
             LiveTvRecommendationService.Rank(profile, programs, NoExclusions, NoneWatched, 3).Should().HaveCount(3);
+        }
+
+        private static Candidate SportProgram(string title, string? episode, string genre, int hours)
+        {
+            var start = Now.AddHours(hours);
+            var sport = LiveTvText.DetectSport(new[] { genre }, title, episode);
+            return new Candidate
+            {
+                BroadcastKey = title + "|" + episode + "|" + start.ToString("o", System.Globalization.CultureInfo.InvariantCulture),
+                TitleKey = LiveTvText.NormalizeTitle(title),
+                Title = title,
+                EpisodeTitle = episode,
+                Genres = new[] { genre },
+                StartDate = start,
+                Sport = sport,
+                IsSports = sport != null || LiveTvText.IsSportsGenre(new[] { genre })
+            };
         }
 
         private static Candidate Program(string title, string genre, int hours)
