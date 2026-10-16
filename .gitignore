@@ -11,6 +11,8 @@
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
+# Release-ZIPs des Plugins im Wurzelverzeichnis versionieren
+!/release/
 [Rr]eleases/
 x64/
 x86/

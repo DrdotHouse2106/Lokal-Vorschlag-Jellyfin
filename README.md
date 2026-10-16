@@ -30,6 +30,10 @@ Datenschutzfreundliche, personalisierte Empfehlungen für Jellyfin – ausschlie
 
 Für Jellyfin 10.11.x bitte die Original-Version 0.6.1 verwenden.
 
+**Versionsnummer:** Die Versionen dieses Forks sind an Jellyfin angelehnt (12.x). Jellyfin prüft nur, ob ein Plugin eine *mindestens* passende Server-Version verlangt. Durch die höhere Versionsnummer werden 10.11-Versionen des Originals auf Jellyfin 12 nie als Update angeboten.
+
+**Umstieg vom Original:** Die Plugin-ID ist gleich geblieben. Ein installiertes Original wird daher direkt aktualisiert, Einstellungen und Empfehlungs-Bibliotheken bleiben erhalten. Das Original-Repository kann danach aus den Plugin-Repositories entfernt werden.
+
 ## Installation
 
 ### Variante A: Über das Plugin-Repository
@@ -43,11 +47,11 @@ Für Jellyfin 10.11.x bitte die Original-Version 0.6.1 verwenden.
 
 ### Variante B: Manuell
 
-1. [`release/jellyfin-plugin-localrecs-v0.7.0.zip`](release/jellyfin-plugin-localrecs-v0.7.0.zip) herunterladen und entpacken.
+1. [`release/jellyfin-plugin-localrecs-v12.0.0.zip`](release/jellyfin-plugin-localrecs-v12.0.0.zip) herunterladen und entpacken.
 2. Die Datei `Jellyfin.Plugin.LocalRecs.dll` in einen neuen Ordner im Plugin-Verzeichnis legen, z. B.
-   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_0.7.0.0/`
-   - Docker: `/config/plugins/LocalRecs_0.7.0.0/`
-   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_0.7.0.0\`
+   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.0.0.0/`
+   - Docker: `/config/plugins/LocalRecs_12.0.0.0/`
+   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.0.0.0\`
 3. Jellyfin-Server neu starten.
 
 ## Einrichtung

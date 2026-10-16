@@ -5,11 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.7.0] - 2026-10-16
+## [12.0.0] - 2026-10-16
 
 ### Changed
 
 - **Jellyfin 12 compatibility**: the plugin now targets .NET 10 and the Jellyfin 12.0.0 packages (`targetAbi` `12.0.0.0`). Verified on a Jellyfin 12.2 server: plugin loads, setup API and configuration page work, refresh and benchmark tasks complete and recommendation symlinks are created.
+- **Version scheme aligned with Jellyfin**: this fork is versioned 12.x (previously 0.x upstream). Jellyfin treats `targetAbi` only as a *minimum* server version, so 10.11-targeted upstream releases would otherwise be offered as updates on Jellyfin 12 when both repositories are configured. A 12.x version number always ranks above upstream releases. The plugin ID is unchanged, so an installed upstream version upgrades in place.
+- `manifest.json` only lists Jellyfin-12 releases; the old 10.11 versions (0.2–0.6.1) were removed from the catalog.
 - CI now uses the .NET 10 SDK.
 
 ### Internal
