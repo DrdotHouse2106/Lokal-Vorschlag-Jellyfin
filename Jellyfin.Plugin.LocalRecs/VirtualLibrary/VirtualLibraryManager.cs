@@ -47,6 +47,11 @@ namespace Jellyfin.Plugin.LocalRecs.VirtualLibrary
         }
 
         /// <summary>
+        /// Gets the base path that contains all per-user virtual library directories.
+        /// </summary>
+        public string VirtualLibraryBasePath => _virtualLibraryBasePath;
+
+        /// <summary>
         /// Gets the virtual library path for a specific user and media type.
         /// </summary>
         /// <param name="userId">User ID.</param>

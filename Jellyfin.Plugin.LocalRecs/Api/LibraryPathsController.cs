@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Jellyfin.Plugin.LocalRecs.Models;
 using Jellyfin.Plugin.LocalRecs.VirtualLibrary;
 using MediaBrowser.Controller.Library;
@@ -23,6 +25,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         private readonly IUserManager _userManager;
         private readonly ILibraryManager _libraryManager;
         private readonly VirtualLibraryManager _virtualLibraryManager;
+        private readonly LibraryProvisioningService _provisioningService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LibraryPathsController"/> class.
@@ -31,17 +34,20 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// <param name="userManager">User manager instance.</param>
         /// <param name="libraryManager">Library manager instance.</param>
         /// <param name="virtualLibraryManager">Virtual library manager instance.</param>
+        /// <param name="provisioningService">Library provisioning service.</param>
         /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
         public LibraryPathsController(
             ILogger<LibraryPathsController> logger,
             IUserManager userManager,
             ILibraryManager libraryManager,
-            VirtualLibraryManager virtualLibraryManager)
+            VirtualLibraryManager virtualLibraryManager,
+            LibraryProvisioningService provisioningService)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
             _libraryManager = libraryManager ?? throw new ArgumentNullException(nameof(libraryManager));
             _virtualLibraryManager = virtualLibraryManager ?? throw new ArgumentNullException(nameof(virtualLibraryManager));
+            _provisioningService = provisioningService ?? throw new ArgumentNullException(nameof(provisioningService));
         }
 
         /// <summary>
@@ -55,6 +61,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             {
                 var users = _userManager.GetUsers().ToList();
                 var paths = new List<UserLibraryPathInfo>();
+                var virtualFolders = _libraryManager.GetVirtualFolders();
 
                 foreach (var user in users)
                 {
@@ -63,12 +70,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                     var tvPath = _virtualLibraryManager.GetUserLibraryPath(user.Id, MediaType.Series);
 
                     // Check if both libraries exist by looking for virtual folders
-                    var virtualFolders = _libraryManager.GetVirtualFolders();
-                    bool movieLibraryExists = virtualFolders.Any(vf => vf.Locations.Any(loc =>
-                        loc.Equals(moviePath, StringComparison.OrdinalIgnoreCase)));
-                    bool tvLibraryExists = virtualFolders.Any(vf => vf.Locations.Any(loc =>
-                        loc.Equals(tvPath, StringComparison.OrdinalIgnoreCase)));
-                    bool librariesCreated = movieLibraryExists && tvLibraryExists;
+                    var movieLibrary = _provisioningService.FindUserLibrary(virtualFolders, user.Id, MediaType.Movie);
+                    var tvLibrary = _provisioningService.FindUserLibrary(virtualFolders, user.Id, MediaType.Series);
+                    bool librariesCreated = movieLibrary != null && tvLibrary != null;
 
                     paths.Add(new UserLibraryPathInfo
                     {
@@ -76,8 +80,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                         Username = username,
                         MovieLibraryPath = moviePath,
                         TvLibraryPath = tvPath,
-                        SuggestedMovieLibraryName = $"{username}'s Recommended Movies",
-                        SuggestedTvLibraryName = $"{username}'s Recommended TV",
+                        SuggestedMovieLibraryName = _provisioningService.GetLibraryName(username, MediaType.Movie),
+                        SuggestedTvLibraryName = _provisioningService.GetLibraryName(username, MediaType.Series),
+                        MovieLibraryName = movieLibrary?.Name,
+                        TvLibraryName = tvLibrary?.Name,
                         LibrariesCreated = librariesCreated
                     });
                 }
@@ -88,6 +94,26 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             {
                 _logger.LogError(ex, "Failed to get library paths");
                 return StatusCode(500, "Failed to retrieve library paths");
+            }
+        }
+
+        /// <summary>
+        /// Legt fehlende Empfehlungs-Bibliotheken an und setzt die Zugriffsrechte (manueller Auslöser).
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The provisioning result.</returns>
+        [HttpPost("Setup/Provision")]
+        public async Task<ActionResult<ProvisioningResult>> ProvisionLibraries(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var result = await _provisioningService.ProvisionAllAsync(true, cancellationToken).ConfigureAwait(false);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to provision recommendation libraries");
+                return StatusCode(500, "Failed to provision recommendation libraries");
             }
         }
 

@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "12.1.0.0",
+        "changelog": "Automatische Einrichtung / Automatic setup\n- Legt für jeden Benutzer die Empfehlungs-Bibliotheken (Filme und Serien) automatisch an\n- Setzt die Zugriffsrechte, sodass jeder Benutzer nur seine eigenen Empfehlungen sieht\n- Entfernt die Bibliotheken gelöschter Benutzer\n- Neuer deutscher Setup-Reiter mit Status-Tabelle und Schaltern\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.1.0.zip",
+        "checksum": "408bce1298b6a26484ad560a8493dd75",
+        "timestamp": "2026-10-16T12:00:00Z"
+      },
+      {
         "version": "12.0.0.0",
         "changelog": "Jellyfin-12-Version / Jellyfin 12 release\n- Umstellung auf .NET 10 und Jellyfin-12-Pakete (targetAbi 12.0.0.0)\n- Versionsnummer an Jellyfin 12 angeglichen, damit keine 10.11-Versionen des Originals als Update angeboten werden\n- Getestet auf Jellyfin 12.2\n- BENÖTIGT Jellyfin 12.0 oder neuer (für 10.11.x das Original-Plugin 0.6.1 verwenden)",
         "targetAbi": "12.0.0.0",

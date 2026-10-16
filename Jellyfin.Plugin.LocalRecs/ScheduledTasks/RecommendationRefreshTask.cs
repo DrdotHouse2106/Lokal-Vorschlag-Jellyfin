@@ -23,6 +23,7 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
         private readonly IUserManager _userManager;
         private readonly RecommendationRefreshService _refreshService;
         private readonly VirtualLibraryManager _virtualLibraryManager;
+        private readonly LibraryProvisioningService _provisioningService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RecommendationRefreshTask"/> class.
@@ -31,16 +32,19 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
         /// <param name="userManager">User manager.</param>
         /// <param name="refreshService">Recommendation refresh service.</param>
         /// <param name="virtualLibraryManager">Virtual library manager.</param>
+        /// <param name="provisioningService">Service that creates the recommendation libraries.</param>
         public RecommendationRefreshTask(
             ILogger<RecommendationRefreshTask> logger,
             IUserManager userManager,
             RecommendationRefreshService refreshService,
-            VirtualLibraryManager virtualLibraryManager)
+            VirtualLibraryManager virtualLibraryManager,
+            LibraryProvisioningService provisioningService)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
             _refreshService = refreshService ?? throw new ArgumentNullException(nameof(refreshService));
             _virtualLibraryManager = virtualLibraryManager ?? throw new ArgumentNullException(nameof(virtualLibraryManager));
+            _provisioningService = provisioningService ?? throw new ArgumentNullException(nameof(provisioningService));
         }
 
         /// <inheritdoc />
@@ -70,6 +74,21 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
                 cancellationToken.ThrowIfCancellationRequested();
                 var users = _userManager.GetUsers().ToList();
                 _logger.LogInformation("Generating recommendations for {UserCount} users", users.Count);
+
+                // Fehlende Empfehlungs-Bibliotheken anlegen und Zugriffsrechte prüfen
+                try
+                {
+                    await _provisioningService.ProvisionAllAsync(false, cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Automatische Einrichtung der Empfehlungs-Bibliotheken fehlgeschlagen");
+                }
+
                 progress?.Report(5);
 
                 if (users.Count == 0)

@@ -13,29 +13,33 @@ namespace Jellyfin.Plugin.LocalRecs.VirtualLibrary
     {
         private readonly ILogger<UserDeletedEventHandler> _logger;
         private readonly VirtualLibraryManager _virtualLibraryManager;
+        private readonly LibraryProvisioningService _provisioningService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UserDeletedEventHandler"/> class.
         /// </summary>
         /// <param name="logger">Logger instance.</param>
         /// <param name="virtualLibraryManager">Virtual library manager for directory operations.</param>
+        /// <param name="provisioningService">Service that removes the recommendation libraries.</param>
         /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
         public UserDeletedEventHandler(
             ILogger<UserDeletedEventHandler> logger,
-            VirtualLibraryManager virtualLibraryManager)
+            VirtualLibraryManager virtualLibraryManager,
+            LibraryProvisioningService provisioningService)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _virtualLibraryManager = virtualLibraryManager ?? throw new ArgumentNullException(nameof(virtualLibraryManager));
+            _provisioningService = provisioningService ?? throw new ArgumentNullException(nameof(provisioningService));
         }
 
         /// <inheritdoc />
-        public Task OnEvent(UserDeletedEventArgs eventArgs)
+        public async Task OnEvent(UserDeletedEventArgs eventArgs)
         {
             var user = eventArgs.Argument;
             if (user == null)
             {
                 _logger.LogWarning("Received UserDeletedEventArgs with null user");
-                return Task.CompletedTask;
+                return;
             }
 
             _logger.LogInformation(
@@ -43,9 +47,16 @@ namespace Jellyfin.Plugin.LocalRecs.VirtualLibrary
                 user.Username,
                 user.Id);
 
-            _virtualLibraryManager.DeleteUserDirectories(user.Id, user.Username);
+            try
+            {
+                await _provisioningService.RemoveUserLibrariesAsync(user.Id).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Empfehlungs-Bibliotheken von {Username} konnten nicht entfernt werden", user.Username);
+            }
 
-            return Task.CompletedTask;
+            _virtualLibraryManager.DeleteUserDirectories(user.Id, user.Username);
         }
     }
 }

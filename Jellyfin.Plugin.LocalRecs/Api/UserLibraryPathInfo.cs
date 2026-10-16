@@ -41,5 +41,15 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// Gets or sets a value indicating whether the libraries are set up.
         /// </summary>
         public bool LibrariesCreated { get; set; }
+
+        /// <summary>
+        /// Gets or sets the name of the existing movie recommendation library, if any.
+        /// </summary>
+        public string? MovieLibraryName { get; set; }
+
+        /// <summary>
+        /// Gets or sets the name of the existing TV recommendation library, if any.
+        /// </summary>
+        public string? TvLibraryName { get; set; }
     }
 }

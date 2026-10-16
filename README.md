@@ -47,22 +47,28 @@ Für Jellyfin 10.11.x bitte die Original-Version 0.6.1 verwenden.
 
 ### Variante B: Manuell
 
-1. [`release/jellyfin-plugin-localrecs-v12.0.0.zip`](release/jellyfin-plugin-localrecs-v12.0.0.zip) herunterladen und entpacken.
+1. [`release/jellyfin-plugin-localrecs-v12.1.0.zip`](release/jellyfin-plugin-localrecs-v12.1.0.zip) herunterladen und entpacken.
 2. Die Datei `Jellyfin.Plugin.LocalRecs.dll` in einen neuen Ordner im Plugin-Verzeichnis legen, z. B.
-   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.0.0.0/`
-   - Docker: `/config/plugins/LocalRecs_12.0.0.0/`
-   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.0.0.0\`
+   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.1.0.0/`
+   - Docker: `/config/plugins/LocalRecs_12.1.0.0/`
+   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.1.0.0\`
 3. Jellyfin-Server neu starten.
 
 ## Einrichtung
 
-1. **Pfade anzeigen:** Dashboard → Plugins → Local Recommendations → Setup Guide. Dort stehen pro Benutzer zwei Pfade (Filme und Serien).
-2. **Virtuelle Bibliotheken anlegen:** Für jeden Benutzer zwei Bibliotheken erstellen (Dashboard → Bibliotheken → Medienbibliothek hinzufügen):
-   - Inhaltstyp **Filme** → Pfad „Movie Library Path“
-   - Inhaltstyp **Serien** → Pfad „TV Library Path“
-   - Den vorgeschlagenen Namen verwenden (z. B. „Max's Recommended Movies“)
-3. **Berechtigungen setzen:** Jede Empfehlungs-Bibliothek nur für den jeweiligen Benutzer freigeben (Dashboard → Benutzer → Zugriff).
-4. **Empfehlungen erzeugen:** Dashboard → Geplante Aufgaben → „Refresh Local Recommendations“ ausführen. Danach läuft die Aufgabe automatisch.
+Die Einrichtung läuft **automatisch** – du musst keine Bibliotheken mehr von Hand anlegen:
+
+- Für **jeden Benutzer** legt das Plugin zwei Bibliotheken an: „Empfohlene Filme – *Name*“ und „Empfohlene Serien – *Name*“. Das passiert beim Serverstart, sobald ein neuer Benutzer angelegt wird, und vor jeder Aktualisierung der Empfehlungen.
+- **Zugriffsrechte:** Jeder Benutzer sieht nur seine eigenen Empfehlungs-Bibliotheken.
+  - Benutzer mit „Zugriff auf alle Bibliotheken“ werden dafür auf eine Liste aller normalen Bibliotheken plus ihrer eigenen Empfehlungen umgestellt. Später neu angelegte Bibliotheken werden ihnen automatisch freigegeben.
+  - Nimmst du so einem Benutzer später von Hand eine Bibliothek weg, gilt er als bewusst eingeschränkt und bekommt neue Bibliotheken nicht mehr automatisch.
+  - Bei Benutzern, die du schon von Hand eingeschränkt hast, bleibt die Auswahl erhalten. Es werden nur die eigenen Empfehlungen ergänzt und fremde entfernt.
+- Wird ein Benutzer gelöscht, entfernt das Plugin auch seine Empfehlungs-Bibliotheken (die Medien selbst bleiben unberührt).
+- Schon von Hand angelegte Empfehlungs-Bibliotheken werden anhand ihres Pfads erkannt und weiterverwendet.
+
+**Einstellungen:** Dashboard → Plugins → Local Recommendations → Reiter **Setup**. Dort kannst du das automatische Anlegen und die Zugriffsverwaltung einzeln abschalten, die Namen der Bibliotheken ändern (`{user}` = Benutzername) und mit „Speichern und jetzt einrichten“ alles sofort ausführen. Die Tabelle zeigt pro Benutzer, welche Bibliotheken vorhanden sind.
+
+**Empfehlungen erzeugen:** Die geplante Aufgabe „Refresh Local Recommendations“ läuft täglich um 4 Uhr. Für ein sofortiges Ergebnis: Dashboard → Geplante Aufgaben → „Refresh Local Recommendations“ starten. Neue Empfehlungen erscheinen nach dem nächsten Bibliotheks-Scan (oder Bibliothek von Hand scannen).
 
 Eine ausführliche Beschreibung aller Einstellungen, des Algorithmus und der Fehlerbehebung findest du in der [englischen README](README.en.md) und in [DESIGN.md](DESIGN.md).
 

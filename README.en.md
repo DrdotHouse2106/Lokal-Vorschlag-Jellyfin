@@ -48,36 +48,14 @@ For Jellyfin 10.11.x use upstream version 0.6.1.
 
 ## Setup
 
-### Quick Start (5-10 minutes)
+Setup is **automatic** (since 12.1.0):
 
-#### 1. View Library Paths
-- Navigate to: **Dashboard → Plugins → Local Recommendations → Setup Guide**
-- Copy the library paths for each user (two per user: Movies and TV)
+- For **every user** the plugin creates two libraries ("Empfohlene Filme – *name*" and "Empfohlene Serien – *name*") on server start, when a user is created, and before every recommendation refresh. Existing recommendation libraries are detected by path and reused.
+- **Library access:** every user only sees their own recommendation libraries. Users with "access to all libraries" are switched to an explicit list of all regular libraries plus their own recommendations; libraries added later are granted to them automatically. If an admin later removes a library from such a user, the user is treated as deliberately restricted and no longer receives new libraries automatically. Users that were already restricted keep their selection.
+- When a user is deleted, their recommendation libraries are removed (media files are untouched).
+- Settings: **Dashboard → Plugins → Local Recommendations → Setup** – toggle automatic creation and access management, change the library name templates (`{user}` = username) and run the setup immediately.
 
-#### 2. Create Virtual Libraries
-For each user, create **two** libraries:
-
-**Movies:**
-- Dashboard → Libraries → Add Media Library
-- Content Type: **Movies**
-- Add media location: Paste the **Movie Library Path** from Setup Guide
-- Library name: User's suggested name (e.g., "John's Recommended Movies")
-
-**TV Shows:**
-- Content Type: **Shows**
-- Add media location: Paste the **TV Library Path** from Setup Guide
-- Library name: User's suggested name (e.g., "John's Recommended TV")
-
-#### 3. Set Permissions
-For each user:
-- Dashboard → Users → [Username] → Library Access
-- Enable **only** that user's recommendation libraries
-- Disable other users' recommendation libraries
-
-#### 4. Generate Recommendations
-- Dashboard → Scheduled Tasks → "Refresh Local Recommendations" → Run Now
-- Wait ~1-5 minutes (depending on library size)
-- Manually scan recommendation libraries to see results
+Generate recommendations: Dashboard → Scheduled Tasks → "Refresh Local Recommendations" → Run Now (runs daily at 4:00 AM by default). New recommendations appear after the next library scan.
 
 ## Configuration
 
@@ -138,7 +116,7 @@ Access via: **Dashboard → Plugins → Local Recommendations → Settings**
 Recommendations appear as separate libraries for each user:
 
 - Plugin creates filesystem symlinks pointing to original media files (with matching artwork symlinks)
-- Admin creates Jellyfin libraries pointing to plugin directories (one-time setup)
+- The plugin creates the Jellyfin libraries pointing to these directories and manages library access automatically
 - Each user gets Movies and TV libraries with personalized recommendations
 - Play status sync: Watch state on recommendation items is synced back to the source library
 - Watched items are cleaned up at the next scheduled recommendation refresh
@@ -155,7 +133,6 @@ Recommendations appear as separate libraries for each user:
 
 - **Duplicate "Continue Watching" / "Next Up":** Partially watched recommendations appear twice — once for the virtual (symlinked) item and once for the source media file. This resolves on the next recommendation refresh, or you can manually trigger a refresh from Scheduled Tasks.
 - **Metadata display:** Virtual library items may not show full text metadata (runtime, ratings, cast) in the UI because Jellyfin treats them as items in a separate library. Posters, backdrops, and playback work normally.
-- **Manual setup required:** Admin must manually create libraries and set permissions (Jellyfin API limitation)
 - **Library scanning:** Manually scan recommendation libraries after refresh to see updates
 - **Windows symlink permissions:** Requires Administrator or Developer Mode — see Troubleshooting.
 

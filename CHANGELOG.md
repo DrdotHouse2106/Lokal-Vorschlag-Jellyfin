@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.1.0] - 2026-10-16
+
+### Added
+
+- **Automatic library setup**: the plugin now creates the two recommendation libraries (movies and TV) for every user by itself – on server start, when a user is created, before every recommendation refresh, and via the new "Speichern und jetzt einrichten" button (`POST /LocalRecs/Setup/Provision`). Existing libraries are detected by path and reused. When a user is deleted, their recommendation libraries are removed.
+- **Automatic library access**: every user only sees their own recommendation libraries. Users with "access to all libraries" are switched to an explicit list of all regular libraries plus their own recommendations; libraries added later are granted to them automatically unless an admin has restricted them in the meantime. Already restricted users keep their selection.
+- New settings in the Setup tab: `AutoCreateLibraries`, `AutoManageLibraryAccess`, `MovieLibraryNameTemplate`, `TvLibraryNameTemplate` (defaults: "Empfohlene Filme – {user}", "Empfohlene Serien – {user}").
+
+### Changed
+
+- The Setup tab of the configuration page is now in German and shows a per-user status table instead of manual instructions (manual paths are still shown when automatic creation is disabled).
+- New recommendation libraries are created with chapter and trickplay image extraction disabled, because their files are only symlinks to the real library.
+
 ## [12.0.0] - 2026-10-16
 
 ### Changed

@@ -23,11 +23,45 @@
                     
                     <!-- Setup Tab -->
                     <div id="tab-setup" class="tab-content" style="display:block;">
-                        <h2 class="sectionTitle">Library Setup</h2>
-                        <p>Complete these one-time setup steps to enable personalized recommendations for each user.</p>
-                        
+                        <h2 class="sectionTitle">Empfehlungs-Bibliotheken</h2>
+                        <p>Jeder Benutzer bekommt zwei eigene Bibliotheken (Filme und Serien), in denen seine persönlichen Empfehlungen erscheinen.</p>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="autoCreateLibraries" name="autoCreateLibraries" />
+                                <span>Bibliotheken automatisch anlegen</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Legt für jeden Benutzer (auch für neue Benutzer) die beiden Empfehlungs-Bibliotheken automatisch an. Wird ein Benutzer gelöscht, werden seine Empfehlungs-Bibliotheken entfernt.</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="autoManageLibraryAccess" name="autoManageLibraryAccess" />
+                                <span>Zugriffsrechte automatisch setzen</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Jeder Benutzer sieht nur seine eigenen Empfehlungs-Bibliotheken. Benutzer mit „Zugriff auf alle Bibliotheken“ werden dafür auf eine Liste aller normalen Bibliotheken umgestellt; später neu angelegte Bibliotheken werden ihnen automatisch freigegeben.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="movieLibraryNameTemplate">Name der Film-Bibliothek:</label>
+                            <input is="emby-input" type="text" id="movieLibraryNameTemplate" name="movieLibraryNameTemplate" />
+                            <div class="fieldDescription"><code>{user}</code> wird durch den Benutzernamen ersetzt. Gilt nur für neu angelegte Bibliotheken.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="tvLibraryNameTemplate">Name der Serien-Bibliothek:</label>
+                            <input is="emby-input" type="text" id="tvLibraryNameTemplate" name="tvLibraryNameTemplate" />
+                            <div class="fieldDescription"><code>{user}</code> wird durch den Benutzernamen ersetzt. Gilt nur für neu angelegte Bibliotheken.</div>
+                        </div>
+
+                        <button is="emby-button" type="button" class="raised button-submit block" id="provisionButton">
+                            <span>Speichern und jetzt einrichten</span>
+                        </button>
+                        <div class="fieldDescription">Speichert die Einstellungen und legt fehlende Bibliotheken sofort an. Das passiert sonst automatisch beim Serverstart, bei neuen Benutzern und vor jeder Aktualisierung der Empfehlungen.</div>
+
+                        <h3 class="sectionTitle">Status</h3>
                         <div id="setupStatusContainer">
-                            <p>Loading library paths...</p>
+                            <p>Lade Status...</p>
                         </div>
                     </div>
                     
@@ -148,7 +182,7 @@
                         <h3 class="sectionTitle">Documentation</h3>
                         <p>For detailed information about this plugin, visit the GitHub repository.</p>
                         
-                        <a href="https://github.com/rdpharr/jellyfin-plugin-localrecs" target="_blank">
+                        <a href="https://github.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin" target="_blank">
                             <button is="emby-button" type="button" class="raised">
                                 <span>View Documentation</span>
                             </button>
@@ -221,35 +255,31 @@
                 loadSetupStatus: function(page) {
                     var self = this;
                     var container = page.querySelector('#setupStatusContainer');
-                    container.innerHTML = '<p>Loading library paths...</p>';
+                    container.innerHTML = '<p>Lade Status...</p>';
                     
                     ApiClient.getJSON(ApiClient.getUrl('LocalRecs/Setup/Paths'))
                         .then(function(users) {
                             if (!users || users.length === 0) {
-                                container.innerHTML = '<p>No users found. Create users in Jellyfin first, then refresh this page.</p>';
+                                container.innerHTML = '<p>Keine Benutzer gefunden.</p>';
                                 return;
                             }
                             
                             // Check if all libraries are created
                             var allCreated = users.every(function(user) { return user.LibrariesCreated; });
+                            var html = self.renderStatusTable(users);
                             
                             if (allCreated) {
-                                container.innerHTML = '<div style="background: rgba(76, 175, 80, 0.1); padding: 1.5em; border-left: 4px solid #4caf50;">' +
-                                    '<h3 style="margin-top: 0;">Setup Complete!</h3>' +
-                                    '<p>All recommendation libraries have been created. No further setup is required.</p>' +
-                                    '<p>Run the "Refresh Local Recommendations" scheduled task to generate recommendations.</p>' +
+                                html += '<div style="background: rgba(76, 175, 80, 0.1); padding: 1em 1.5em; margin-top: 1em; border-left: 4px solid #4caf50;">' +
+                                    '<p style="margin: 0;">Alle Empfehlungs-Bibliotheken sind vorhanden. Die Empfehlungen werden täglich durch die geplante Aufgabe „Refresh Local Recommendations“ aktualisiert.</p>' +
                                     '</div>';
-                                return;
+                            } else if (!page.querySelector('#autoCreateLibraries').checked) {
+                                html += '<p style="margin-top: 1.5em;">Automatisches Anlegen ist ausgeschaltet. Fehlende Bibliotheken kannst du mit „Speichern und jetzt einrichten“ anlegen oder von Hand mit diesen Pfaden:</p>';
+                                html += '<div>';
+                                users.forEach(function(user) {
+                                    html += self.renderUserSetupCard(user);
+                                });
+                                html += '</div>';
                             }
-                            
-                            var html = '<div class="paperList">';
-                            
-                            users.forEach(function(user) {
-                                html += self.renderUserSetupCard(user);
-                            });
-                            
-                            html += '</div>';
-                            html += self.renderNextStepsBox();
                             
                             container.innerHTML = html;
                             
@@ -258,26 +288,61 @@
                         })
                         .catch(function(error) {
                             console.error('Failed to load library paths:', error);
-                            container.innerHTML = '<p style="color: #ff5252;">Error loading library paths. Please check that the plugin is properly installed.</p>';
+                            container.innerHTML = '<p style="color: #ff5252;">Status konnte nicht geladen werden.</p>';
                         });
                 },
                 
                 /**
-                 * Renders next steps box.
+                 * Renders the per-user library status table.
                  */
-                renderNextStepsBox: function() {
-                    var html = '<div style="background: rgba(255,193,7,0.1); padding: 1.5em; margin-top: 2em; border-left: 4px solid #ffc107;">';
-                    html += '<h3 style="margin-top: 0;">After Creating Libraries</h3>';
-                    html += '<p><strong>Run the recommendation refresh task:</strong></p>';
-                    html += '<ol style="margin: 0.5em 0; padding-left: 1.5em; line-height: 1.8;">';
-                    html += '<li>Go to <strong>Dashboard → Scheduled Tasks</strong></li>';
-                    html += '<li>Find <strong>"Refresh Local Recommendations"</strong></li>';
-                    html += '<li>Click the <strong>Play button</strong> to run it now</li>';
-                    html += '</ol>';
-                    html += '</div>';
+                renderStatusTable: function(users) {
+                    var self = this;
+                    var cell = function(name) {
+                        return name
+                            ? '<td style="padding: 0.5em 1em 0.5em 0;"><span style="color: #4caf50;">✔</span> ' + self.escapeHtml(name) + '</td>'
+                            : '<td style="padding: 0.5em 1em 0.5em 0; color: #ffc107;">✘ fehlt</td>';
+                    };
+                    var html = '<table style="border-collapse: collapse; width: 100%; text-align: left;">';
+                    html += '<thead><tr><th style="padding: 0.5em 1em 0.5em 0;">Benutzer</th><th style="padding: 0.5em 1em 0.5em 0;">Filme</th><th style="padding: 0.5em 1em 0.5em 0;">Serien</th></tr></thead><tbody>';
+                    users.forEach(function(user) {
+                        html += '<tr style="border-top: 1px solid rgba(255,255,255,0.1);">';
+                        html += '<td style="padding: 0.5em 1em 0.5em 0;">' + self.escapeHtml(user.Username) + '</td>';
+                        html += cell(user.MovieLibraryName) + cell(user.TvLibraryName);
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table>';
                     return html;
                 },
-                
+
+                /**
+                 * Saves the configuration and creates missing libraries right away.
+                 */
+                provisionLibraries: function(page) {
+                    var self = this;
+                    Dashboard.showLoadingMsg();
+
+                    self.saveConfiguration(page, true)
+                        .then(function() {
+                            return ApiClient.ajax({
+                                type: 'POST',
+                                url: ApiClient.getUrl('LocalRecs/Setup/Provision'),
+                                dataType: 'json'
+                            });
+                        })
+                        .then(function(result) {
+                            Dashboard.hideLoadingMsg();
+                            var created = result && result.LibrariesCreated ? result.LibrariesCreated : 0;
+                            var users = result && result.UsersUpdated ? result.UsersUpdated : 0;
+                            Dashboard.alert('Fertig: ' + created + ' Bibliotheken angelegt, Zugriff für ' + users + ' Benutzer angepasst.');
+                            self.loadSetupStatus(page);
+                        })
+                        .catch(function(error) {
+                            console.error('Failed to provision libraries:', error);
+                            Dashboard.hideLoadingMsg();
+                            Dashboard.alert('Einrichtung fehlgeschlagen. Details stehen im Server-Log.');
+                        });
+                },
+
                 /**
                  * Renders a user setup card.
                  */
@@ -294,7 +359,7 @@
                     var suggestedTvName = this.escapeHtml(user.SuggestedTvLibraryName);
                     var userIdForButton = user.UserId.replace(/-/g, '');
                     
-                    var html = '<div class="listItem" style="margin: 1em 0; padding: 1.5em; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02);">';
+                    var html = '<div style="margin: 1em 0; padding: 1.5em; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02);">';
                     
                     html += '<h3 style="margin-top: 0;">' + username + '</h3>';
                     
@@ -436,6 +501,10 @@
                             page.querySelector('#maxVocabularyTags').value = config.MaxVocabularyTags !== undefined ? config.MaxVocabularyTags : 500;
                             page.querySelector('#enableRatingProximity').checked = config.EnableRatingProximity || false;
                             page.querySelector('#ratingProximityWeight').value = config.RatingProximityWeight !== undefined ? config.RatingProximityWeight : 0.2;
+                            page.querySelector('#autoCreateLibraries').checked = config.AutoCreateLibraries !== false;
+                            page.querySelector('#autoManageLibraryAccess').checked = config.AutoManageLibraryAccess !== false;
+                            page.querySelector('#movieLibraryNameTemplate').value = config.MovieLibraryNameTemplate || 'Empfohlene Filme – {user}';
+                            page.querySelector('#tvLibraryNameTemplate').value = config.TvLibraryNameTemplate || 'Empfohlene Serien – {user}';
 
                             self.updateFieldVisibility(page);
                             Dashboard.hideLoadingMsg();
@@ -458,11 +527,11 @@
                 /**
                  * Saves plugin configuration.
                  */
-                saveConfiguration: function(page) {
+                saveConfiguration: function(page, silent) {
                     var self = this;
                     Dashboard.showLoadingMsg();
                     
-                    ApiClient.getPluginConfiguration(self.pluginId)
+                    return ApiClient.getPluginConfiguration(self.pluginId)
                         .then(function(config) {
                             config.MovieRecommendationCount = parseInt(page.querySelector('#movieRecommendationCount').value);
                             config.TvRecommendationCount = parseInt(page.querySelector('#tvRecommendationCount').value);
@@ -475,15 +544,25 @@
                             config.MaxVocabularyTags = parseInt(page.querySelector('#maxVocabularyTags').value);
                             config.EnableRatingProximity = page.querySelector('#enableRatingProximity').checked;
                             config.RatingProximityWeight = parseFloat(page.querySelector('#ratingProximityWeight').value);
+                            config.AutoCreateLibraries = page.querySelector('#autoCreateLibraries').checked;
+                            config.AutoManageLibraryAccess = page.querySelector('#autoManageLibraryAccess').checked;
+                            config.MovieLibraryNameTemplate = page.querySelector('#movieLibraryNameTemplate').value.trim() || 'Empfohlene Filme – {user}';
+                            config.TvLibraryNameTemplate = page.querySelector('#tvLibraryNameTemplate').value.trim() || 'Empfohlene Serien – {user}';
 
                             return ApiClient.updatePluginConfiguration(self.pluginId, config);
                         })
                         .then(function(result) {
+                            if (silent) {
+                                return result;
+                            }
                             Dashboard.processPluginConfigurationUpdateResult(result);
                         })
                         .catch(function(error) {
                             console.error('Failed to save configuration:', error);
                             Dashboard.hideLoadingMsg();
+                            if (silent) {
+                                throw error;
+                            }
                         });
                 },
                 
@@ -585,6 +664,11 @@
                     LocalRecsConfig.updateFieldVisibility(page);
                 });
                 
+                page.querySelector('#provisionButton').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    LocalRecsConfig.provisionLibraries(page);
+                });
+
                 // Actions tab - link to scheduled tasks
                 page.querySelector('#triggerRefreshButton').addEventListener('click', function(e) {
                     e.preventDefault();

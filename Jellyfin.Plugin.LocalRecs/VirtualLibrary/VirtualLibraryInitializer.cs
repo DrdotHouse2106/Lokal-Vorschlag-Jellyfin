@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using MediaBrowser.Controller;
 using MediaBrowser.Controller.Library;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -21,6 +22,9 @@ namespace Jellyfin.Plugin.LocalRecs.VirtualLibrary
         private readonly string _virtualLibraryBasePath;
         private readonly VirtualLibraryManager _virtualLibraryManager;
         private readonly PlayStatusSyncService _playStatusSyncService;
+        private readonly LibraryProvisioningService _provisioningService;
+        private readonly IServerApplicationHost _applicationHost;
+        private readonly CancellationTokenSource _stoppingCts = new CancellationTokenSource();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VirtualLibraryInitializer"/> class.
@@ -30,19 +34,25 @@ namespace Jellyfin.Plugin.LocalRecs.VirtualLibrary
         /// <param name="virtualLibraryBasePath">Base path for virtual libraries.</param>
         /// <param name="virtualLibraryManager">Virtual library manager for directory operations.</param>
         /// <param name="playStatusSyncService">Play status sync service.</param>
+        /// <param name="provisioningService">Service that creates the recommendation libraries.</param>
+        /// <param name="applicationHost">Server application host.</param>
         /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
         public VirtualLibraryInitializer(
             ILogger<VirtualLibraryInitializer> logger,
             IUserManager userManager,
             string virtualLibraryBasePath,
             VirtualLibraryManager virtualLibraryManager,
-            PlayStatusSyncService playStatusSyncService)
+            PlayStatusSyncService playStatusSyncService,
+            LibraryProvisioningService provisioningService,
+            IServerApplicationHost applicationHost)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
             _virtualLibraryBasePath = virtualLibraryBasePath ?? throw new ArgumentNullException(nameof(virtualLibraryBasePath));
             _virtualLibraryManager = virtualLibraryManager ?? throw new ArgumentNullException(nameof(virtualLibraryManager));
             _playStatusSyncService = playStatusSyncService ?? throw new ArgumentNullException(nameof(playStatusSyncService));
+            _provisioningService = provisioningService ?? throw new ArgumentNullException(nameof(provisioningService));
+            _applicationHost = applicationHost ?? throw new ArgumentNullException(nameof(applicationHost));
         }
 
         /// <inheritdoc />
@@ -59,7 +69,17 @@ namespace Jellyfin.Plugin.LocalRecs.VirtualLibrary
 
                 if (!cancellationToken.IsCancellationRequested)
                 {
-                    LogSetupInstructions();
+                    var config = Plugin.Instance?.Configuration;
+                    if (config == null || config.AutoCreateLibraries)
+                    {
+                        // Bibliotheken erst anlegen, wenn der Server vollständig gestartet ist
+                        _ = Task.Run(() => ProvisionAfterStartupAsync(_stoppingCts.Token), CancellationToken.None);
+                    }
+                    else
+                    {
+                        LogSetupInstructions();
+                    }
+
                     _logger.LogInformation("Play status sync service is active and monitoring virtual library changes");
 
                     // Sync play status from source library to virtual library items
@@ -83,10 +103,34 @@ namespace Jellyfin.Plugin.LocalRecs.VirtualLibrary
         /// <inheritdoc />
         public Task StopAsync(CancellationToken cancellationToken)
         {
+            _stoppingCts.Cancel();
+
             // Dispose the play status sync service to unsubscribe from events and flush pending updates
             _playStatusSyncService.Dispose();
             _logger.LogInformation("Virtual library services stopped");
             return Task.CompletedTask;
+        }
+
+        private async Task ProvisionAfterStartupAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var deadline = DateTime.UtcNow.AddMinutes(10);
+                while (!_applicationHost.CoreStartupHasCompleted && DateTime.UtcNow < deadline)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(false);
+                }
+
+                await _provisioningService.ProvisionAllAsync(false, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Server wird beendet
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Automatische Einrichtung der Empfehlungs-Bibliotheken beim Start fehlgeschlagen");
+            }
         }
 
         private void InitializeDirectories(CancellationToken cancellationToken)
