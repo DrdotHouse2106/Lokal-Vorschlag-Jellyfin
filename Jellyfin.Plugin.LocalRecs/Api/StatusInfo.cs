@@ -26,5 +26,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// Gets or sets the time of the last refresh (UTC).
         /// </summary>
         public DateTime? LastUpdated { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of live TV broadcasts in the watch history.
+        /// </summary>
+        public int LiveTvTrackedBroadcasts { get; set; }
     }
 }

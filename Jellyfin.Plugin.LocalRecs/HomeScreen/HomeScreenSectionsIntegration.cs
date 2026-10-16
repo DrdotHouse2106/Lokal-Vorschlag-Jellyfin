@@ -32,6 +32,11 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
         /// </summary>
         public const string SeriesSectionId = "7d1c2a4e-4b0f-4d7c-9a51-0c6f3e2b8a12";
 
+        /// <summary>
+        /// Section ID of the live TV recommendations.
+        /// </summary>
+        public const string LiveTvSectionId = "7d1c2a4e-4b0f-4d7c-9a51-0c6f3e2b8a13";
+
         private const string HomeScreenSectionsAssemblyName = "Jellyfin.Plugin.HomeScreenSections";
         private const int MaxRegistrationAttempts = 30;
         private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(10);
@@ -115,8 +120,13 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
 
             try
             {
-                Register(registerMethod, MoviesSectionId, config.MovieSectionTitle, nameof(RecommendationSectionHandler.GetMovieResults));
-                Register(registerMethod, SeriesSectionId, config.TvSectionTitle, nameof(RecommendationSectionHandler.GetSeriesResults));
+                Register(registerMethod, MoviesSectionId, config.MovieSectionTitle, typeof(RecommendationSectionHandler), nameof(RecommendationSectionHandler.GetMovieResults));
+                Register(registerMethod, SeriesSectionId, config.TvSectionTitle, typeof(RecommendationSectionHandler), nameof(RecommendationSectionHandler.GetSeriesResults));
+                if (config.EnableLiveTvSection)
+                {
+                    Register(registerMethod, LiveTvSectionId, config.LiveTvSectionTitle, typeof(LiveTvSectionHandler), nameof(LiveTvSectionHandler.GetLiveTvResults));
+                }
+
                 SectionsRegistered = true;
                 _logger.LogInformation("Startseiten-Bereiche bei „Home Screen Sections“ angemeldet");
                 return true;
@@ -139,9 +149,8 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
                 .GetMethod("RegisterSection", BindingFlags.Public | BindingFlags.Static);
         }
 
-        private static void Register(MethodInfo registerMethod, string id, string? title, string resultsMethod)
+        private static void Register(MethodInfo registerMethod, string id, string? title, Type handlerType, string resultsMethod)
         {
-            var handlerType = typeof(RecommendationSectionHandler);
             var json = JsonSerializer.Serialize(new
             {
                 id,

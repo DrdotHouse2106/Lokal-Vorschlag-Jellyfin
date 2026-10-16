@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.LocalRecs.HomeScreen;
+using Jellyfin.Plugin.LocalRecs.LiveTv;
 using Jellyfin.Plugin.LocalRecs.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,19 +23,23 @@ namespace Jellyfin.Plugin.LocalRecs.Api
     {
         private readonly ILogger<LocalRecsController> _logger;
         private readonly RecommendationStore _store;
+        private readonly LiveTvWatchStore _liveTvWatchStore;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LocalRecsController"/> class.
         /// </summary>
         /// <param name="logger">Logger instance.</param>
         /// <param name="store">Recommendation store.</param>
+        /// <param name="liveTvWatchStore">Live TV watch history.</param>
         /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
         public LocalRecsController(
             ILogger<LocalRecsController> logger,
-            RecommendationStore store)
+            RecommendationStore store,
+            LiveTvWatchStore liveTvWatchStore)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _store = store ?? throw new ArgumentNullException(nameof(store));
+            _liveTvWatchStore = liveTvWatchStore ?? throw new ArgumentNullException(nameof(liveTvWatchStore));
         }
 
         /// <summary>
@@ -49,7 +54,8 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 HomeScreenSectionsInstalled = HomeScreenSectionsIntegration.IsHomeScreenSectionsInstalled,
                 SectionsRegistered = HomeScreenSectionsIntegration.SectionsRegistered,
                 UsersWithRecommendations = _store.UserCount,
-                LastUpdated = _store.LastUpdated
+                LastUpdated = _store.LastUpdated,
+                LiveTvTrackedBroadcasts = _liveTvWatchStore.Count
             });
         }
 

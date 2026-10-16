@@ -26,7 +26,62 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             RatingProximityWeight = 0.2;
             MovieSectionTitle = "Empfohlene Filme für dich";
             TvSectionTitle = "Empfohlene Serien für dich";
+            EnableLiveTvTracking = true;
+            LiveTvMinMinutes = 3;
+            LiveTvTitleMatchMinutes = 15;
+            LiveTvExcludedGenres = "Nachrichten, News, Wetter";
+            LiveTvHistoryDays = 180;
+            EnableLiveTvSection = true;
+            LiveTvSectionTitle = "Heute im TV für dich";
+            LiveTvLookaheadHours = 24;
+            LiveTvRecommendationCount = 20;
         }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether watched live TV programs are recorded and used for recommendations.
+        /// </summary>
+        public bool EnableLiveTvTracking { get; set; }
+
+        /// <summary>
+        /// Gets or sets the minimum minutes a program must be watched to count (shorter views are treated as zapping).
+        /// </summary>
+        public int LiveTvMinMinutes { get; set; }
+
+        /// <summary>
+        /// Gets or sets the total minutes of a title watched live after which a library item with the same title
+        /// counts as watched for the library recommendations.
+        /// </summary>
+        public int LiveTvTitleMatchMinutes { get; set; }
+
+        /// <summary>
+        /// Gets or sets the comma separated genres that are ignored for live TV (e.g. news running in the background).
+        /// </summary>
+        public string LiveTvExcludedGenres { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of days live TV watch history is kept.
+        /// </summary>
+        public int LiveTvHistoryDays { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the home screen section with upcoming live TV programs is shown.
+        /// </summary>
+        public bool EnableLiveTvSection { get; set; }
+
+        /// <summary>
+        /// Gets or sets the title of the live TV section on the home screen.
+        /// </summary>
+        public string LiveTvSectionTitle { get; set; }
+
+        /// <summary>
+        /// Gets or sets how many hours ahead the live TV section looks.
+        /// </summary>
+        public int LiveTvLookaheadHours { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum number of programs in the live TV section.
+        /// </summary>
+        public int LiveTvRecommendationCount { get; set; }
 
         /// <summary>
         /// Gets or sets the title of the movie section on the home screen.

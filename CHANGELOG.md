@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.3.0] - 2026-10-16
+
+### Added
+
+- **Live TV tracking**: playback reports of all clients (including native TV apps) are evaluated; for live TV the running program is looked up in the EPG and watched minutes are counted per broadcast. Metadata (title, series, genres, people, year) is copied at watch time because Jellyfin deletes old EPG entries. Stored in `plugins/LocalRecs/livetv-history.json`, saved every 5 minutes, kept 180 days. Zapping below `LiveTvMinMinutes` (default 3) and `LiveTvExcludedGenres` (default "Nachrichten, News, Wetter") are ignored. Channel switching (e.g. football on several channels) is counted per broadcast and adds up via title/genre.
+- **"Heute im TV für dich"**: third home screen section with upcoming programs (next `LiveTvLookaheadHours`, default 24) ranked by an interest profile built from live TV minutes and library history (watched movies, series with watched episodes). Each show appears once (next airing); already watched broadcasts are skipped.
+- Titles watched live for at least `LiveTvTitleMatchMinutes` (default 15) that also exist in the library count as watched for the library recommendations.
+- New settings in the "Startseite" tab; status shows the number of tracked broadcasts.
+
 ## [12.2.0] - 2026-10-16
 
 ### Changed (breaking)

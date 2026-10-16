@@ -28,8 +28,8 @@
 
                         <div style="background: rgba(33,150,243,0.1); padding: 1em 1.5em; border-left: 4px solid #2196f3; margin-bottom: 1.5em;">
                             <p style="margin-top: 0;"><strong>Voraussetzung:</strong> Die Plugins <strong>Home Screen Sections</strong>, <strong>File Transformation</strong> und <strong>Plugin Pages</strong> (Repository <code>https://www.iamparadox.dev/jellyfin/plugins/manifest.json</code>).</p>
-                            <p>Danach unter <strong>Dashboard → Plugins → Home Screen Sections</strong> das Plugin aktivieren und die Bereiche „Empfohlene Filme für dich“ und „Empfohlene Serien für dich“ für alle Benutzer einschalten (oder jeder Benutzer schaltet sie selbst im Menü „Modular Home“ ein).</p>
-                            <p style="margin-bottom: 0;">Die Zeilen erscheinen im Browser, in der Desktop-App und in den Handy-Apps – <strong>nicht in nativen TV-Apps</strong> (Android TV, Fire TV, Roku).</p>
+                            <p>Danach unter <strong>Dashboard → Plugins → Home Screen Sections</strong> das Plugin aktivieren und die Bereiche „Empfohlene Filme für dich“, „Empfohlene Serien für dich“ und „Heute im TV für dich“ für alle Benutzer einschalten (oder jeder Benutzer schaltet sie selbst im Menü „Modular Home“ ein).</p>
+                            <p style="margin-bottom: 0;">Die Zeilen (Filme, Serien und „Heute im TV für dich“) erscheinen im Browser, in der Desktop-App und in den Handy-Apps – <strong>nicht in nativen TV-Apps</strong> (Android TV, Fire TV, Roku).</p>
                         </div>
 
                         <h3 class="sectionTitle">Status</h3>
@@ -46,6 +46,54 @@
                         <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="tvSectionTitle">Titel für Serien:</label>
                             <input is="emby-input" type="text" id="tvSectionTitle" name="tvSectionTitle" />
+                        </div>
+
+                        <h3 class="sectionTitle">Live-TV</h3>
+                        <p>Das Plugin schreibt mit, welche Sendungen ihr live schaut – über alle Apps, auch die TV-Apps. Gezählt werden die Minuten pro Sendung: Wer z. B. bei der Fußball-Konferenz zwischen den Sendern wechselt, sammelt die Minuten aller Spiele beim Thema „Fußball“. Daraus entsteht die Zeile „Heute im TV für dich“ mit passenden Sendungen aus dem Programm.</p>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="enableLiveTvTracking" name="enableLiveTvTracking" />
+                                <span>Live geschaute Sendungen mitschreiben</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Fließt in „Heute im TV für dich“ ein. Läuft eine Sendung, die es auch in deiner Bibliothek gibt, zählt sie dort als gesehen.</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="enableLiveTvSection" name="enableLiveTvSection" />
+                                <span>Zeile „Heute im TV für dich“ anzeigen</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Muss zusätzlich in Home Screen Sections eingeschaltet werden. Änderung wird nach einem Neustart wirksam.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="liveTvSectionTitle">Titel für Live-TV:</label>
+                            <input is="emby-input" type="text" id="liveTvSectionTitle" name="liveTvSectionTitle" />
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="liveTvLookaheadHours">Vorschau (Stunden):</label>
+                            <input is="emby-input" type="number" id="liveTvLookaheadHours" name="liveTvLookaheadHours" min="1" max="168" />
+                            <div class="fieldDescription">Wie weit „Heute im TV für dich“ ins Programm schaut (Standard: 24).</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="liveTvMinMinutes">Mindestdauer pro Sendung (Minuten):</label>
+                            <input is="emby-input" type="number" id="liveTvMinMinutes" name="liveTvMinMinutes" min="0" max="120" />
+                            <div class="fieldDescription">Kürzeres Reinschauen gilt als Zappen und wird ignoriert (Standard: 3).</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="liveTvTitleMatchMinutes">Minuten, ab denen ein Titel in der Bibliothek als gesehen zählt:</label>
+                            <input is="emby-input" type="number" id="liveTvTitleMatchMinutes" name="liveTvTitleMatchMinutes" min="1" max="600" />
+                            <div class="fieldDescription">Summe über alle Ausstrahlungen desselben Titels (Standard: 15).</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="liveTvExcludedGenres">Ignorierte Genres:</label>
+                            <input is="emby-input" type="text" id="liveTvExcludedGenres" name="liveTvExcludedGenres" />
+                            <div class="fieldDescription">Kommagetrennt, z. B. Sendungen, die nur nebenbei laufen (Standard: Nachrichten, News, Wetter).</div>
                         </div>
 
                         <button is="emby-button" type="submit" class="raised button-submit block">
@@ -262,6 +310,9 @@
                             } else {
                                 html += ok(false, 'Noch keine Empfehlungen berechnet – die Aufgabe „Refresh Local Recommendations“ läuft automatisch an');
                             }
+                            html += ok(status.LiveTvTrackedBroadcasts > 0, status.LiveTvTrackedBroadcasts > 0
+                                ? status.LiveTvTrackedBroadcasts + ' live geschaute Sendungen erfasst'
+                                : 'Noch keine live geschauten Sendungen erfasst');
                             html += '</ul>';
                             container.innerHTML = html;
                         })
@@ -293,6 +344,13 @@
                             page.querySelector('#ratingProximityWeight').value = config.RatingProximityWeight !== undefined ? config.RatingProximityWeight : 0.2;
                             page.querySelector('#movieSectionTitle').value = config.MovieSectionTitle || 'Empfohlene Filme für dich';
                             page.querySelector('#tvSectionTitle').value = config.TvSectionTitle || 'Empfohlene Serien für dich';
+                            page.querySelector('#enableLiveTvTracking').checked = config.EnableLiveTvTracking !== false;
+                            page.querySelector('#enableLiveTvSection').checked = config.EnableLiveTvSection !== false;
+                            page.querySelector('#liveTvSectionTitle').value = config.LiveTvSectionTitle || 'Heute im TV für dich';
+                            page.querySelector('#liveTvLookaheadHours').value = config.LiveTvLookaheadHours !== undefined ? config.LiveTvLookaheadHours : 24;
+                            page.querySelector('#liveTvMinMinutes').value = config.LiveTvMinMinutes !== undefined ? config.LiveTvMinMinutes : 3;
+                            page.querySelector('#liveTvTitleMatchMinutes').value = config.LiveTvTitleMatchMinutes !== undefined ? config.LiveTvTitleMatchMinutes : 15;
+                            page.querySelector('#liveTvExcludedGenres').value = config.LiveTvExcludedGenres !== undefined && config.LiveTvExcludedGenres !== null ? config.LiveTvExcludedGenres : 'Nachrichten, News, Wetter';
 
                             self.updateFieldVisibility(page);
                             Dashboard.hideLoadingMsg();
@@ -334,6 +392,13 @@
                             config.RatingProximityWeight = parseFloat(page.querySelector('#ratingProximityWeight').value);
                             config.MovieSectionTitle = page.querySelector('#movieSectionTitle').value.trim() || 'Empfohlene Filme für dich';
                             config.TvSectionTitle = page.querySelector('#tvSectionTitle').value.trim() || 'Empfohlene Serien für dich';
+                            config.EnableLiveTvTracking = page.querySelector('#enableLiveTvTracking').checked;
+                            config.EnableLiveTvSection = page.querySelector('#enableLiveTvSection').checked;
+                            config.LiveTvSectionTitle = page.querySelector('#liveTvSectionTitle').value.trim() || 'Heute im TV für dich';
+                            config.LiveTvLookaheadHours = parseInt(page.querySelector('#liveTvLookaheadHours').value) || 24;
+                            config.LiveTvMinMinutes = Math.max(0, parseInt(page.querySelector('#liveTvMinMinutes').value) || 0);
+                            config.LiveTvTitleMatchMinutes = parseInt(page.querySelector('#liveTvTitleMatchMinutes').value) || 15;
+                            config.LiveTvExcludedGenres = page.querySelector('#liveTvExcludedGenres').value.trim();
 
                             return ApiClient.updatePluginConfiguration(self.pluginId, config);
                         })

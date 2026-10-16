@@ -23,6 +23,7 @@ Please report any issues or feedback on [GitHub Issues](https://github.com/Drdot
 - **Temporal similarity** - Decade-based grouping finds content from similar time periods
 - **Home screen rows** - "Empfohlene Filme für dich" / "Empfohlene Serien für dich", individual per user
 - **Real library items** - full metadata, shared watch state, no duplicates in "Continue Watching", no extra libraries
+- **Live TV** - tracks which programs you watch live (all clients, including TV apps) and shows the row **"Heute im TV für dich"** with matching upcoming programs from the EPG
 - **Privacy-first** - All processing happens locally on your server
 - **Performance optimized** - Handles 2,000+ item libraries efficiently
 
@@ -124,6 +125,15 @@ Access via: **Dashboard → Plugins → Local Recommendations → Settings**
 - No tracking or telemetry
 - Only uses data already in your Jellyfin database
 - All computation happens on your server
+
+### Live TV
+
+- Jellyfin only reports the channel during live TV playback; the plugin looks up the running program in the EPG and counts watched minutes per broadcast (all clients, including native TV apps).
+- Channel switching (e.g. a football conference across several channels) counts minutes per game; since all games share the title/genre, the interest adds up.
+- Views shorter than 3 minutes (zapping) and the genres "Nachrichten, News, Wetter" are ignored (configurable).
+- "Heute im TV für dich" ranks programs of the next 24 hours by genre, title and people interest from live TV and library history; each show appears once (next airing).
+- A title watched live for at least 15 minutes in total that also exists in the library counts as watched for the library recommendations.
+- Stored locally in `plugins/LocalRecs/livetv-history.json` (default: 180 days).
 
 ## Known Limitations
 

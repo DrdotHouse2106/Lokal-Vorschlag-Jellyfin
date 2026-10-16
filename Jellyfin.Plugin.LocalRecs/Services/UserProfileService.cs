@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Jellyfin.Data.Enums;
 using Jellyfin.Plugin.LocalRecs.Configuration;
+using Jellyfin.Plugin.LocalRecs.LiveTv;
 using Jellyfin.Plugin.LocalRecs.Models;
 using Jellyfin.Plugin.LocalRecs.Utilities;
 using MediaBrowser.Controller.Entities;
@@ -22,6 +23,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         private readonly IUserManager _userManager;
         private readonly ILibraryManager _libraryManager;
         private readonly ILogger<UserProfileService> _logger;
+        private readonly LiveTvWatchStore? _liveTvWatchStore;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UserProfileService"/> class.
@@ -30,16 +32,19 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         /// <param name="userManager">The user manager.</param>
         /// <param name="libraryManager">The library manager.</param>
         /// <param name="logger">The logger.</param>
+        /// <param name="liveTvWatchStore">Optional live TV watch history.</param>
         public UserProfileService(
             IUserDataManager userDataManager,
             IUserManager userManager,
             ILibraryManager libraryManager,
-            ILogger<UserProfileService> logger)
+            ILogger<UserProfileService> logger,
+            LiveTvWatchStore? liveTvWatchStore = null)
         {
             _userDataManager = userDataManager ?? throw new ArgumentNullException(nameof(userDataManager));
             _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
             _libraryManager = libraryManager ?? throw new ArgumentNullException(nameof(libraryManager));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _liveTvWatchStore = liveTvWatchStore;
         }
 
         /// <summary>
@@ -74,7 +79,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             _logger.LogDebug("Building user profile for user {UserId}", userId);
 
             // Get watch records for this user
-            var watchRecords = GetWatchRecords(userId, embeddings.Keys);
+            var watchRecords = GetWatchRecords(userId, embeddings.Keys, config);
 
             if (watchRecords.Count == 0)
             {
@@ -116,8 +121,9 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         /// </summary>
         /// <param name="userId">The user identifier.</param>
         /// <param name="availableItemIds">Available item IDs (from embeddings).</param>
+        /// <param name="config">Plugin configuration.</param>
         /// <returns>List of watch records.</returns>
-        private List<WatchRecord> GetWatchRecords(Guid userId, IEnumerable<Guid> availableItemIds)
+        private List<WatchRecord> GetWatchRecords(Guid userId, IEnumerable<Guid> availableItemIds, PluginConfiguration config)
         {
             var records = new List<WatchRecord>();
             var user = _userManager.GetUserById(userId);
@@ -129,6 +135,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             }
 
             var itemIdSet = availableItemIds.ToHashSet();
+            var itemsByTitle = new Dictionary<string, Guid>();
 
             foreach (var itemId in itemIdSet)
             {
@@ -137,6 +144,8 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 {
                     continue;
                 }
+
+                itemsByTitle.TryAdd(LiveTvText.NormalizeTitle(item.Name), itemId);
 
                 var userData = _userDataManager.GetUserData(user, item);
 
@@ -178,7 +187,42 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 records.Add(record);
             }
 
+            AddLiveTvWatchRecords(userId, records, itemsByTitle, config);
+
             return records;
+        }
+
+        /// <summary>
+        /// Adds library items whose title was watched on live TV long enough (e.g. a series running on TV
+        /// that is also in the library) as watch records.
+        /// </summary>
+        private void AddLiveTvWatchRecords(
+            Guid userId,
+            List<WatchRecord> records,
+            Dictionary<string, Guid> itemsByTitle,
+            PluginConfiguration config)
+        {
+            if (_liveTvWatchStore == null || !config.EnableLiveTvTracking)
+            {
+                return;
+            }
+
+            var excluded = LiveTvText.ParseList(config.LiveTvExcludedGenres);
+            var known = records.Select(r => r.ItemId).ToHashSet();
+
+            var titles = _liveTvWatchStore.GetEntries(userId, config.LiveTvMinMinutes)
+                .Where(e => !LiveTvText.IsExcluded(e.Genres, excluded))
+                .GroupBy(LiveTvText.TitleKey)
+                .Where(g => g.Key.Length > 0 && g.Sum(e => e.Minutes) >= config.LiveTvTitleMatchMinutes);
+
+            foreach (var title in titles)
+            {
+                if (itemsByTitle.TryGetValue(title.Key, out var itemId) && known.Add(itemId))
+                {
+                    records.Add(new WatchRecord(itemId, userId, title.Max(e => e.LastWatched)));
+                    _logger.LogDebug("Live-TV title {Title} counts as watched library item {ItemId}", title.Key, itemId);
+                }
+            }
         }
 
         /// <summary>

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Jellyfin.Plugin.LocalRecs.HomeScreen;
+using Jellyfin.Plugin.LocalRecs.LiveTv;
 using Jellyfin.Plugin.LocalRecs.ScheduledTasks;
 using Jellyfin.Plugin.LocalRecs.Services;
 using MediaBrowser.Common.Configuration;
@@ -47,6 +48,14 @@ namespace Jellyfin.Plugin.LocalRecs
                     Path.Combine(GetPluginDataPath(sp), "virtual-libraries")));
 
             serviceCollection.AddHostedService<HomeScreenSectionsIntegration>();
+
+            // Phase 7b: Live TV (tracking of watched programs and "Heute im TV für dich")
+            serviceCollection.AddSingleton(sp =>
+                new LiveTvWatchStore(
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<LiveTvWatchStore>>(),
+                    Path.Combine(GetPluginDataPath(sp), "livetv-history.json")));
+            serviceCollection.AddSingleton<LiveTvRecommendationService>();
+            serviceCollection.AddHostedService<LiveTvTrackingService>();
 
             // Phase 8: Scheduled Tasks
             serviceCollection.AddTransient<IScheduledTask, RecommendationRefreshTask>();

@@ -367,6 +367,54 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Domain
 
         // Helper methods
 
+        [Theory]
+        [InlineData(20, true)]
+        [InlineData(10, false)]
+        public void BuildUserProfile_SeriesWatchedOnLiveTv_CountsAsWatched(double liveMinutes, bool expectProfile)
+        {
+            // Gilmore Girls is in the library but was only watched on live TV
+            var gilmore = new MediaItemMetadata(Guid.NewGuid(), "Gilmore Girls", MediaType.Series);
+            var other = new MediaItemMetadata(Guid.NewGuid(), "Other Show", MediaType.Series);
+            var embeddings = CreateEmbeddings(new List<MediaItemMetadata> { gilmore, other });
+            SetupSeriesWithNoWatchedEpisodes(gilmore);
+            SetupSeriesWithNoWatchedEpisodes(other);
+
+            var tempFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid() + ".json");
+            var liveStore = new Jellyfin.Plugin.LocalRecs.LiveTv.LiveTvWatchStore(
+                NullLogger<Jellyfin.Plugin.LocalRecs.LiveTv.LiveTvWatchStore>.Instance,
+                tempFile);
+            liveStore.AddMinutes(
+                new Jellyfin.Plugin.LocalRecs.LiveTv.LiveTvWatchEntry
+                {
+                    UserId = _testUserId,
+                    BroadcastKey = "vox|1",
+                    Title = "Gilmore Girls",
+                    SeriesName = "Gilmore Girls",
+                    Genres = new List<string> { "Comedy" }
+                },
+                liveMinutes,
+                DateTime.UtcNow);
+
+            var service = new UserProfileService(
+                _mockUserDataManager.Object,
+                _mockUserManager.Object,
+                _mockLibraryManager.Object,
+                NullLogger<UserProfileService>.Instance,
+                liveStore);
+
+            var profile = service.BuildUserProfile(_testUserId, embeddings, _config);
+
+            if (expectProfile)
+            {
+                profile.Should().NotBeNull();
+                profile!.WatchedItemCount.Should().Be(1);
+            }
+            else
+            {
+                profile.Should().BeNull("10 minutes are below the default title match threshold of 15");
+            }
+        }
+
         private List<MediaItemMetadata> CreateLargeLibrary(int itemCount)
         {
             var library = new List<MediaItemMetadata>();

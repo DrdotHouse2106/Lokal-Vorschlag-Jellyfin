@@ -15,6 +15,14 @@
 > A channel (`IChannel`) was evaluated and rejected: channel items are separate entities
 > (`ChannelManager.GetChannelItemEntityAsync`), so they would duplicate watch state just like the symlinks.
 > Sections below that describe virtual libraries, symlinks and play status sync document the previous design (≤ 12.1.1).
+>
+> **Live TV (12.3.0):** `LiveTvTrackingService` subscribes to `ISessionManager.PlaybackStart/Progress/Stopped`.
+> Live TV playback reports the channel (`LiveTvChannel`); `LiveTvWatchTracker` attributes the elapsed time between two reports
+> (gaps > 5 min are ignored, paused time is not counted) to the program running on that channel, splitting at program boundaries.
+> Minutes per user and broadcast are kept in `LiveTvWatchStore` (`livetv-history.json`, metadata copied because EPG entries expire).
+> `LiveTvRecommendationService` builds a `TvInterestProfile` (genre/title/people weights from live minutes and library history),
+> scores the programs of the next hours and returns one airing per title for the section "Heute im TV für dich" (`LiveTvSectionHandler`).
+> Titles watched live long enough are mapped to library items with the same normalized title and added as watch records in `UserProfileService`.
 
 ## Overview
 
