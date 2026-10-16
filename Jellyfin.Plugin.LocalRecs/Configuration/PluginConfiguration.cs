@@ -24,32 +24,19 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             MaxVocabularyTags = 500;
             EnableRatingProximity = true;
             RatingProximityWeight = 0.2;
-            AutoCreateLibraries = true;
-            AutoManageLibraryAccess = true;
-            MovieLibraryNameTemplate = "Empfohlene Filme – {user}";
-            TvLibraryNameTemplate = "Empfohlene Serien – {user}";
+            MovieSectionTitle = "Empfohlene Filme für dich";
+            TvSectionTitle = "Empfohlene Serien für dich";
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the recommendation libraries are created automatically for every user.
+        /// Gets or sets the title of the movie section on the home screen.
         /// </summary>
-        public bool AutoCreateLibraries { get; set; }
+        public string MovieSectionTitle { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether library access is managed automatically,
-        /// so that every user only sees their own recommendation libraries.
+        /// Gets or sets the title of the series section on the home screen.
         /// </summary>
-        public bool AutoManageLibraryAccess { get; set; }
-
-        /// <summary>
-        /// Gets or sets the name template for movie recommendation libraries ("{user}" = username).
-        /// </summary>
-        public string MovieLibraryNameTemplate { get; set; }
-
-        /// <summary>
-        /// Gets or sets the name template for TV recommendation libraries ("{user}" = username).
-        /// </summary>
-        public string TvLibraryNameTemplate { get; set; }
+        public string TvSectionTitle { get; set; }
 
         /// <summary>
         /// Gets or sets the number of movie recommendations to generate per user.

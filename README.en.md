@@ -3,7 +3,7 @@
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Tests](https://github.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/actions/workflows/tests.yml/badge.svg)](https://github.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/actions/workflows/tests.yml)
 
-Privacy-first personalized recommendations for Jellyfin based entirely on local watch history and metadata similarity. No cloud services, no tracking. Works on all Jellyfin clients (even TVs).
+Privacy-first personalized recommendations for Jellyfin based entirely on local watch history and metadata similarity. No cloud services, no tracking. Recommendations appear as rows on the home screen.
 
 > [!NOTE]
 > **Based on / original:** This plugin is based on the original project **[rdpharr/jellyfin-plugin-localrecs](https://github.com/rdpharr/jellyfin-plugin-localrecs)** by Roger Pharr.
@@ -13,15 +13,16 @@ Privacy-first personalized recommendations for Jellyfin based entirely on local 
 
 Please report any issues or feedback on [GitHub Issues](https://github.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/issues).
 
-> ⚠️ **Windows hosts:** As of v0.6.0, this plugin creates filesystem symlinks to expose recommendations. On Windows, symlink creation requires either **running Jellyfin as Administrator** or **enabling Windows Developer Mode** (Settings → Privacy & security → For developers → Developer Mode). Without one of these, recommendation refreshes will log "Access denied creating symlink" and the virtual libraries will be empty. Docker-on-Linux and native Linux deployments are unaffected. See [Troubleshooting](#troubleshooting) below.
+> [!IMPORTANT]
+> Since **12.2.0** recommendations are shown as **rows on the home screen** (via the "Home Screen Sections" plugin) instead of per-user libraries. Recommendation libraries created by older versions are removed automatically on first start. **Native TV apps** (Android TV, Fire TV, Roku) do not show these rows.
 
 ## Features
 
 - **Per-user personalization** - Tailored recommendations for each user's viewing history
 - **Content-based filtering** - TF-IDF embeddings with cosine similarity matching
 - **Temporal similarity** - Decade-based grouping finds content from similar time periods
-- **Virtual library integration** - Works on all Jellyfin clients (web, mobile, Roku, etc.)
-- **Play status sync** - Watch state syncs from recommendations back to your real library
+- **Home screen rows** - "Empfohlene Filme für dich" / "Empfohlene Serien für dich", individual per user
+- **Real library items** - full metadata, shared watch state, no duplicates in "Continue Watching", no extra libraries
 - **Privacy-first** - All processing happens locally on your server
 - **Performance optimized** - Handles 2,000+ item libraries efficiently
 
@@ -30,6 +31,8 @@ Please report any issues or feedback on [GitHub Issues](https://github.com/Drdot
 - **Jellyfin Server:** 12.0+ (tested on 12.2)
 - **.NET Runtime:** 10.0
 - **Target ABI:** 12.0.0.0
+- **For the home screen rows:** the plugins **Home Screen Sections**, **File Transformation** and **Plugin Pages** by IAmParadox27 (repository `https://www.iamparadox.dev/jellyfin/plugins/manifest.json`)
+- **Clients:** web, desktop app and mobile apps. Native TV apps (Android TV, Fire TV, Roku) do not show the rows.
 
 For Jellyfin 10.11.x use upstream version 0.6.1.
 
@@ -44,18 +47,15 @@ For Jellyfin 10.11.x use upstream version 0.6.1.
 
 3. **Restart Jellyfin server**
 
-4. **Configure virtual libraries** (see Setup below)
+4. **Set up the home screen rows** (see Setup below)
 
 ## Setup
 
-Setup is **automatic** (since 12.1.0):
+1. Add the repository `https://www.iamparadox.dev/jellyfin/plugins/manifest.json` and install **Home Screen Sections**, **File Transformation** and **Plugin Pages**. Restart Jellyfin.
+2. Dashboard → Plugins → **Home Screen Sections**: enable the plugin and enable the sections **"Empfohlene Filme für dich"** and **"Empfohlene Serien für dich"** for all users (or let every user enable them via "Modular Home").
+3. Done. The first calculation starts automatically after server start; afterwards the scheduled task "Refresh Local Recommendations" runs daily at 4:00 AM.
 
-- For **every user** the plugin creates two libraries ("Empfohlene Filme – *name*" and "Empfohlene Serien – *name*") on server start, when a user is created, and before every recommendation refresh. Existing recommendation libraries are detected by path and reused.
-- **Library access:** every user only sees their own recommendation libraries. Users with "access to all libraries" are switched to an explicit list of all existing libraries plus their own recommendations, so they keep seeing everything they saw before. Libraries created later are **not** granted to anyone automatically – grant them per user under Dashboard → Users → Library Access. Users that were already restricted keep their selection.
-- When a user is deleted, their recommendation libraries are removed (media files are untouched).
-- Settings: **Dashboard → Plugins → Local Recommendations → Setup** – toggle automatic creation and access management, change the library name templates (`{user}` = username) and run the setup immediately.
-
-Generate recommendations: Dashboard → Scheduled Tasks → "Refresh Local Recommendations" → Run Now (runs daily at 4:00 AM by default). New recommendations appear after the next library scan.
+The plugin's **Startseite** tab shows the connection status and lets you change the row titles. Watched or started movies disappear from the row immediately. Every user only sees their own recommendations.
 
 ## Configuration
 
@@ -111,15 +111,11 @@ Access via: **Dashboard → Plugins → Local Recommendations → Settings**
 - Decade similarity (items from similar time periods)
 - Optional rating proximity (items with similar ratings)
 
-### Virtual Libraries
+### Home Screen Rows
 
-Recommendations appear as separate libraries for each user:
-
-- Plugin creates filesystem symlinks pointing to original media files (with matching artwork symlinks)
-- The plugin creates the Jellyfin libraries pointing to these directories and manages library access automatically
-- Each user gets Movies and TV libraries with personalized recommendations
-- Play status sync: Watch state on recommendation items is synced back to the source library
-- Watched items are cleaned up at the next scheduled recommendation refresh
+- The refresh task stores the recommended item IDs per user (`plugins/LocalRecs/recommendations.json`)
+- The plugin registers two sections with Home Screen Sections; when a user's home screen is built, the sections return the real library items for exactly that user
+- Items the user can no longer see, or has watched/started in the meantime, are filtered out at request time
 
 ### Privacy
 
@@ -131,36 +127,17 @@ Recommendations appear as separate libraries for each user:
 
 ## Known Limitations
 
-- **Duplicate "Continue Watching" / "Next Up":** Partially watched recommendations appear twice — once for the virtual (symlinked) item and once for the source media file. This resolves on the next recommendation refresh, or you can manually trigger a refresh from Scheduled Tasks.
-- **Metadata display:** Virtual library items may not show full text metadata (runtime, ratings, cast) in the UI because Jellyfin treats them as items in a separate library. Posters, backdrops, and playback work normally.
-- **Library scanning:** Manually scan recommendation libraries after refresh to see updates
-- **Windows symlink permissions:** Requires Administrator or Developer Mode — see Troubleshooting.
+- **Native TV apps:** Android TV, Fire TV and Roku apps do not render Home Screen Sections, so recommendations are not visible there.
+- **Requires Home Screen Sections:** without it the recommendations are computed but not shown.
 
 ## Troubleshooting
 
-### Recommendation libraries are empty after refresh (Windows)
+### The rows do not appear
 
-If the refresh task completes without errors but the recommendation libraries are empty, check
-the Jellyfin log for `Access denied creating symlink`. This means the Jellyfin process lacks
-permission to create symbolic links, which is required on Windows.
-
-**Fix (pick one):**
-
-1. **Enable Windows Developer Mode** (recommended, no elevation needed):
-   Settings → Privacy & security → For developers → turn on **Developer Mode**, then restart
-   the Jellyfin service.
-2. **Run Jellyfin as Administrator.** Right-click the service or launcher → Run as administrator.
-   If Jellyfin runs as a Windows service, configure the service's logon account to a user with
-   `SeCreateSymbolicLinkPrivilege` granted, or to a local administrator.
-
-After either change, run **Dashboard → Scheduled Tasks → Refresh Local Recommendations**.
-
-### Transcoded playback fails on Jellyfin 10.11.7+ (plugin versions ≤0.5.3)
-
-Upgrade to **v0.6.0 or later**. Jellyfin 10.11.7 shipped a security fix
-([GHSA-j2hf-x4q5-47j3](https://github.com/jellyfin/jellyfin/security/advisories/GHSA-j2hf-x4q5-47j3))
-that broke the old `.strm`-based approach. v0.6.0 switches to symlinks, which bypass the
-restricted `.strm` parser entirely.
+- Check the plugin's **Startseite** tab: Home Screen Sections must be installed and the sections registered.
+- Make sure Home Screen Sections is enabled and the two sections are switched on (admin settings or "Modular Home").
+- Force-refresh the browser page (Ctrl+F5).
+- If no recommendations were calculated yet, run Dashboard → Scheduled Tasks → "Refresh Local Recommendations".
 
 ## Building from Source
 

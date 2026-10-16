@@ -11,15 +11,16 @@ Datenschutzfreundliche, personalisierte Empfehlungen für Jellyfin – ausschlie
 >
 > English version: [README.en.md](README.en.md)
 
-> ⚠️ **Windows-Server:** Das Plugin legt Dateisystem-Symlinks an. Unter Windows muss Jellyfin dafür **als Administrator** laufen oder der **Entwicklermodus** aktiviert sein (Einstellungen → Datenschutz & Sicherheit → Für Entwickler). Linux und Docker unter Linux sind nicht betroffen.
+> [!IMPORTANT]
+> Ab Version **12.2.0** erscheinen die Empfehlungen als **eigene Zeilen auf der Startseite** (über das Plugin „Home Screen Sections“) statt als eigene Bibliotheken. Die Empfehlungs-Bibliotheken älterer Versionen werden beim ersten Start automatisch entfernt. **Native TV-Apps** (Android TV, Fire TV, Roku) zeigen diese Zeilen nicht an.
 
 ## Funktionen
 
 - **Personalisierung pro Benutzer** – Empfehlungen passend zum eigenen Wiedergabeverlauf
 - **Inhaltsbasierte Filterung** – TF-IDF-Embeddings mit Kosinus-Ähnlichkeit
 - **Zeitliche Ähnlichkeit** – Gruppierung nach Jahrzehnten
-- **Virtuelle Bibliotheken** – funktionieren auf allen Clients (Web, Mobil, Roku, TV …)
-- **Wiedergabestatus-Abgleich** – „Gesehen“-Status wird mit der echten Bibliothek synchronisiert
+- **Zeilen auf der Startseite** – „Empfohlene Filme für dich“ und „Empfohlene Serien für dich“, für jeden Benutzer eigene
+- **Echte Einträge** – es werden die Filme und Serien aus deinen Bibliotheken gezeigt: alle Infos, gemeinsamer „Gesehen“-Status, keine Duplikate bei „Weiterschauen“, keine zusätzlichen Bibliotheken
 - **Datenschutz** – alle Berechnungen laufen lokal auf deinem Server
 
 ## Voraussetzungen
@@ -27,12 +28,14 @@ Datenschutzfreundliche, personalisierte Empfehlungen für Jellyfin – ausschlie
 - **Jellyfin-Server:** 12.0 oder neuer (getestet mit 12.2)
 - **.NET-Runtime:** 10.0 (ist in Jellyfin 12 enthalten)
 - **Target ABI:** 12.0.0.0
+- **Für die Startseite:** die Plugins **Home Screen Sections**, **File Transformation** und **Plugin Pages** von IAmParadox27 (Repository `https://www.iamparadox.dev/jellyfin/plugins/manifest.json`)
+- **Clients:** Browser, Jellyfin-Desktop-App und Handy-Apps. Native TV-Apps (Android TV, Fire TV, Roku) zeigen die Zeilen nicht.
 
 Für Jellyfin 10.11.x bitte die Original-Version 0.6.1 verwenden.
 
 **Versionsnummer:** Die Versionen dieses Forks sind an Jellyfin angelehnt (12.x). Jellyfin prüft nur, ob ein Plugin eine *mindestens* passende Server-Version verlangt. Durch die höhere Versionsnummer werden 10.11-Versionen des Originals auf Jellyfin 12 nie als Update angeboten.
 
-**Umstieg vom Original:** Die Plugin-ID ist gleich geblieben. Ein installiertes Original wird daher direkt aktualisiert, Einstellungen und Empfehlungs-Bibliotheken bleiben erhalten. Das Original-Repository kann danach aus den Plugin-Repositories entfernt werden.
+**Umstieg vom Original:** Die Plugin-ID ist gleich geblieben. Ein installiertes Original wird daher direkt aktualisiert, die Einstellungen bleiben erhalten. Seine Empfehlungs-Bibliotheken werden durch die Zeilen auf der Startseite ersetzt und automatisch entfernt. Das Original-Repository kann danach aus den Plugin-Repositories entfernt werden.
 
 ## Installation
 
@@ -47,31 +50,26 @@ Für Jellyfin 10.11.x bitte die Original-Version 0.6.1 verwenden.
 
 ### Variante B: Manuell
 
-1. [`release/jellyfin-plugin-localrecs-v12.1.1.zip`](release/jellyfin-plugin-localrecs-v12.1.1.zip) herunterladen und entpacken.
+1. [`release/jellyfin-plugin-localrecs-v12.2.0.zip`](release/jellyfin-plugin-localrecs-v12.2.0.zip) herunterladen und entpacken.
 2. Die Datei `Jellyfin.Plugin.LocalRecs.dll` in einen neuen Ordner im Plugin-Verzeichnis legen, z. B.
-   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.1.1.0/`
-   - Docker: `/config/plugins/LocalRecs_12.1.1.0/`
-   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.1.1.0\`
+   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.2.0.0/`
+   - Docker: `/config/plugins/LocalRecs_12.2.0.0/`
+   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.2.0.0\`
 3. Jellyfin-Server neu starten.
 
 ## Einrichtung
 
-Die Einrichtung läuft **automatisch** – du musst keine Bibliotheken mehr von Hand anlegen:
+1. **Plugins installieren:** Unter Dashboard → Plugins → Repositories das Repository `https://www.iamparadox.dev/jellyfin/plugins/manifest.json` hinzufügen und **Home Screen Sections**, **File Transformation** und **Plugin Pages** installieren. Danach Jellyfin neu starten.
+2. **Bereiche einschalten:** Dashboard → Plugins → **Home Screen Sections** → Plugin aktivieren und die Bereiche **„Empfohlene Filme für dich“** und **„Empfohlene Serien für dich“** für alle Benutzer einschalten. (Alternativ schaltet jeder Benutzer sie selbst über das Menü „Modular Home“ ein.)
+3. **Fertig.** Die erste Berechnung startet automatisch nach dem Serverstart. Danach aktualisiert die geplante Aufgabe „Refresh Local Recommendations“ die Empfehlungen täglich um 4 Uhr (oder sofort über Dashboard → Geplante Aufgaben).
 
-- Für **jeden Benutzer** legt das Plugin zwei Bibliotheken an: „Empfohlene Filme – *Name*“ und „Empfohlene Serien – *Name*“. Das passiert beim Serverstart, sobald ein neuer Benutzer angelegt wird, und vor jeder Aktualisierung der Empfehlungen.
-- **Zugriffsrechte:** Jeder Benutzer sieht nur seine eigenen Empfehlungs-Bibliotheken.
-  - Benutzer mit „Zugriff auf alle Bibliotheken“ werden dafür auf eine Liste aller **vorhandenen** Bibliotheken plus ihrer eigenen Empfehlungen umgestellt. Sie sehen also weiterhin alles, was sie vorher gesehen haben.
-  - **Neue Bibliotheken werden niemandem automatisch freigegeben.** Wer eine neue Bibliothek sehen soll, gibst du wie gewohnt unter Dashboard → Benutzer → Bibliothekszugriff frei (praktisch, wenn eine Bibliothek nur für einen Benutzer gedacht ist).
-  - Bei Benutzern, die du schon von Hand eingeschränkt hast, bleibt die Auswahl erhalten. Es werden nur die eigenen Empfehlungen ergänzt und fremde entfernt.
-  - Neu angelegte Benutzer bekommen die Bibliotheken, die du beim Anlegen auswählst. Lässt du dort „Zugriff auf alle Bibliotheken“ angehakt, sieht der Benutzer alle vorhandenen Bibliotheken – also auch solche, die nur für einen anderen Benutzer gedacht sind. Für solche Fälle beim Anlegen die Bibliotheken einzeln auswählen.
-- Wird ein Benutzer gelöscht, entfernt das Plugin auch seine Empfehlungs-Bibliotheken (die Medien selbst bleiben unberührt).
-- Schon von Hand angelegte Empfehlungs-Bibliotheken werden anhand ihres Pfads erkannt und weiterverwendet.
+Im Plugin unter **Einstellungen → Startseite** siehst du, ob alles verbunden ist, und kannst die Titel der Zeilen ändern.
 
-**Einstellungen:** Dashboard → Plugins → Local Recommendations → Reiter **Setup**. Dort kannst du das automatische Anlegen und die Zugriffsverwaltung einzeln abschalten, die Namen der Bibliotheken ändern (`{user}` = Benutzername) und mit „Speichern und jetzt einrichten“ alles sofort ausführen. Die Tabelle zeigt pro Benutzer, welche Bibliotheken vorhanden sind.
-
-**Empfehlungen erzeugen:** Die geplante Aufgabe „Refresh Local Recommendations“ läuft täglich um 4 Uhr. Für ein sofortiges Ergebnis: Dashboard → Geplante Aufgaben → „Refresh Local Recommendations“ starten. Neue Empfehlungen erscheinen nach dem nächsten Bibliotheks-Scan (oder Bibliothek von Hand scannen).
-
-Eine ausführliche Beschreibung aller Einstellungen, des Algorithmus und der Fehlerbehebung findest du in der [englischen README](README.en.md) und in [DESIGN.md](DESIGN.md).
+**Gut zu wissen**
+- Jeder Benutzer sieht nur seine eigenen Empfehlungen.
+- Schon gesehene oder angefangene Filme verschwinden sofort aus der Zeile, nicht erst bei der nächsten Berechnung.
+- Beim Umstieg von einer älteren Version entfernt das Plugin die alten Bibliotheken „Empfohlene Filme/Serien – Name“ und den Ordner mit den Verknüpfungen. Die Medien selbst werden nicht angefasst. Doppelte Einträge bei „Weiterschauen“ verschwinden nach dem nächsten Bibliotheks-Scan.
+- Benutzer, die durch Version 12.1 von „Zugriff auf alle Bibliotheken“ auf eine Liste umgestellt wurden, behalten diese Liste. Falls gewünscht, den Haken unter Dashboard → Benutzer → Bibliothekszugriff wieder setzen.
 
 ## Selbst bauen
 

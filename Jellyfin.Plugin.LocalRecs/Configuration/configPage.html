@@ -16,53 +16,41 @@
                     
                     <!-- Tabs -->
                     <div data-role="controlgroup" data-type="horizontal" class="localnav" data-mini="true">
-                        <button is="emby-button" type="button" class="raised ui-btn-active tab-button-setup" data-tab="setup">Setup</button>
+                        <button is="emby-button" type="button" class="raised ui-btn-active tab-button-setup" data-tab="setup">Startseite</button>
                         <button is="emby-button" type="button" class="raised tab-button-settings" data-tab="settings">Settings</button>
                         <button is="emby-button" type="button" class="raised tab-button-actions" data-tab="actions">Actions</button>
                     </div>
                     
                     <!-- Setup Tab -->
                     <div id="tab-setup" class="tab-content" style="display:block;">
-                        <h2 class="sectionTitle">Empfehlungs-Bibliotheken</h2>
-                        <p>Jeder Benutzer bekommt zwei eigene Bibliotheken (Filme und Serien), in denen seine persönlichen Empfehlungen erscheinen.</p>
+                        <h2 class="sectionTitle">Empfehlungen auf der Startseite</h2>
+                        <p>Jeder Benutzer sieht auf seiner Startseite zwei eigene Zeilen mit Empfehlungen. Es sind die echten Filme und Serien aus deinen Bibliotheken – mit allen Infos und gemeinsamem „Gesehen“-Status. Andere Benutzer sehen diese Empfehlungen nicht.</p>
 
-                        <div class="checkboxContainer checkboxContainer-withDescription">
-                            <label>
-                                <input is="emby-checkbox" type="checkbox" id="autoCreateLibraries" name="autoCreateLibraries" />
-                                <span>Bibliotheken automatisch anlegen</span>
-                            </label>
-                            <div class="fieldDescription checkboxFieldDescription">Legt für jeden Benutzer (auch für neue Benutzer) die beiden Empfehlungs-Bibliotheken automatisch an. Wird ein Benutzer gelöscht, werden seine Empfehlungs-Bibliotheken entfernt.</div>
+                        <div style="background: rgba(33,150,243,0.1); padding: 1em 1.5em; border-left: 4px solid #2196f3; margin-bottom: 1.5em;">
+                            <p style="margin-top: 0;"><strong>Voraussetzung:</strong> Die Plugins <strong>Home Screen Sections</strong>, <strong>File Transformation</strong> und <strong>Plugin Pages</strong> (Repository <code>https://www.iamparadox.dev/jellyfin/plugins/manifest.json</code>).</p>
+                            <p>Danach unter <strong>Dashboard → Plugins → Home Screen Sections</strong> das Plugin aktivieren und die Bereiche „Empfohlene Filme für dich“ und „Empfohlene Serien für dich“ für alle Benutzer einschalten (oder jeder Benutzer schaltet sie selbst im Menü „Modular Home“ ein).</p>
+                            <p style="margin-bottom: 0;">Die Zeilen erscheinen im Browser, in der Desktop-App und in den Handy-Apps – <strong>nicht in nativen TV-Apps</strong> (Android TV, Fire TV, Roku).</p>
                         </div>
-
-                        <div class="checkboxContainer checkboxContainer-withDescription">
-                            <label>
-                                <input is="emby-checkbox" type="checkbox" id="autoManageLibraryAccess" name="autoManageLibraryAccess" />
-                                <span>Zugriffsrechte automatisch setzen</span>
-                            </label>
-                            <div class="fieldDescription checkboxFieldDescription">Jeder Benutzer sieht nur seine eigenen Empfehlungs-Bibliotheken. Benutzer mit „Zugriff auf alle Bibliotheken“ werden dafür auf eine Liste aller vorhandenen Bibliotheken umgestellt. Später neu angelegte Bibliotheken werden niemandem automatisch freigegeben – das machst du wie gewohnt unter Dashboard → Benutzer → Bibliothekszugriff.</div>
-                        </div>
-
-                        <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="movieLibraryNameTemplate">Name der Film-Bibliothek:</label>
-                            <input is="emby-input" type="text" id="movieLibraryNameTemplate" name="movieLibraryNameTemplate" />
-                            <div class="fieldDescription"><code>{user}</code> wird durch den Benutzernamen ersetzt. Gilt nur für neu angelegte Bibliotheken.</div>
-                        </div>
-
-                        <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="tvLibraryNameTemplate">Name der Serien-Bibliothek:</label>
-                            <input is="emby-input" type="text" id="tvLibraryNameTemplate" name="tvLibraryNameTemplate" />
-                            <div class="fieldDescription"><code>{user}</code> wird durch den Benutzernamen ersetzt. Gilt nur für neu angelegte Bibliotheken.</div>
-                        </div>
-
-                        <button is="emby-button" type="button" class="raised button-submit block" id="provisionButton">
-                            <span>Speichern und jetzt einrichten</span>
-                        </button>
-                        <div class="fieldDescription">Speichert die Einstellungen und legt fehlende Bibliotheken sofort an. Das passiert sonst automatisch beim Serverstart, bei neuen Benutzern und vor jeder Aktualisierung der Empfehlungen.</div>
 
                         <h3 class="sectionTitle">Status</h3>
                         <div id="setupStatusContainer">
                             <p>Lade Status...</p>
                         </div>
+
+                        <h3 class="sectionTitle">Titel der Zeilen</h3>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="movieSectionTitle">Titel für Filme:</label>
+                            <input is="emby-input" type="text" id="movieSectionTitle" name="movieSectionTitle" />
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="tvSectionTitle">Titel für Serien:</label>
+                            <input is="emby-input" type="text" id="tvSectionTitle" name="tvSectionTitle" />
+                        </div>
+
+                        <button is="emby-button" type="submit" class="raised button-submit block">
+                            <span>Speichern</span>
+                        </button>
                     </div>
                     
                     <!-- Settings Tab -->
@@ -250,237 +238,39 @@
                 },
                 
                 /**
-                 * Loads setup paths from backend API.
+                 * Loads the status of the home screen integration.
                  */
                 loadSetupStatus: function(page) {
                     var self = this;
                     var container = page.querySelector('#setupStatusContainer');
                     container.innerHTML = '<p>Lade Status...</p>';
-                    
-                    ApiClient.getJSON(ApiClient.getUrl('LocalRecs/Setup/Paths'))
-                        .then(function(users) {
-                            if (!users || users.length === 0) {
-                                container.innerHTML = '<p>Keine Benutzer gefunden.</p>';
-                                return;
+
+                    ApiClient.getJSON(ApiClient.getUrl('LocalRecs/Status'))
+                        .then(function(status) {
+                            var ok = function(value, text) {
+                                return '<li style="margin: 0.3em 0;">' + (value ? '<span style="color: #4caf50;">✔</span> ' : '<span style="color: #ffc107;">✘</span> ') + text + '</li>';
+                            };
+                            var html = '<ul style="list-style: none; padding-left: 0;">';
+                            html += ok(status.HomeScreenSectionsInstalled, status.HomeScreenSectionsInstalled
+                                ? 'Home Screen Sections ist installiert'
+                                : 'Home Screen Sections ist nicht installiert (siehe Voraussetzung oben, danach Jellyfin neu starten)');
+                            html += ok(status.SectionsRegistered, status.SectionsRegistered
+                                ? 'Bereiche sind angemeldet'
+                                : 'Bereiche sind noch nicht angemeldet (passiert automatisch nach dem Serverstart)');
+                            if (status.LastUpdated) {
+                                html += ok(true, 'Empfehlungen für ' + status.UsersWithRecommendations + ' Benutzer, zuletzt berechnet am ' + self.escapeHtml(new Date(status.LastUpdated).toLocaleString()));
+                            } else {
+                                html += ok(false, 'Noch keine Empfehlungen berechnet – die Aufgabe „Refresh Local Recommendations“ läuft automatisch an');
                             }
-                            
-                            // Check if all libraries are created
-                            var allCreated = users.every(function(user) { return user.LibrariesCreated; });
-                            var html = self.renderStatusTable(users);
-                            
-                            if (allCreated) {
-                                html += '<div style="background: rgba(76, 175, 80, 0.1); padding: 1em 1.5em; margin-top: 1em; border-left: 4px solid #4caf50;">' +
-                                    '<p style="margin: 0;">Alle Empfehlungs-Bibliotheken sind vorhanden. Die Empfehlungen werden täglich durch die geplante Aufgabe „Refresh Local Recommendations“ aktualisiert.</p>' +
-                                    '</div>';
-                            } else if (!page.querySelector('#autoCreateLibraries').checked) {
-                                html += '<p style="margin-top: 1.5em;">Automatisches Anlegen ist ausgeschaltet. Fehlende Bibliotheken kannst du mit „Speichern und jetzt einrichten“ anlegen oder von Hand mit diesen Pfaden:</p>';
-                                html += '<div>';
-                                users.forEach(function(user) {
-                                    html += self.renderUserSetupCard(user);
-                                });
-                                html += '</div>';
-                            }
-                            
+                            html += '</ul>';
                             container.innerHTML = html;
-                            
-                            // Add copy button event listeners
-                            self.initCopyButtons(page);
                         })
                         .catch(function(error) {
-                            console.error('Failed to load library paths:', error);
+                            console.error('Failed to load status:', error);
                             container.innerHTML = '<p style="color: #ff5252;">Status konnte nicht geladen werden.</p>';
                         });
                 },
-                
-                /**
-                 * Renders the per-user library status table.
-                 */
-                renderStatusTable: function(users) {
-                    var self = this;
-                    var cell = function(name) {
-                        return name
-                            ? '<td style="padding: 0.5em 1em 0.5em 0;"><span style="color: #4caf50;">✔</span> ' + self.escapeHtml(name) + '</td>'
-                            : '<td style="padding: 0.5em 1em 0.5em 0; color: #ffc107;">✘ fehlt</td>';
-                    };
-                    var html = '<table style="border-collapse: collapse; width: 100%; text-align: left;">';
-                    html += '<thead><tr><th style="padding: 0.5em 1em 0.5em 0;">Benutzer</th><th style="padding: 0.5em 1em 0.5em 0;">Filme</th><th style="padding: 0.5em 1em 0.5em 0;">Serien</th></tr></thead><tbody>';
-                    users.forEach(function(user) {
-                        html += '<tr style="border-top: 1px solid rgba(255,255,255,0.1);">';
-                        html += '<td style="padding: 0.5em 1em 0.5em 0;">' + self.escapeHtml(user.Username) + '</td>';
-                        html += cell(user.MovieLibraryName) + cell(user.TvLibraryName);
-                        html += '</tr>';
-                    });
-                    html += '</tbody></table>';
-                    return html;
-                },
 
-                /**
-                 * Saves the configuration and creates missing libraries right away.
-                 */
-                provisionLibraries: function(page) {
-                    var self = this;
-                    Dashboard.showLoadingMsg();
-
-                    self.saveConfiguration(page, true)
-                        .then(function() {
-                            return ApiClient.ajax({
-                                type: 'POST',
-                                url: ApiClient.getUrl('LocalRecs/Setup/Provision'),
-                                dataType: 'json'
-                            });
-                        })
-                        .then(function(result) {
-                            Dashboard.hideLoadingMsg();
-                            var created = result && result.LibrariesCreated ? result.LibrariesCreated : 0;
-                            var users = result && result.UsersUpdated ? result.UsersUpdated : 0;
-                            Dashboard.alert('Fertig: ' + created + ' Bibliotheken angelegt, Zugriff für ' + users + ' Benutzer angepasst.');
-                            self.loadSetupStatus(page);
-                        })
-                        .catch(function(error) {
-                            console.error('Failed to provision libraries:', error);
-                            Dashboard.hideLoadingMsg();
-                            Dashboard.alert('Einrichtung fehlgeschlagen. Details stehen im Server-Log.');
-                        });
-                },
-
-                /**
-                 * Renders a user setup card.
-                 */
-                renderUserSetupCard: function(user) {
-                    // Skip rendering if libraries are already created
-                    if (user.LibrariesCreated) {
-                        return '';
-                    }
-
-                    var username = this.escapeHtml(user.Username);
-                    var moviePath = this.escapeHtml(user.MovieLibraryPath);
-                    var tvPath = this.escapeHtml(user.TvLibraryPath);
-                    var suggestedMovieName = this.escapeHtml(user.SuggestedMovieLibraryName);
-                    var suggestedTvName = this.escapeHtml(user.SuggestedTvLibraryName);
-                    var userIdForButton = user.UserId.replace(/-/g, '');
-                    
-                    var html = '<div style="margin: 1em 0; padding: 1.5em; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02);">';
-                    
-                    html += '<h3 style="margin-top: 0;">' + username + '</h3>';
-                    
-                    // Movie library section
-                    html += '<div style="margin: 1.5em 0;">';
-                    html += '<h4 style="margin-bottom: 0.5em;">Recommended Movies Library</h4>';
-                    html += '<div class="inputContainer">';
-                    html += '<label class="inputLabel inputLabelUnfocused">Folder Path:</label>';
-                    html += '<div style="display: flex; gap: 0.5em; align-items: center;">';
-                    html += '<input type="text" class="emby-input" readonly value="' + moviePath + '" style="flex: 1; font-family: monospace;" />';
-                    html += '<button is="emby-button" type="button" class="raised copy-button" data-path="' + moviePath + '" style="min-width: 80px;">Copy</button>';
-                    html += '</div>';
-                    html += '<div class="fieldDescription" style="margin-top: 0.5em;">Suggested Library Name: <strong>' + suggestedMovieName + '</strong></div>';
-                    html += '</div>';
-                    html += '</div>';
-                    
-                    // TV library section
-                    html += '<div style="margin: 1.5em 0;">';
-                    html += '<h4 style="margin-bottom: 0.5em;">Recommended TV Library</h4>';
-                    html += '<div class="inputContainer">';
-                    html += '<label class="inputLabel inputLabelUnfocused">Folder Path:</label>';
-                    html += '<div style="display: flex; gap: 0.5em; align-items: center;">';
-                    html += '<input type="text" class="emby-input" readonly value="' + tvPath + '" style="flex: 1; font-family: monospace;" />';
-                    html += '<button is="emby-button" type="button" class="raised copy-button" data-path="' + tvPath + '" style="min-width: 80px;">Copy</button>';
-                    html += '</div>';
-                    html += '<div class="fieldDescription" style="margin-top: 0.5em;">Suggested Library Name: <strong>' + suggestedTvName + '</strong></div>';
-                    html += '</div>';
-                    html += '</div>';
-                    
-                    // Instructions - now in a more readable format
-                    html += '<div style="margin-top: 2em; padding: 1em; background: rgba(33,150,243,0.1); border-left: 4px solid #2196f3;">';
-                    html += '<h4 style="margin-top: 0;">Setup Instructions</h4>';
-                    html += '<ol style="margin: 0.5em 0; padding-left: 1.5em; line-height: 1.8;">';
-                    html += '<li>Go to <strong>Dashboard → Libraries → Add Media Library</strong></li>';
-                    html += '<li>Create the Movies library:';
-                    html += '<ul style="margin-top: 0.3em;"><li>Select <strong>Movies</strong> as content type</li>';
-                    html += '<li>Add the Movies folder path shown above</li></ul></li>';
-                    html += '<li>Create the TV library:';
-                    html += '<ul style="margin-top: 0.3em;"><li>Select <strong>Shows</strong> as content type</li>';
-                    html += '<li>Add the TV folder path shown above</li></ul></li>';
-                    html += '<li>Set library permissions: <strong>Dashboard → Users → ' + username + ' → Library Access</strong></li>';
-                    html += '</ol>';
-                    html += '</div>';
-                    
-                    html += '</div>';
-                    return html;
-                },
-                
-                /**
-                 * Initializes copy button event handlers.
-                 */
-                initCopyButtons: function(page) {
-                    var self = this;
-                    var copyButtons = page.querySelectorAll('.copy-button');
-                    
-                    copyButtons.forEach(function(button) {
-                        button.addEventListener('click', function(e) {
-                            var btn = e.currentTarget;
-                            var path = btn.getAttribute('data-path');
-                            
-                            // Try modern clipboard API first
-                            if (navigator.clipboard && navigator.clipboard.writeText) {
-                                navigator.clipboard.writeText(path)
-                                    .then(function() {
-                                        btn.textContent = 'Copied!';
-                                        setTimeout(function() {
-                                            btn.textContent = 'Copy';
-                                        }, 2000);
-                                    })
-                                    .catch(function(err) {
-                                        console.error('Clipboard API failed:', err);
-                                        self.fallbackCopyToClipboard(path, btn);
-                                    });
-                            } else {
-                                // Fallback for browsers without clipboard API
-                                self.fallbackCopyToClipboard(path, btn);
-                            }
-                        });
-                    });
-                },
-                
-                /**
-                 * Fallback copy method using a temporary textarea element.
-                 */
-                fallbackCopyToClipboard: function(text, btn) {
-                    var textArea = document.createElement('textarea');
-                    textArea.value = text;
-                    textArea.style.position = 'fixed';
-                    textArea.style.top = '0';
-                    textArea.style.left = '0';
-                    textArea.style.width = '2em';
-                    textArea.style.height = '2em';
-                    textArea.style.padding = '0';
-                    textArea.style.border = 'none';
-                    textArea.style.outline = 'none';
-                    textArea.style.boxShadow = 'none';
-                    textArea.style.background = 'transparent';
-                    
-                    document.body.appendChild(textArea);
-                    textArea.focus();
-                    textArea.select();
-                    
-                    try {
-                        var successful = document.execCommand('copy');
-                        if (successful) {
-                            btn.textContent = 'Copied!';
-                            setTimeout(function() {
-                                btn.textContent = 'Copy';
-                            }, 2000);
-                        } else {
-                            console.error('execCommand copy failed');
-                            alert('Failed to copy to clipboard. Please copy manually.');
-                        }
-                    } catch (err) {
-                        console.error('Fallback copy failed:', err);
-                        alert('Failed to copy to clipboard. Please copy manually.');
-                    }
-                    
-                    document.body.removeChild(textArea);
-                },
-                
                 /**
                  * Loads plugin configuration.
                  */
@@ -501,10 +291,8 @@
                             page.querySelector('#maxVocabularyTags').value = config.MaxVocabularyTags !== undefined ? config.MaxVocabularyTags : 500;
                             page.querySelector('#enableRatingProximity').checked = config.EnableRatingProximity || false;
                             page.querySelector('#ratingProximityWeight').value = config.RatingProximityWeight !== undefined ? config.RatingProximityWeight : 0.2;
-                            page.querySelector('#autoCreateLibraries').checked = config.AutoCreateLibraries !== false;
-                            page.querySelector('#autoManageLibraryAccess').checked = config.AutoManageLibraryAccess !== false;
-                            page.querySelector('#movieLibraryNameTemplate').value = config.MovieLibraryNameTemplate || 'Empfohlene Filme – {user}';
-                            page.querySelector('#tvLibraryNameTemplate').value = config.TvLibraryNameTemplate || 'Empfohlene Serien – {user}';
+                            page.querySelector('#movieSectionTitle').value = config.MovieSectionTitle || 'Empfohlene Filme für dich';
+                            page.querySelector('#tvSectionTitle').value = config.TvSectionTitle || 'Empfohlene Serien für dich';
 
                             self.updateFieldVisibility(page);
                             Dashboard.hideLoadingMsg();
@@ -527,7 +315,7 @@
                 /**
                  * Saves plugin configuration.
                  */
-                saveConfiguration: function(page, silent) {
+                saveConfiguration: function(page) {
                     var self = this;
                     Dashboard.showLoadingMsg();
                     
@@ -544,25 +332,17 @@
                             config.MaxVocabularyTags = parseInt(page.querySelector('#maxVocabularyTags').value);
                             config.EnableRatingProximity = page.querySelector('#enableRatingProximity').checked;
                             config.RatingProximityWeight = parseFloat(page.querySelector('#ratingProximityWeight').value);
-                            config.AutoCreateLibraries = page.querySelector('#autoCreateLibraries').checked;
-                            config.AutoManageLibraryAccess = page.querySelector('#autoManageLibraryAccess').checked;
-                            config.MovieLibraryNameTemplate = page.querySelector('#movieLibraryNameTemplate').value.trim() || 'Empfohlene Filme – {user}';
-                            config.TvLibraryNameTemplate = page.querySelector('#tvLibraryNameTemplate').value.trim() || 'Empfohlene Serien – {user}';
+                            config.MovieSectionTitle = page.querySelector('#movieSectionTitle').value.trim() || 'Empfohlene Filme für dich';
+                            config.TvSectionTitle = page.querySelector('#tvSectionTitle').value.trim() || 'Empfohlene Serien für dich';
 
                             return ApiClient.updatePluginConfiguration(self.pluginId, config);
                         })
                         .then(function(result) {
-                            if (silent) {
-                                return result;
-                            }
                             Dashboard.processPluginConfigurationUpdateResult(result);
                         })
                         .catch(function(error) {
                             console.error('Failed to save configuration:', error);
                             Dashboard.hideLoadingMsg();
-                            if (silent) {
-                                throw error;
-                            }
                         });
                 },
                 
@@ -664,11 +444,6 @@
                     LocalRecsConfig.updateFieldVisibility(page);
                 });
                 
-                page.querySelector('#provisionButton').addEventListener('click', function(e) {
-                    e.preventDefault();
-                    LocalRecsConfig.provisionLibraries(page);
-                });
-
                 // Actions tab - link to scheduled tasks
                 page.querySelector('#triggerRefreshButton').addEventListener('click', function(e) {
                     e.preventDefault();

@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Jellyfin.Plugin.LocalRecs.Configuration;
 using Jellyfin.Plugin.LocalRecs.Models;
 using Jellyfin.Plugin.LocalRecs.Services;
-using Jellyfin.Plugin.LocalRecs.VirtualLibrary;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
@@ -22,8 +21,7 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
         private readonly ILogger<RecommendationRefreshTask> _logger;
         private readonly IUserManager _userManager;
         private readonly RecommendationRefreshService _refreshService;
-        private readonly VirtualLibraryManager _virtualLibraryManager;
-        private readonly LibraryProvisioningService _provisioningService;
+        private readonly RecommendationStore _store;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RecommendationRefreshTask"/> class.
@@ -31,20 +29,17 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
         /// <param name="logger">Logger instance.</param>
         /// <param name="userManager">User manager.</param>
         /// <param name="refreshService">Recommendation refresh service.</param>
-        /// <param name="virtualLibraryManager">Virtual library manager.</param>
-        /// <param name="provisioningService">Service that creates the recommendation libraries.</param>
+        /// <param name="store">Store that keeps the recommendations for the home screen.</param>
         public RecommendationRefreshTask(
             ILogger<RecommendationRefreshTask> logger,
             IUserManager userManager,
             RecommendationRefreshService refreshService,
-            VirtualLibraryManager virtualLibraryManager,
-            LibraryProvisioningService provisioningService)
+            RecommendationStore store)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
             _refreshService = refreshService ?? throw new ArgumentNullException(nameof(refreshService));
-            _virtualLibraryManager = virtualLibraryManager ?? throw new ArgumentNullException(nameof(virtualLibraryManager));
-            _provisioningService = provisioningService ?? throw new ArgumentNullException(nameof(provisioningService));
+            _store = store ?? throw new ArgumentNullException(nameof(store));
         }
 
         /// <inheritdoc />
@@ -75,20 +70,6 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
                 var users = _userManager.GetUsers().ToList();
                 _logger.LogInformation("Generating recommendations for {UserCount} users", users.Count);
 
-                // Fehlende Empfehlungs-Bibliotheken anlegen und Zugriffsrechte prüfen
-                try
-                {
-                    await _provisioningService.ProvisionAllAsync(false, cancellationToken).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Automatische Einrichtung der Empfehlungs-Bibliotheken fehlgeschlagen");
-                }
-
                 progress?.Report(5);
 
                 if (users.Count == 0)
@@ -106,64 +87,38 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
 
                 progress?.Report(80);
 
-                // Step 3: Sync .strm files for each user (80-90% progress)
+                // Step 3: Store recommendations for the home screen sections (80-95% progress)
                 cancellationToken.ThrowIfCancellationRequested();
+                var stored = new Dictionary<Guid, UserRecommendations>();
                 var successfulUsers = 0;
                 var failedUsers = new List<string>();
 
                 foreach (var user in users)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    try
+                    if (userRecommendations.TryGetValue(user.Id, out var recs))
                     {
-                        if (userRecommendations.TryGetValue(user.Id, out var recs))
+                        stored[user.Id] = new UserRecommendations
                         {
-                            _logger.LogDebug("Syncing .strm files for user {UserName} ({UserId})", user.Username, user.Id);
-
-                            // Update virtual library files
-                            _virtualLibraryManager.SyncRecommendations(
-                                user.Id,
-                                recs.Movies,
-                                MediaType.Movie);
-
-                            _virtualLibraryManager.SyncRecommendations(
-                                user.Id,
-                                recs.Tv,
-                                MediaType.Series);
-
-                            successfulUsers++;
-                            _logger.LogDebug(
-                                "Successfully updated .strm files for {UserName}: {MovieCount} movies, {TvCount} TV shows",
-                                user.Username,
-                                recs.Movies.Count,
-                                recs.Tv.Count);
-                        }
+                            Movies = recs.Movies.Select(r => r.ItemId).ToList(),
+                            Series = recs.Tv.Select(r => r.ItemId).ToList()
+                        };
+                        successfulUsers++;
+                        _logger.LogDebug(
+                            "Stored recommendations for {UserName}: {MovieCount} movies, {TvCount} TV shows",
+                            user.Username,
+                            recs.Movies.Count,
+                            recs.Tv.Count);
                     }
-                    catch (OperationCanceledException)
+                    else
                     {
-                        throw;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to sync .strm files for user {UserName} ({UserId})", user.Username, user.Id);
                         failedUsers.Add(user.Username);
                     }
                 }
 
-                progress?.Report(90);
-
-                // Step 4: Wait for file system to flush, then trigger library scan (90-95% progress)
-                _logger.LogDebug("Waiting for file system flush before triggering library scan");
-                await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(false);
-
-                LogLibraryScanInstructions();
-
+                _store.ReplaceAll(stored);
                 progress?.Report(95);
 
-                // Note: Play status sync happens automatically via ItemAdded event when Jellyfin scans the new .strm files
-
-                // Step 5: Report results (100% progress)
+                // Step 4: Report results (100% progress)
                 var duration = DateTime.UtcNow - startTime;
                 _logger.LogInformation(
                     "Recommendation refresh completed in {Duration:F2} seconds: {Success}/{Total} users successful",
@@ -173,7 +128,7 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
 
                 if (failedUsers.Count > 0)
                 {
-                    _logger.LogWarning("Failed to sync recommendations for {Count} users: {Users}", failedUsers.Count, string.Join(", ", failedUsers));
+                    _logger.LogWarning("No recommendations generated for {Count} users: {Users}", failedUsers.Count, string.Join(", ", failedUsers));
                 }
 
                 progress?.Report(100);
@@ -202,11 +157,6 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
                     TimeOfDayTicks = TimeSpan.FromHours(4).Ticks
                 }
             };
-        }
-
-        private void LogLibraryScanInstructions()
-        {
-            _logger.LogInformation("Virtual library files updated. Scan recommendation libraries manually or wait for the next scheduled scan to see updates.");
         }
     }
 }

@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "12.2.0.0",
+        "changelog": "Empfehlungen als Zeilen auf der Startseite / Recommendations as home screen rows\n- Zeigt „Empfohlene Filme für dich“ und „Empfohlene Serien für dich“ über das Plugin Home Screen Sections (benötigt Home Screen Sections, File Transformation und Plugin Pages)\n- Echte Bibliotheks-Einträge: volle Infos, gemeinsamer Gesehen-Status, keine Duplikate, keine zusätzlichen Bibliotheken\n- Alte Empfehlungs-Bibliotheken werden automatisch entfernt\n- Native TV-Apps zeigen die Zeilen nicht an\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.2.0.zip",
+        "checksum": "74bd48cf69bb99bceed32f3159505003",
+        "timestamp": "2026-10-16T18:00:00Z"
+      },
+      {
         "version": "12.1.1.0",
         "changelog": "Neue Bibliotheken werden nicht mehr automatisch freigegeben / New libraries are no longer granted automatically\n- Bibliotheken, die nach der Umstellung angelegt werden, gibst du selbst pro Benutzer frei\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

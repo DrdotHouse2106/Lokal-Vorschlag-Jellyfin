@@ -1,0 +1,30 @@
+using System;
+
+namespace Jellyfin.Plugin.LocalRecs.Api
+{
+    /// <summary>
+    /// Status der Startseiten-Empfehlungen für die Konfigurationsseite.
+    /// </summary>
+    public class StatusInfo
+    {
+        /// <summary>
+        /// Gets or sets a value indicating whether the Home Screen Sections plugin is installed.
+        /// </summary>
+        public bool HomeScreenSectionsInstalled { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the sections are registered.
+        /// </summary>
+        public bool SectionsRegistered { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of users with recommendations.
+        /// </summary>
+        public int UsersWithRecommendations { get; set; }
+
+        /// <summary>
+        /// Gets or sets the time of the last refresh (UTC).
+        /// </summary>
+        public DateTime? LastUpdated { get; set; }
+    }
+}

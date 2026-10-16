@@ -4,6 +4,18 @@
 **Target:** Jellyfin 12.x, .NET 10.0  
 **License:** GPLv3
 
+
+> **Architecture change in 12.2.0:** Recommendations are no longer exposed through per-user symlink libraries.
+> The refresh task stores recommended item IDs per user (`RecommendationStore`, `plugins/LocalRecs/recommendations.json`),
+> and `HomeScreenSectionsIntegration` registers two sections with the Home Screen Sections plugin
+> (`PluginInterface.RegisterSection` via reflection, payload as Newtonsoft `JObject` from HSS's load context).
+> HSS invokes `RecommendationSectionHandler.GetMovieResults/GetSeriesResults` with the authenticated user ID;
+> the handler returns DTOs of the real library items, filtered by visibility and watch state at request time.
+> `LegacyLibraryCleanup` removes libraries whose locations lie in `plugins/LocalRecs/virtual-libraries` and deletes that folder.
+> A channel (`IChannel`) was evaluated and rejected: channel items are separate entities
+> (`ChannelManager.GetChannelItemEntityAsync`), so they would duplicate watch state just like the symlinks.
+> Sections below that describe virtual libraries, symlinks and play status sync document the previous design (≤ 12.1.1).
+
 ## Overview
 
 Local Recommendations is a Jellyfin server plugin that generates personalized, per-user content recommendations based entirely on local watch history and metadata similarity. The plugin prioritizes privacy, performance, and compatibility across all Jellyfin clients.

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.2.0] - 2026-10-16
+
+### Changed (breaking)
+
+- **Recommendations are shown as home screen rows instead of per-user libraries.** The plugin registers the sections "Empfohlene Filme für dich" and "Empfohlene Serien für dich" with the [Home Screen Sections](https://github.com/IAmParadox27/jellyfin-plugin-home-sections) plugin. The sections return the real library items for the requesting user: full metadata, shared watch state, no duplicates in "Continue Watching", no library scan and no extra libraries. Requires Home Screen Sections, File Transformation and Plugin Pages; native TV apps do not show the rows.
+- Recommendations are stored per user in `plugins/LocalRecs/recommendations.json` and survive restarts. Watched or started items are filtered out at request time. The first calculation starts automatically after installation.
+- Recommendation libraries and symlink folders created by older versions are removed automatically on startup (media files are untouched), and their IDs are removed from users' library access lists.
+- Removed: symlink/virtual library management, play status sync, automatic library creation and access management (including the settings `AutoCreateLibraries`, `AutoManageLibraryAccess`, `MovieLibraryNameTemplate`, `TvLibraryNameTemplate`) and the endpoints `Setup/Paths` and `Setup/Provision`. New: `MovieSectionTitle`, `TvSectionTitle` and `GET /LocalRecs/Status`.
+- The "Setup" tab of the configuration page is now "Startseite" with connection status and row titles.
+- The Windows symlink requirement no longer applies.
+
 ## [12.1.1] - 2026-10-16
 
 ### Changed
