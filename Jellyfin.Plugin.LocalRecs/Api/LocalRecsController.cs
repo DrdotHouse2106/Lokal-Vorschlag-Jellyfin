@@ -65,6 +65,11 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 LastUpdated = _store.LastUpdated,
                 LiveTvTrackedBroadcasts = _liveTvWatchStore.Count,
                 LiveTvActiveSessions = LiveTvTrackingService.ActiveLiveTvSessions,
+                PlaybackEventsReceived = LiveTvDiagnostics.EventCount,
+                LiveTvEventsReceived = LiveTvDiagnostics.LiveTvEventCount,
+                LastProgramResolved = LiveTvDiagnostics.LastProgramResolved,
+                LastProgramMissing = LiveTvDiagnostics.LastProgramMissing,
+                RecentPlaybacks = LiveTvDiagnostics.GetRecent(),
                 RecommendationsVersion = _store.Version
             });
         }

@@ -14,7 +14,7 @@ Privacy-first personalized recommendations for Jellyfin based entirely on local 
 Please report any issues or feedback on [GitHub Issues](https://github.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/issues).
 
 > [!IMPORTANT]
-> Since **12.2.0** recommendations are shown as **rows on the home screen** (via the "Home Screen Sections" plugin) instead of per-user libraries. Recommendation libraries created by older versions are removed automatically on first start. **Native TV apps** (Android TV, Fire TV, Roku) do not show these rows.
+> Since **12.2.0** recommendations are shown as **rows on the home screen** (via the "Home Screen Sections" plugin) instead of per-user libraries. Recommendation libraries created by older versions are removed automatically on first start. **Native apps** (Android TV, Fire TV, Roku, Swiftfin on iPhone/iPad/Apple TV) do not show these rows.
 
 ## Features
 
@@ -33,7 +33,7 @@ Please report any issues or feedback on [GitHub Issues](https://github.com/Drdot
 - **.NET Runtime:** 10.0
 - **Target ABI:** 12.0.0.0
 - **For the home screen rows:** the plugins **Home Screen Sections**, **File Transformation** and **Plugin Pages** by IAmParadox27 (repository `https://www.iamparadox.dev/jellyfin/plugins/manifest.json`)
-- **Clients:** web, desktop app and mobile apps. Native TV apps (Android TV, Fire TV, Roku) do not show the rows.
+- **Clients:** web, desktop app, the Android app "Jellyfin" and the iOS app "Jellyfin Mobile" (both show the web interface). Native apps (Android TV, Fire TV, Roku, **Swiftfin** on iPhone/iPad/Apple TV) do not show the rows.
 
 For Jellyfin 10.11.x use upstream version 0.6.1.
 
@@ -129,6 +129,8 @@ Access via: **Dashboard → Plugins → Local Recommendations → Settings**
 
 ### Live TV
 
+- **Ratings:** movies and series with a community rating below 5.0 are not recommended (unrated titles are kept; setting "Mindestbewertung", 0 = off). Well rated titles rank higher among similar matches ("Gewicht der Bewertung", default 0.15).
+- **Live TV troubleshooting:** the status on the Startseite tab shows playback events since server start (of which live TV) and the recently seen playbacks with user, client, type and title.
 - Jellyfin only reports the channel during live TV playback; the plugin looks up the running program in the EPG and counts watched minutes per broadcast (all clients, including native TV apps).
 - Channel switching (e.g. a football conference across several channels) counts minutes per game; since all games share the title/genre, the interest adds up.
 - Regular shows (watched live on at least 3 different days, e.g. "Die Sendung mit der Maus") are always included, up to 7 days ahead.

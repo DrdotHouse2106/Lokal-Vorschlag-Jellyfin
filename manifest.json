@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "12.4.2.0",
+        "changelog": "Mindestbewertung für Filme/Serien (Standard 5.0), gut bewertete Titel weiter vorne\n- TV-Karten einheitlich: Titel (Serie: Episode), darunter immer Zeit und Sender\n- Fehlersuche Live-TV im Status (gesehene Wiedergaben, Meldungen)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.4.2.zip",
+        "checksum": "f64d089507102720e7ca0e784db2a68d",
+        "timestamp": "2026-10-17T02:00:00Z"
+      },
+      {
         "version": "12.4.1.0",
         "changelog": "Knopf „Auswertung herunterladen (JSON)“ im Reiter Auswertung\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

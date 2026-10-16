@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.4.2] - 2026-10-16
+
+### Added
+
+- **Minimum rating** (`MinCommunityRating`, default 5.0, 0 = off): weakly rated movies and series are no longer recommended; titles without a rating are kept. The row is still filled up with the next best titles.
+- **Rating weight** (`RatingQualityWeight`, default 0.15): well rated titles rank higher among similarly matching ones (independent of rating proximity).
+- **Live TV diagnostics** in the status: playback events since server start (of which live TV), last time no program was found in the guide, and a list of the recently seen playbacks (user, client, type, title, recognized as live TV). The first detected live TV playback is logged.
+
+### Changed
+
+- TV cards are consistent: line 1 is the title (series with episode, e.g. "The Rookie: Leben und Tod"; sports with the pairing first), line 2 always shows time and channel.
+
 ## [12.4.1] - 2026-10-16
 
 ### Added

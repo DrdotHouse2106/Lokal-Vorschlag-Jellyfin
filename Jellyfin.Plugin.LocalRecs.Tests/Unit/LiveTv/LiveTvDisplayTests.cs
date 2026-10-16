@@ -46,7 +46,9 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.LiveTv
         {
             LiveTvDisplay.Title("Fußball: Champions League", "Manchester City – Paris Saint-Germain", true)
                 .Should().Be("Manchester City – Paris Saint-Germain · Fußball: Champions League");
-            LiveTvDisplay.Title("The Rookie", "Das Feuer", false).Should().Be("The Rookie");
+            LiveTvDisplay.Title("The Rookie", "Das Feuer", false).Should().Be("The Rookie: Das Feuer");
+            LiveTvDisplay.Title("Tatort", null, false).Should().Be("Tatort");
+            LiveTvDisplay.Title("Tatort: Das Feuer", "Das Feuer", false).Should().Be("Tatort: Das Feuer");
         }
 
         [Fact]

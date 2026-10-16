@@ -24,6 +24,8 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             MaxVocabularyTags = 500;
             EnableRatingProximity = true;
             RatingProximityWeight = 0.2;
+            MinCommunityRating = 5.0;
+            RatingQualityWeight = 0.15;
             MovieSectionTitle = "Empfohlene Filme für dich";
             TvSectionTitle = "Empfohlene Serien für dich";
             EnableLiveTvTracking = true;
@@ -166,6 +168,18 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         public double RatingProximityWeight { get; set; }
 
         /// <summary>
+        /// Gets or sets the minimum community rating (0-10) of recommended movies and series.
+        /// Titles without a rating are always allowed. 0 = off. Default: 5.0.
+        /// </summary>
+        public double MinCommunityRating { get; set; }
+
+        /// <summary>
+        /// Gets or sets how much the community rating itself raises the score (0.0 to 1.0).
+        /// Well rated titles rank higher among similarly matching ones. Default: 0.15.
+        /// </summary>
+        public double RatingQualityWeight { get; set; }
+
+        /// <summary>
         /// Validates the configuration and returns validation errors.
         /// </summary>
         /// <returns>List of validation error messages, empty if valid.</returns>
@@ -221,6 +235,16 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             if (RatingProximityWeight < 0 || RatingProximityWeight > 1)
             {
                 errors.Add("RatingProximityWeight must be between 0.0 and 1.0");
+            }
+
+            if (MinCommunityRating < 0 || MinCommunityRating > 10)
+            {
+                errors.Add("MinCommunityRating must be between 0 and 10");
+            }
+
+            if (RatingQualityWeight < 0 || RatingQualityWeight > 1)
+            {
+                errors.Add("RatingQualityWeight must be between 0.0 and 1.0");
             }
 
             return errors;

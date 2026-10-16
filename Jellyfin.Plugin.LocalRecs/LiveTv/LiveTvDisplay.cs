@@ -74,7 +74,8 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
 
         /// <summary>
         /// Builds the title of a card. For sports the pairing (episode title) is the important part,
-        /// e.g. "Manchester City – Paris Saint-Germain · Fußball: Champions League".
+        /// e.g. "Manchester City – Paris Saint-Germain · Fußball: Champions League". Series episodes become
+        /// "The Rookie: Leben und Tod"; the second line of the card always shows time and channel.
         /// </summary>
         /// <param name="name">Program name.</param>
         /// <param name="episodeTitle">Episode title.</param>
@@ -88,7 +89,13 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 return episodeTitle.Trim() + (title.Length > 0 ? " · " + title : string.Empty);
             }
 
-            return title;
+            if (!string.IsNullOrWhiteSpace(episodeTitle) && title.Length > 0
+                && !title.Contains(episodeTitle.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return title + ": " + episodeTitle.Trim();
+            }
+
+            return title.Length > 0 ? title : episodeTitle?.Trim() ?? string.Empty;
         }
     }
 }

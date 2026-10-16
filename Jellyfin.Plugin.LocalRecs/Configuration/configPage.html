@@ -177,6 +177,18 @@
                             <input is="emby-input" type="number" id="ratingProximityWeight" name="ratingProximityWeight" min="0.0" max="1.0" step="0.05" />
                             <div class="fieldDescription">How much to blend rating similarity (0.0 = pure content match, 1.0 = pure rating match, default: 0.2)</div>
                         </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="minCommunityRating">Mindestbewertung (Community, 0–10):</label>
+                            <input is="emby-input" type="number" id="minCommunityRating" name="minCommunityRating" min="0" max="10" step="0.5" />
+                            <div class="fieldDescription">Filme und Serien mit schlechterer Bewertung werden nicht empfohlen. Titel ohne Bewertung bleiben drin. 0 = aus (Standard: 5.0)</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="ratingQualityWeight">Gewicht der Bewertung:</label>
+                            <input is="emby-input" type="number" id="ratingQualityWeight" name="ratingQualityWeight" min="0" max="1" step="0.05" />
+                            <div class="fieldDescription">Gut bewertete Titel rücken bei ähnlicher Passung nach vorne (0 = aus, Standard: 0.15)</div>
+                        </div>
                         
                         <h2 class="sectionTitle">Performance Tuning</h2>
                         
@@ -357,7 +369,25 @@
                                 ? status.LiveTvTrackedBroadcasts + ' live geschaute Sendungen erfasst'
                                 : 'Noch keine live geschauten Sendungen erfasst');
                             html += ok(true, 'Gerade laufendes Live-TV: ' + (status.LiveTvActiveSessions || 0) + ' Wiedergabe(n)');
+                            html += ok(status.LiveTvEventsReceived > 0, 'Wiedergabe-Meldungen seit Serverstart: ' + (status.PlaybackEventsReceived || 0)
+                                + ', davon Live-TV: ' + (status.LiveTvEventsReceived || 0));
+                            if (status.LastProgramMissing) {
+                                html += ok(false, 'Zuletzt lief auf einem Sender keine Sendung im Programmführer (' + self.escapeHtml(new Date(status.LastProgramMissing).toLocaleString())
+                                    + ') – Programmführer-Daten aktualisieren');
+                            }
                             html += '</ul>';
+                            var recent = status.RecentPlaybacks || [];
+                            if (recent.length) {
+                                html += '<details style="margin-top: 0.5em;"><summary>Zuletzt gesehene Wiedergaben (Fehlersuche Live-TV)</summary>';
+                                html += '<table style="width: 100%; border-collapse: collapse; margin-top: 0.5em;"><tr style="text-align: left;"><th>Zeit</th><th>Quelle</th><th>Benutzer</th><th>Client</th><th>Typ</th><th>Titel</th><th>Live-TV</th></tr>';
+                                recent.forEach(function(r) {
+                                    html += '<tr><td>' + self.escapeHtml(new Date(r.Time).toLocaleTimeString()) + '</td><td>' + self.escapeHtml(r.Source || '')
+                                        + '</td><td>' + self.escapeHtml(r.UserName || '') + '</td><td>' + self.escapeHtml(r.Client || '')
+                                        + '</td><td>' + self.escapeHtml(r.ItemType || '') + '</td><td>' + self.escapeHtml(r.ItemName || '')
+                                        + '</td><td>' + (r.IsLiveTv ? '✔' : '–') + '</td></tr>';
+                                });
+                                html += '</table></details>';
+                            }
                             container.innerHTML = html;
                         })
                         .catch(function(error) {
@@ -431,6 +461,8 @@
                             page.querySelector('#maxVocabularyTags').value = config.MaxVocabularyTags !== undefined ? config.MaxVocabularyTags : 500;
                             page.querySelector('#enableRatingProximity').checked = config.EnableRatingProximity || false;
                             page.querySelector('#ratingProximityWeight').value = config.RatingProximityWeight !== undefined ? config.RatingProximityWeight : 0.2;
+                            page.querySelector('#minCommunityRating').value = config.MinCommunityRating !== undefined ? config.MinCommunityRating : 5;
+                            page.querySelector('#ratingQualityWeight').value = config.RatingQualityWeight !== undefined ? config.RatingQualityWeight : 0.15;
                             page.querySelector('#movieSectionTitle').value = config.MovieSectionTitle || 'Empfohlene Filme für dich';
                             page.querySelector('#tvSectionTitle').value = config.TvSectionTitle || 'Empfohlene Serien für dich';
                             page.querySelector('#enableLiveTvTracking').checked = config.EnableLiveTvTracking !== false;
@@ -482,6 +514,9 @@
                             config.MaxVocabularyTags = parseInt(page.querySelector('#maxVocabularyTags').value);
                             config.EnableRatingProximity = page.querySelector('#enableRatingProximity').checked;
                             config.RatingProximityWeight = parseFloat(page.querySelector('#ratingProximityWeight').value);
+                            config.MinCommunityRating = parseFloat(page.querySelector('#minCommunityRating').value) || 0;
+                            var qualityWeight = parseFloat(page.querySelector('#ratingQualityWeight').value);
+                            config.RatingQualityWeight = isNaN(qualityWeight) ? 0.15 : qualityWeight;
                             config.MovieSectionTitle = page.querySelector('#movieSectionTitle').value.trim() || 'Empfohlene Filme für dich';
                             config.TvSectionTitle = page.querySelector('#tvSectionTitle').value.trim() || 'Empfohlene Serien für dich';
                             config.EnableLiveTvTracking = page.querySelector('#enableLiveTvTracking').checked;

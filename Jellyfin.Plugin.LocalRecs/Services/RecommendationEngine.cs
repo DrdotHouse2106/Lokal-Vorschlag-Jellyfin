@@ -234,6 +234,12 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                     continue;
                 }
 
+                // Schwach bewertete Titel nicht empfehlen (Titel ohne Bewertung bleiben drin)
+                if (RatingQuality.IsBelowMinimum(itemMetadata, config))
+                {
+                    continue;
+                }
+
                 // Exclude items with insufficient metadata (no genres AND no actors)
                 // These produce unreliable similarity scores
                 if (itemMetadata.Genres.Count == 0 && itemMetadata.Actors.Count == 0)
@@ -342,10 +348,10 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 userProfile.TasteVector,
                 candidateEmbedding.Vector);
 
-            // If rating proximity is disabled, return pure cosine similarity
+            // If rating proximity is disabled, use pure cosine similarity
             if (!config.EnableRatingProximity)
             {
-                return new ScoredRecommendation(candidateEmbedding.ItemId, cosineSimilarity);
+                return new ScoredRecommendation(candidateEmbedding.ItemId, (float)RatingQuality.Apply(cosineSimilarity, itemMetadata, config));
             }
 
             // Compute rating proximity components
@@ -377,7 +383,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             var finalScore = ((1 - config.RatingProximityWeight) * cosineSimilarity)
                            + (config.RatingProximityWeight * ratingProximity);
 
-            return new ScoredRecommendation(candidateEmbedding.ItemId, (float)finalScore);
+            return new ScoredRecommendation(candidateEmbedding.ItemId, (float)RatingQuality.Apply(finalScore, itemMetadata, config));
         }
 
         /// <summary>
@@ -405,6 +411,12 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             if (mediaType.HasValue)
             {
                 candidateMetadata = candidateMetadata.Where(m => m.Type == mediaType.Value);
+            }
+
+            var ratingConfig = Plugin.Instance?.Configuration;
+            if (ratingConfig != null)
+            {
+                candidateMetadata = candidateMetadata.Where(m => !RatingQuality.IsBelowMinimum(m, ratingConfig));
             }
 
             // Get unwatched items that the user has access to

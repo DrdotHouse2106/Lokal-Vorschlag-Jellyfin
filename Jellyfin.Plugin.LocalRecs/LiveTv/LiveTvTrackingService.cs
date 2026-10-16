@@ -104,6 +104,18 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             };
         }
 
+        private static string? ClientName(SessionInfo? session, string? clientName, string? deviceName)
+        {
+            var client = clientName ?? session?.Client;
+            var device = deviceName ?? session?.DeviceName;
+            if (string.IsNullOrWhiteSpace(device))
+            {
+                return client;
+            }
+
+            return string.IsNullOrWhiteSpace(client) ? device : client + " (" + device + ")";
+        }
+
         private static string SessionKey(PlaybackProgressEventArgs e, Guid userId)
         {
             var session = e.Session?.Id ?? e.DeviceId ?? e.PlaySessionId ?? string.Empty;
@@ -114,13 +126,28 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         {
             try
             {
+                var channelId = GetChannelId(e.Item);
+                var now = DateTime.UtcNow;
+                var seen = new LiveTvDiagnostics.PlaybackSeen
+                {
+                    Time = now,
+                    Source = "Ereignis",
+                    Client = ClientName(e.Session, e.ClientName, e.DeviceName),
+                    UserName = e.Users == null ? null : string.Join(", ", e.Users.Select(u => u.Username)),
+                    ItemType = e.Item?.GetType().Name ?? e.Session?.NowPlayingItem?.Type.ToString(),
+                    ItemName = e.Item?.Name ?? e.Session?.NowPlayingItem?.Name,
+                    IsLiveTv = channelId != null
+                };
+                if (LiveTvDiagnostics.Record(seen, true))
+                {
+                    _logger.LogInformation("Live-TV erkannt: {Channel} auf {Client} ({User})", seen.ItemName, seen.Client, seen.UserName);
+                }
+
                 if (!Config.EnableLiveTvTracking || e.Users == null)
                 {
                     return;
                 }
 
-                var channelId = GetChannelId(e.Item);
-                var now = DateTime.UtcNow;
                 foreach (var user in e.Users)
                 {
                     _tracker.OnProgress(SessionKey(e, user.Id), user.Id, channelId, e.IsPaused, now);
@@ -203,8 +230,10 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 Limit = 1
             }).OfType<LiveTvProgram>().FirstOrDefault();
 
+            LiveTvDiagnostics.RecordProgramLookup(program != null, DateTime.UtcNow);
             if (program == null)
             {
+                _logger.LogDebug("Keine laufende Sendung im Programmführer für Kanal {ChannelId} um {Time}", channelId, at);
                 return null;
             }
 
@@ -250,6 +279,22 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                     channelId = session.NowPlayingItem.Type == BaseItemKind.TvChannel
                         ? session.NowPlayingItem.Id
                         : session.NowPlayingItem.Type == BaseItemKind.Program ? session.NowPlayingItem.ChannelId : null;
+                }
+
+                if (session.NowPlayingItem != null)
+                {
+                    LiveTvDiagnostics.Record(
+                        new LiveTvDiagnostics.PlaybackSeen
+                        {
+                            Time = now,
+                            Source = "Abfrage",
+                            Client = ClientName(session, null, null),
+                            UserName = session.UserName,
+                            ItemType = item?.GetType().Name ?? session.NowPlayingItem.Type.ToString(),
+                            ItemName = item?.Name ?? session.NowPlayingItem.Name,
+                            IsLiveTv = channelId != null
+                        },
+                        false);
                 }
 
                 if (channelId == null || session.UserId == Guid.Empty)
