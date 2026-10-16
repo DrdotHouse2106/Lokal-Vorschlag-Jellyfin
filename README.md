@@ -53,11 +53,11 @@ Hast du früher das Repository `https://raw.githubusercontent.com/DrdotHouse2106
 
 ### Variante B: Manuell
 
-1. [`release/jellyfin-plugin-localrecs-v12.4.0.zip`](release/jellyfin-plugin-localrecs-v12.4.0.zip) herunterladen und entpacken.
+1. [`release/jellyfin-plugin-localrecs-v12.4.1.zip`](release/jellyfin-plugin-localrecs-v12.4.1.zip) herunterladen und entpacken.
 2. Die Datei `Jellyfin.Plugin.LocalRecs.dll` in einen neuen Ordner im Plugin-Verzeichnis legen, z. B.
-   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.4.0.0/`
-   - Docker: `/config/plugins/LocalRecs_12.4.0.0/`
-   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.4.0.0\`
+   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.4.1.0/`
+   - Docker: `/config/plugins/LocalRecs_12.4.1.0/`
+   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.4.1.0\`
 3. Jellyfin-Server neu starten.
 
 ## Einrichtung
@@ -83,7 +83,7 @@ Im Plugin unter **Einstellungen → Startseite** siehst du, ob alles verbunden i
 
 ### Auswertung
 
-Das Plugin merkt sich, was es wem empfohlen hat, und zählt, was davon danach geschaut wurde (Filme und Serien ab 10 Minuten oder bis zum Ende, Live-TV ab der Mindestdauer). Im Reiter **Auswertung** stehen pro Bereich Anzahl der Empfehlungen, Treffer, Trefferquote und die durchschnittliche Zeit bis zum Anschauen, dazu die zuletzt geschauten Empfehlungen. Die Daten liegen in `plugins/LocalRecs/feedback.json` und sind über `GET /LocalRecs/Evaluation?days=30` (Admin) abrufbar – z. B. um die Empfehlungen gezielt weiterzuentwickeln.
+Das Plugin merkt sich, was es wem empfohlen hat, und zählt, was davon danach geschaut wurde (Filme und Serien ab 10 Minuten oder bis zum Ende, Live-TV ab der Mindestdauer). Im Reiter **Auswertung** stehen pro Bereich Anzahl der Empfehlungen, Treffer, Trefferquote und die durchschnittliche Zeit bis zum Anschauen, dazu die zuletzt geschauten Empfehlungen. Die Daten liegen in `plugins/LocalRecs/feedback.json` und lassen sich im Reiter mit **„Auswertung herunterladen (JSON)“** speichern oder über `GET /LocalRecs/Evaluation?days=30` (Admin) abrufen – z. B. um die Empfehlungen gezielt weiterzuentwickeln.
 
 **Gut zu wissen**
 - Jeder Benutzer sieht nur seine eigenen Empfehlungen.

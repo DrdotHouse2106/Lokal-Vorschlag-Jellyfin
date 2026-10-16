@@ -216,6 +216,10 @@
                                 <option value="365">365 Tage</option>
                             </select>
                         </div>
+                        <button is="emby-button" type="button" class="raised" id="downloadEvaluation">
+                            <span>Auswertung herunterladen (JSON)</span>
+                        </button>
+                        <div class="fieldDescription">Lädt die Auswertung des gewählten Zeitraums als Datei herunter – z. B. um sie zur Weiterentwicklung der Empfehlungen weiterzugeben.</div>
                         <div id="evaluationContainer"><p>Lade Auswertung...</p></div>
                     </div>
 
@@ -600,6 +604,29 @@
                     LocalRecsConfig.updateFieldVisibility(page);
                 });
                 
+                page.querySelector('#downloadEvaluation').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var days = page.querySelector('#evaluationDays').value || 30;
+                    ApiClient.getJSON(ApiClient.getUrl('LocalRecs/Evaluation', { days: days }))
+                        .then(function(report) {
+                            var blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+                            var url = window.URL.createObjectURL(blob);
+                            var a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'localrecs-auswertung-' + days + 'tage-' + new Date().toISOString().split('T')[0] + '.json';
+                            document.body.appendChild(a);
+                            a.click();
+                            setTimeout(function() {
+                                document.body.removeChild(a);
+                                window.URL.revokeObjectURL(url);
+                            }, 100);
+                        })
+                        .catch(function(error) {
+                            console.error('Failed to download evaluation:', error);
+                            Dashboard.alert('Auswertung konnte nicht heruntergeladen werden.');
+                        });
+                });
+
                 page.querySelector('#evaluationDays').addEventListener('change', function() {
                     LocalRecsConfig.loadEvaluation(page);
                 });
