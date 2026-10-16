@@ -74,6 +74,16 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         }
 
         /// <summary>
+        /// Checks whether the user has an interest in exactly this title (e.g. "fußball").
+        /// </summary>
+        /// <param name="titleKey">Normalized title key.</param>
+        /// <returns>True if the title was watched before.</returns>
+        public bool HasTitle(string? titleKey)
+        {
+            return !string.IsNullOrEmpty(titleKey) && _titles.ContainsKey(titleKey);
+        }
+
+        /// <summary>
         /// Scores a program against the profile.
         /// </summary>
         /// <param name="genres">Genres of the program.</param>

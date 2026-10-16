@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "12.3.1.0",
+        "changelog": "Sport nur bei passendem Titel / Sports only for matching titles\n- „Heute im TV für dich“ schlägt Sportsendungen nur vor, wenn der Titel passt (Fußball-Fans bekommen kein Handball, Golf oder Tennis)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.3.1.zip",
+        "checksum": "7ee02ce23d3cf256dfb9fd593bfb22c8",
+        "timestamp": "2026-10-16T21:00:00Z"
+      },
+      {
         "version": "12.3.0.0",
         "changelog": "Live-TV / Live TV\n- Schreibt mit, welche Sendungen live geschaut werden (alle Apps, auch TV-Apps); Senderwechsel z. B. bei der Fußball-Konferenz werden pro Sendung gezählt\n- Neue Startseiten-Zeile „Heute im TV für dich“ mit passenden Sendungen aus dem EPG\n- Live geschaute Titel, die es auch in der Bibliothek gibt, zählen dort als gesehen\n- Zappen unter 3 Minuten sowie Nachrichten, News und Wetter werden ignoriert (einstellbar)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

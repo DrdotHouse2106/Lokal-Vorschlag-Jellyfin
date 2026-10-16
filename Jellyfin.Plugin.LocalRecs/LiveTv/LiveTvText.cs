@@ -76,6 +76,16 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         }
 
         /// <summary>
+        /// Checks whether the genres describe a sports broadcast (e.g. "Sport", "Fußball", "Sports event").
+        /// </summary>
+        /// <param name="genres">Genres of a program.</param>
+        /// <returns>True for sports.</returns>
+        public static bool IsSportsGenre(IEnumerable<string>? genres)
+        {
+            return (genres ?? Enumerable.Empty<string>()).Any(g => NormalizeFeature(g).Contains("sport", StringComparison.Ordinal));
+        }
+
+        /// <summary>
         /// Checks whether any of the genres is excluded.
         /// </summary>
         /// <param name="genres">Genres of a program.</param>

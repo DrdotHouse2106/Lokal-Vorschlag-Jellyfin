@@ -40,6 +40,28 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.LiveTv
         }
 
         [Fact]
+        public void FootballFan_GetsNoHandballGolfOrTennis()
+        {
+            var profile = new TvInterestProfile();
+            profile.Add(new[] { "Sport" }, "fußball", null, 2f);
+
+            var ranked = LiveTvRecommendationService.Rank(
+                profile,
+                new[]
+                {
+                    Program("Handball: Bundesliga, Kiel - Flensburg", "Sport", hours: 1),
+                    Program("Golf: Ryder Cup", "Sport", hours: 2),
+                    Program("Tennis: Finale", "Sport", hours: 3),
+                    Program("Fußball: 2. Bundesliga", "Sport", hours: 4)
+                },
+                NoExclusions,
+                NoneWatched,
+                10);
+
+            ranked.Select(p => p.TitleKey).Should().Equal("fußball");
+        }
+
+        [Fact]
         public void SameShowOnSeveralDates_OnlyNextAiringIsShown()
         {
             var profile = new TvInterestProfile();
@@ -114,7 +136,8 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.LiveTv
                 BroadcastKey = title + "|" + start.ToString("o", System.Globalization.CultureInfo.InvariantCulture),
                 TitleKey = LiveTvText.NormalizeTitle(title),
                 Genres = new[] { genre },
-                StartDate = start
+                StartDate = start,
+                IsSports = LiveTvText.IsSportsGenre(new[] { genre })
             };
         }
     }

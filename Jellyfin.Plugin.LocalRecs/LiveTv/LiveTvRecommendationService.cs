@@ -85,6 +85,9 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
 
             return programs
                 .Where(p => !LiveTvText.IsExcluded(p.Genres, excludedGenres) && !watchedBroadcasts.Contains(p.BroadcastKey))
+
+                // Sport nur bei passendem Titel: wer Fußball schaut, bekommt kein Handball, Golf oder Tennis
+                .Where(p => !p.IsSports || profile.HasTitle(p.TitleKey))
                 .Select(p => (Program: p, Score: profile.Score(p.Genres, p.TitleKey, p.People)))
                 .Where(x => x.Score >= MinScore)
                 .GroupBy(x => x.Program.TitleKey.Length > 0 ? x.Program.TitleKey : x.Program.BroadcastKey)
@@ -151,7 +154,8 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 TitleKey = LiveTvText.NormalizeTitle(string.IsNullOrWhiteSpace(p.SeriesName) ? p.Name : p.SeriesName),
                 Genres = p.Genres ?? Array.Empty<string>(),
                 People = Array.Empty<string>(),
-                StartDate = p.StartDate
+                StartDate = p.StartDate,
+                IsSports = p.IsSports || LiveTvText.IsSportsGenre(p.Genres)
             });
 
             var watchedKeys = watchedEntries.Select(e => e.BroadcastKey).ToHashSet();
@@ -253,6 +257,11 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             /// Gets or sets the start date (UTC).
             /// </summary>
             public DateTime StartDate { get; set; }
+
+            /// <summary>
+            /// Gets or sets a value indicating whether the program is a sports broadcast.
+            /// </summary>
+            public bool IsSports { get; set; }
         }
     }
 }
