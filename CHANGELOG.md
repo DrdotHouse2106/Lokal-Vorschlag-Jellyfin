@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.4.0] - 2026-10-16
+
+### Added
+
+- **Broadcast time on the cards** of "Heute im TV für dich": the second line shows e.g. "Heute 20:15 · ZDF", "Morgen 09:10 · RTL", "Sa 14:00 · Das Erste" or "Läuft bis 15:00 · ARTE" (new setting `LiveTvTimeZone`, default Europe/Berlin). For sports the pairing comes first in the title.
+- **Regular shows**: a show watched live on at least `LiveTvRegularDays` (default 3) different days (e.g. "Die Sendung mit der Maus") gets a bonus, is always included and may be up to 7 days ahead.
+- **Evaluation**: recommendations and later watching are recorded (`feedback.json`); new tab "Auswertung" and `GET /LocalRecs/Evaluation?days=N` with recommended/watched/hit rate/average days per section and the latest hits.
+- Live TV history retention (`LiveTvHistoryDays`) is configurable in the UI up to 3650 days; the recency half-life can be set up to 3650 days.
+
+### Fixed
+
+- **Live TV tracking with clients that do not report progress**: active sessions are now checked every minute in addition to playback events (status shows currently running live TV).
+- **Duplicate movies/series** (several versions of the same title) are shown once (provider IDs, otherwise name + year).
+- "Heute im TV für dich" is sorted chronologically and limited to a third per main genre (previously 17 of 20 were comedies, sorted in blocks).
+- **Recalculation after plugin updates**: on startup recommendations are recomputed if they were created by another plugin version or are older than 24 hours.
+
 ## [12.3.3] - 2026-10-16
 
 ### Fixed

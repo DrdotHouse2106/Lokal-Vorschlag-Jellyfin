@@ -8,6 +8,7 @@ using Jellyfin.Data.Enums;
 using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Database.Implementations.Enums;
 using Jellyfin.Plugin.LocalRecs.Configuration;
+using Jellyfin.Plugin.LocalRecs.Services;
 using Jellyfin.Plugin.LocalRecs.Utilities;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -34,6 +35,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         private readonly IUserManager _userManager;
         private readonly ILiveTvManager _liveTvManager;
         private readonly LiveTvWatchStore _watchStore;
+        private readonly FeedbackStore _feedback;
         private readonly ConcurrentDictionary<Guid, (DateTime Created, IReadOnlyList<BaseItem> Items)> _cache =
             new ConcurrentDictionary<Guid, (DateTime Created, IReadOnlyList<BaseItem> Items)>();
 
@@ -45,18 +47,21 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         /// <param name="userManager">User manager.</param>
         /// <param name="liveTvManager">Live TV manager.</param>
         /// <param name="watchStore">Live TV watch history.</param>
+        /// <param name="feedback">Evaluation of the recommendations.</param>
         public LiveTvRecommendationService(
             ILogger<LiveTvRecommendationService> logger,
             ILibraryManager libraryManager,
             IUserManager userManager,
             ILiveTvManager liveTvManager,
-            LiveTvWatchStore watchStore)
+            LiveTvWatchStore watchStore,
+            FeedbackStore feedback)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _libraryManager = libraryManager ?? throw new ArgumentNullException(nameof(libraryManager));
             _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
             _liveTvManager = liveTvManager ?? throw new ArgumentNullException(nameof(liveTvManager));
             _watchStore = watchStore ?? throw new ArgumentNullException(nameof(watchStore));
+            _feedback = feedback ?? throw new ArgumentNullException(nameof(feedback));
         }
 
         /// <summary>
@@ -67,13 +72,15 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         /// <param name="excludedGenres">Excluded genres (normalized).</param>
         /// <param name="watchedBroadcasts">Broadcast keys the user already watched.</param>
         /// <param name="limit">Maximum number of programs.</param>
-        /// <returns>The recommended programs, best first.</returns>
+        /// <param name="onlyRegularShowsAfter">Programs starting after this time (UTC) are only kept if they are regular shows.</param>
+        /// <returns>The recommended programs, in chronological order.</returns>
         public static IReadOnlyList<ProgramCandidate> Rank(
             TvInterestProfile profile,
             IEnumerable<ProgramCandidate> programs,
             HashSet<string> excludedGenres,
             HashSet<string> watchedBroadcasts,
-            int limit)
+            int limit,
+            DateTime? onlyRegularShowsAfter = null)
         {
             ArgumentNullException.ThrowIfNull(profile);
             ArgumentNullException.ThrowIfNull(programs);
@@ -83,8 +90,11 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 return Array.Empty<ProgramCandidate>();
             }
 
-            return programs
+            var ranked = programs
                 .Where(p => !LiveTvText.IsExcluded(p.Genres, excludedGenres) && !watchedBroadcasts.Contains(p.BroadcastKey))
+
+                // Stammsendungen dürfen weiter in der Zukunft liegen als der normale Vorschau-Zeitraum
+                .Where(p => onlyRegularShowsAfter == null || p.StartDate <= onlyRegularShowsAfter || profile.IsRegular(p.TitleKey))
 
                 // Sport nur bei gleicher Sportart oder gleichem Titel: wer Fußball schaut, bekommt kein Handball, Golf oder Tennis
                 .Where(p => !p.IsSports || profile.HasSport(p.Sport) || profile.HasTitle(p.TitleKey))
@@ -94,9 +104,22 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 .Select(g => g.OrderBy(x => x.Program.StartDate).First()) // pro Sendung nur der nächste Termin
                 .OrderByDescending(x => x.Score)
                 .ThenBy(x => x.Program.StartDate)
-                .Take(limit > 0 ? limit : int.MaxValue)
                 .Select(x => x.Program)
                 .ToList();
+
+            // Die besten auswählen, dann in der Zeile chronologisch anzeigen
+            return PickDiverse(ranked, limit, profile).OrderBy(p => p.StartDate).ToList();
+        }
+
+        /// <summary>
+        /// Key for the evaluation: sports per broadcast (pairing), everything else per show.
+        /// </summary>
+        /// <param name="program">Recommended program.</param>
+        /// <returns>The key.</returns>
+        public static string FeedbackKey(ProgramCandidate program)
+        {
+            ArgumentNullException.ThrowIfNull(program);
+            return program.IsSports || program.TitleKey.Length == 0 ? program.BroadcastKey : "title:" + program.TitleKey;
         }
 
         /// <summary>
@@ -115,6 +138,49 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             var items = ComputeRecommendedPrograms(userId, now);
             _cache[userId] = (now, items);
             return items;
+        }
+
+        /// <summary>
+        /// Picks the best programs, but at most a third of the row from the same main genre
+        /// (e.g. not 17 comedies). If there are not enough other programs the row is filled up.
+        /// </summary>
+        /// <param name="ranked">Programs ordered by score.</param>
+        /// <param name="limit">Maximum number of programs.</param>
+        /// <param name="profile">Interest profile (regular shows are always included).</param>
+        /// <returns>The selected programs.</returns>
+        private static List<ProgramCandidate> PickDiverse(List<ProgramCandidate> ranked, int limit, TvInterestProfile profile)
+        {
+            var max = limit > 0 ? limit : int.MaxValue;
+            var cap = limit > 0 ? Math.Max(2, (int)Math.Ceiling(limit / 3.0)) : int.MaxValue;
+            var perGenre = new Dictionary<string, int>();
+            var picked = new List<ProgramCandidate>();
+            var leftovers = new List<ProgramCandidate>();
+
+            // Stammsendungen immer zuerst und ohne Genre-Obergrenze
+            picked.AddRange(ranked.Where(p => profile.IsRegular(p.TitleKey)).Take(max));
+
+            foreach (var program in ranked.Where(p => !profile.IsRegular(p.TitleKey)))
+            {
+                if (picked.Count >= max)
+                {
+                    break;
+                }
+
+                var genre = program.Sport ?? LiveTvText.NormalizeFeature(program.Genres.FirstOrDefault());
+                var count = perGenre.GetValueOrDefault(genre);
+                if (count < cap)
+                {
+                    perGenre[genre] = count + 1;
+                    picked.Add(program);
+                }
+                else
+                {
+                    leftovers.Add(program);
+                }
+            }
+
+            picked.AddRange(leftovers.Take(max - picked.Count));
+            return picked;
         }
 
         /// <summary>
@@ -150,6 +216,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 : Array.Empty<LiveTvWatchEntry>();
 
             var profile = BuildProfile(user, watchedEntries, excluded, config, now);
+            var lookaheadEnd = now.AddHours(Math.Max(1, config.LiveTvLookaheadHours));
             if (profile.IsEmpty)
             {
                 return Array.Empty<BaseItem>();
@@ -160,7 +227,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             {
                 IncludeItemTypes = new[] { BaseItemKind.LiveTvProgram },
                 MinEndDate = now,
-                MaxStartDate = now.AddHours(Math.Max(1, config.LiveTvLookaheadHours)),
+                MaxStartDate = profile.HasRegularShows ? now.AddDays(Math.Max(7, Math.Max(1, config.LiveTvLookaheadHours) / 24.0)) : lookaheadEnd,
                 TopParentIds = new[] { liveTvFolder.Id },
                 OrderBy = new[] { (ItemSortBy.StartDate, SortOrder.Ascending) }
             }).OfType<LiveTvProgram>().ToList();
@@ -190,7 +257,8 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             });
 
             var watchedKeys = watchedEntries.Select(e => e.BroadcastKey).ToHashSet();
-            var ranked = Rank(profile, candidates, excluded, watchedKeys, config.LiveTvRecommendationCount);
+            var ranked = Rank(profile, candidates, excluded, watchedKeys, config.LiveTvRecommendationCount, lookaheadEnd);
+            _feedback.RecordRecommended(userId, FeedbackStore.LiveTv, ranked.Select(c => (FeedbackKey(c), LiveTvDisplay.Title(c.Title, c.EpisodeTitle, c.IsSports))), now);
 
             _logger.LogDebug(
                 "Live TV recommendations for {User}: {Count} of {Total} programs",
@@ -217,6 +285,20 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 var decay = WeightCalculator.ExponentialDecay((now - entry.LastWatched).TotalDays, config.RecencyDecayHalfLifeDays);
                 var sport = LiveTvText.DetectSport(entry.Genres, entry.Title, entry.EpisodeTitle, entry.SeriesName);
                 profile.Add(entry.Genres, LiveTvText.TitleKey(entry), entry.People, hours * decay, sport);
+            }
+
+            // Stammsendungen: an mindestens N verschiedenen Tagen geschaut (z. B. „Die Sendung mit der Maus“).
+            // Sport ausgenommen – dort sorgt die Sportart-Erkennung für passende Vorschläge.
+            var timeZone = LiveTvDisplay.ResolveTimeZone(config.LiveTvTimeZone);
+            var regularShows = watchedEntries
+                .Where(e => !LiveTvText.IsExcluded(e.Genres, excluded)
+                    && LiveTvText.DetectSport(e.Genres, e.Title, e.EpisodeTitle, e.SeriesName) == null)
+                .GroupBy(LiveTvText.TitleKey)
+                .Where(g => g.Key.Length > 0
+                    && g.Select(e => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(e.StartDate, DateTimeKind.Utc), timeZone).Date).Distinct().Count() >= Math.Max(2, config.LiveTvRegularDays));
+            foreach (var show in regularShows)
+            {
+                profile.MarkRegular(show.Key);
             }
 
             // 2. Bibliothek: gesehene Filme

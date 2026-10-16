@@ -94,6 +94,23 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         }
 
         /// <summary>
+        /// Gets the watched broadcasts of all users that were watched since the given time.
+        /// </summary>
+        /// <param name="since">Time (UTC).</param>
+        /// <param name="minMinutes">Minimum minutes per broadcast.</param>
+        /// <returns>Copies of the entries.</returns>
+        public IReadOnlyList<LiveTvWatchEntry> GetRecentEntries(DateTime since, double minMinutes)
+        {
+            lock (_lock)
+            {
+                return _entries.Values
+                    .Where(e => e.LastWatched >= since && e.Minutes >= minMinutes)
+                    .Select(Clone)
+                    .ToList();
+            }
+        }
+
+        /// <summary>
         /// Removes entries that were last watched before the given time.
         /// </summary>
         /// <param name="olderThan">Cut-off time (UTC).</param>

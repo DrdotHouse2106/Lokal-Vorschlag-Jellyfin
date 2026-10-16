@@ -31,9 +31,19 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         }
 
         /// <summary>
+        /// Gets the version of the running plugin.
+        /// </summary>
+        public static string CurrentVersion => typeof(RecommendationStore).Assembly.GetName().Version?.ToString() ?? string.Empty;
+
+        /// <summary>
         /// Gets the time of the last update (UTC), or null if no recommendations were computed yet.
         /// </summary>
         public DateTime? LastUpdated { get; private set; }
+
+        /// <summary>
+        /// Gets the plugin version that computed the stored recommendations.
+        /// </summary>
+        public string? Version { get; private set; }
 
         /// <summary>
         /// Gets the number of users with stored recommendations.
@@ -74,6 +84,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             {
                 _recommendations = new Dictionary<Guid, UserRecommendations>(recommendations);
                 LastUpdated = DateTime.UtcNow;
+                Version = CurrentVersion;
                 Save();
             }
         }
@@ -92,6 +103,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 {
                     _recommendations = data.Users.ToDictionary(kv => kv.Key, kv => kv.Value);
                     LastUpdated = data.LastUpdated;
+                    Version = data.Version;
                 }
             }
             catch (Exception ex) when (ex is IOException || ex is JsonException || ex is UnauthorizedAccessException)
@@ -110,7 +122,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                     Directory.CreateDirectory(directory);
                 }
 
-                var data = new StoreFile { LastUpdated = LastUpdated, Users = _recommendations };
+                var data = new StoreFile { LastUpdated = LastUpdated, Version = Version, Users = _recommendations };
                 var tempPath = _filePath + ".tmp";
                 File.WriteAllText(tempPath, JsonSerializer.Serialize(data));
                 File.Move(tempPath, _filePath, true);
@@ -124,6 +136,8 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         private sealed class StoreFile
         {
             public DateTime? LastUpdated { get; set; }
+
+            public string? Version { get; set; }
 
             public Dictionary<Guid, UserRecommendations>? Users { get; set; }
         }

@@ -16,9 +16,11 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         private const float GenreFactor = 0.45f;
         private const float TitleFactor = 1.0f;
         private const float PeopleFactor = 0.3f;
+        private const float RegularBonus = 0.5f;
 
         private readonly Dictionary<string, float> _genres = new Dictionary<string, float>();
         private readonly Dictionary<string, float> _titles = new Dictionary<string, float>();
+        private readonly HashSet<string> _regularTitles = new HashSet<string>();
         private readonly Dictionary<string, float> _people = new Dictionary<string, float>();
         private bool _normalized;
 
@@ -26,6 +28,11 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         /// Gets a value indicating whether the profile contains any interest.
         /// </summary>
         public bool IsEmpty => _genres.Count == 0 && _titles.Count == 0 && _people.Count == 0;
+
+        /// <summary>
+        /// Gets a value indicating whether the user has regular shows.
+        /// </summary>
+        public bool HasRegularShows => _regularTitles.Count > 0;
 
         /// <summary>
         /// Adds an interest signal.
@@ -91,6 +98,29 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         }
 
         /// <summary>
+        /// Checks whether a title is one of the user's regular shows.
+        /// </summary>
+        /// <param name="titleKey">Normalized title key.</param>
+        /// <returns>True for regular shows.</returns>
+        public bool IsRegular(string? titleKey)
+        {
+            return !string.IsNullOrEmpty(titleKey) && _regularTitles.Contains(titleKey);
+        }
+
+        /// <summary>
+        /// Marks a title as a regular show the user watches again and again (e.g. "die sendung mit der maus").
+        /// Regular shows get a bonus and are always shown.
+        /// </summary>
+        /// <param name="titleKey">Normalized title key.</param>
+        public void MarkRegular(string? titleKey)
+        {
+            if (!string.IsNullOrEmpty(titleKey))
+            {
+                _regularTitles.Add(titleKey);
+            }
+        }
+
+        /// <summary>
         /// Checks whether the user has watched this kind of sport (e.g. "fußball").
         /// </summary>
         /// <param name="sport">Sport.</param>
@@ -130,7 +160,8 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 .Distinct()
                 .Sum(p => _people.GetValueOrDefault(p));
 
-            return (GenreFactor * Math.Min(genreScore, 1f))
+            return (IsRegular(titleKey) ? RegularBonus : 0f)
+                + (GenreFactor * Math.Min(genreScore, 1f))
                 + (TitleFactor * titleScore)
                 + (PeopleFactor * Math.Min(peopleScore, 1f));
         }

@@ -131,10 +131,14 @@ Access via: **Dashboard → Plugins → Local Recommendations → Settings**
 
 - Jellyfin only reports the channel during live TV playback; the plugin looks up the running program in the EPG and counts watched minutes per broadcast (all clients, including native TV apps).
 - Channel switching (e.g. a football conference across several channels) counts minutes per game; since all games share the title/genre, the interest adds up.
+- Regular shows (watched live on at least 3 different days, e.g. "Die Sendung mit der Maus") are always included, up to 7 days ahead.
+- Cards show the broadcast time and channel ("Heute 20:15 · ZDF"); the row is chronological and at most a third comes from the same genre.
+- Besides playback reports, active sessions are checked every minute, so clients that do not report progress are counted as well.
+- Evaluation: recommended vs. watched per section (hit rate) in the "Auswertung" tab and via `GET /LocalRecs/Evaluation?days=30`.
 - Views shorter than 3 minutes (zapping) and the genres "Nachrichten, News, Wetter" are ignored (configurable).
 - "Heute im TV für dich" ranks programs of the next 24 hours by genre, title and people interest from live TV and library history; each show appears once (next airing).
 - A title watched live for at least 15 minutes in total that also exists in the library counts as watched for the library recommendations.
-- Stored locally in `plugins/LocalRecs/livetv-history.json` (default: 180 days).
+- Stored locally in `plugins/LocalRecs/livetv-history.json` (default 180 days, configurable up to 3650 days).
 
 ## Known Limitations
 

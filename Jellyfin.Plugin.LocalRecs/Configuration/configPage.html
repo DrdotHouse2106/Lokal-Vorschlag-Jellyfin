@@ -18,6 +18,7 @@
                     <div data-role="controlgroup" data-type="horizontal" class="localnav" data-mini="true">
                         <button is="emby-button" type="button" class="raised ui-btn-active tab-button-setup" data-tab="setup">Startseite</button>
                         <button is="emby-button" type="button" class="raised tab-button-settings" data-tab="settings">Settings</button>
+                        <button is="emby-button" type="button" class="raised tab-button-evaluation" data-tab="evaluation">Auswertung</button>
                         <button is="emby-button" type="button" class="raised tab-button-actions" data-tab="actions">Actions</button>
                     </div>
                     
@@ -79,6 +80,12 @@
                         </div>
 
                         <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="liveTvTimeZone">Zeitzone für Sendezeiten:</label>
+                            <input is="emby-input" type="text" id="liveTvTimeZone" name="liveTvTimeZone" />
+                            <div class="fieldDescription">z. B. Europe/Berlin (Standard). Leer = Zeitzone des Servers.</div>
+                        </div>
+
+                        <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="liveTvMinMinutes">Mindestdauer pro Sendung (Minuten):</label>
                             <input is="emby-input" type="number" id="liveTvMinMinutes" name="liveTvMinMinutes" min="0" max="120" />
                             <div class="fieldDescription">Kürzeres Reinschauen gilt als Zappen und wird ignoriert (Standard: 3).</div>
@@ -88,6 +95,18 @@
                             <label class="inputLabel inputLabelUnfocused" for="liveTvTitleMatchMinutes">Minuten, ab denen ein Titel in der Bibliothek als gesehen zählt:</label>
                             <input is="emby-input" type="number" id="liveTvTitleMatchMinutes" name="liveTvTitleMatchMinutes" min="1" max="600" />
                             <div class="fieldDescription">Summe über alle Ausstrahlungen desselben Titels (Standard: 15).</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="liveTvRegularDays">Stammsendung ab (Tagen):</label>
+                            <input is="emby-input" type="number" id="liveTvRegularDays" name="liveTvRegularDays" min="2" max="30" />
+                            <div class="fieldDescription">Eine Sendung, die an so vielen verschiedenen Tagen live geschaut wurde (z. B. „Die Sendung mit der Maus“), gilt als Stammsendung: Sie wird immer und bis zu 7 Tage im Voraus angezeigt (Standard: 3).</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="liveTvHistoryDays">Live-TV-Verlauf speichern (Tage):</label>
+                            <input is="emby-input" type="number" id="liveTvHistoryDays" name="liveTvHistoryDays" min="1" max="3650" />
+                            <div class="fieldDescription">Wie lange live geschaute Sendungen gespeichert bleiben (Standard: 180, bis 3650 = 10 Jahre). Wie stark alte Einträge zählen, bestimmt die „Recency Decay Half-Life“ in den Einstellungen.</div>
                         </div>
 
                         <div class="inputContainer">
@@ -139,7 +158,7 @@
                         
                         <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="recencyDecayHalfLife">Recency Decay Half-Life (days):</label>
-                            <input is="emby-input" type="number" id="recencyDecayHalfLife" name="recencyDecayHalfLife" min="30" max="1825" />
+                            <input is="emby-input" type="number" id="recencyDecayHalfLife" name="recencyDecayHalfLife" min="30" max="3650" />
                             <div class="fieldDescription">Time for watch weight to decay by half (default: 365)</div>
                         </div>
                         
@@ -185,6 +204,21 @@
                         </button>
                     </div>
                     
+                    <!-- Evaluation Tab -->
+                    <div id="tab-evaluation" class="tab-content" style="display:none;">
+                        <h2 class="sectionTitle">Auswertung der Empfehlungen</h2>
+                        <p>Das Plugin merkt sich, was es wem empfohlen hat, und zählt, was davon danach geschaut wurde (Filme und Serien ab 10 Minuten, Live-TV ab der Mindestdauer). So lässt sich erkennen, welche Bereiche gut funktionieren. Die Daten bleiben auf dem Server und sind auch über <code>GET /LocalRecs/Evaluation?days=30</code> abrufbar.</p>
+                        <div class="selectContainer">
+                            <select is="emby-select" id="evaluationDays" label="Zeitraum">
+                                <option value="7">7 Tage</option>
+                                <option value="30" selected>30 Tage</option>
+                                <option value="90">90 Tage</option>
+                                <option value="365">365 Tage</option>
+                            </select>
+                        </div>
+                        <div id="evaluationContainer"><p>Lade Auswertung...</p></div>
+                    </div>
+
                     <!-- Actions Tab -->
                     <div id="tab-actions" class="tab-content" style="display:none;">
                         <h2 class="sectionTitle">Plugin Actions</h2>
@@ -255,6 +289,7 @@
                     var tabButtons = [
                         { button: page.querySelector('.tab-button-setup'), tab: 'setup' },
                         { button: page.querySelector('.tab-button-settings'), tab: 'settings' },
+                        { button: page.querySelector('.tab-button-evaluation'), tab: 'evaluation' },
                         { button: page.querySelector('.tab-button-actions'), tab: 'actions' }
                     ];
                     
@@ -278,6 +313,10 @@
                             }
                             
                             // Load benchmark results when switching to actions tab
+                            if (item.tab === 'evaluation') {
+                                self.loadEvaluation(page);
+                            }
+
                             if (item.tab === 'actions') {
                                 self.loadBenchmarkResults(page);
                             }
@@ -313,12 +352,58 @@
                             html += ok(status.LiveTvTrackedBroadcasts > 0, status.LiveTvTrackedBroadcasts > 0
                                 ? status.LiveTvTrackedBroadcasts + ' live geschaute Sendungen erfasst'
                                 : 'Noch keine live geschauten Sendungen erfasst');
+                            html += ok(true, 'Gerade laufendes Live-TV: ' + (status.LiveTvActiveSessions || 0) + ' Wiedergabe(n)');
                             html += '</ul>';
                             container.innerHTML = html;
                         })
                         .catch(function(error) {
                             console.error('Failed to load status:', error);
                             container.innerHTML = '<p style="color: #ff5252;">Status konnte nicht geladen werden.</p>';
+                        });
+                },
+
+                /**
+                 * Loads the evaluation of the recommendations.
+                 */
+                loadEvaluation: function(page) {
+                    var self = this;
+                    var container = page.querySelector('#evaluationContainer');
+                    var days = page.querySelector('#evaluationDays').value || 30;
+                    container.innerHTML = '<p>Lade Auswertung...</p>';
+
+                    ApiClient.getJSON(ApiClient.getUrl('LocalRecs/Evaluation', { days: days }))
+                        .then(function(report) {
+                            var names = { movies: 'Empfohlene Filme', series: 'Empfohlene Serien', livetv: 'Heute im TV' };
+                            var cell = 'padding: 0.5em 1em 0.5em 0;';
+                            var html = '<table style="border-collapse: collapse; width: 100%; text-align: left;">';
+                            html += '<thead><tr><th style="' + cell + '">Bereich</th><th style="' + cell + '">Empfohlen</th><th style="' + cell + '">Geschaut</th><th style="' + cell + '">Trefferquote</th><th style="' + cell + '">Ø Tage bis geschaut</th></tr></thead><tbody>';
+                            (report.Sections || []).forEach(function(s) {
+                                html += '<tr style="border-top: 1px solid rgba(255,255,255,0.1);">';
+                                html += '<td style="' + cell + '">' + self.escapeHtml(names[s.Section] || s.Section) + '</td>';
+                                html += '<td style="' + cell + '">' + s.Recommended + '</td>';
+                                html += '<td style="' + cell + '">' + s.Watched + '</td>';
+                                html += '<td style="' + cell + '">' + s.HitRate + ' %</td>';
+                                html += '<td style="' + cell + '">' + (s.AverageDaysToWatch !== null && s.AverageDaysToWatch !== undefined ? s.AverageDaysToWatch : '–') + '</td>';
+                                html += '</tr>';
+                            });
+                            html += '</tbody></table>';
+
+                            html += '<h3 class="sectionTitle">Zuletzt geschaute Empfehlungen</h3>';
+                            if (!report.RecentHits || report.RecentHits.length === 0) {
+                                html += '<p>Noch keine. Die Auswertung füllt sich, sobald empfohlene Titel geschaut werden.</p>';
+                            } else {
+                                html += '<ul>';
+                                report.RecentHits.forEach(function(h) {
+                                    html += '<li>' + self.escapeHtml(new Date(h.WatchedAt).toLocaleString()) + ' – ' + self.escapeHtml(h.UserName || '') + ': ' + self.escapeHtml(h.Title) + ' (' + self.escapeHtml(names[h.Section] || h.Section) + ')</li>';
+                                });
+                                html += '</ul>';
+                            }
+
+                            container.innerHTML = html;
+                        })
+                        .catch(function(error) {
+                            console.error('Failed to load evaluation:', error);
+                            container.innerHTML = '<p style="color: #ff5252;">Auswertung konnte nicht geladen werden.</p>';
                         });
                 },
 
@@ -348,6 +433,9 @@
                             page.querySelector('#enableLiveTvSection').checked = config.EnableLiveTvSection !== false;
                             page.querySelector('#liveTvSectionTitle').value = config.LiveTvSectionTitle || 'Heute im TV für dich';
                             page.querySelector('#liveTvLookaheadHours').value = config.LiveTvLookaheadHours !== undefined ? config.LiveTvLookaheadHours : 24;
+                            page.querySelector('#liveTvTimeZone').value = config.LiveTvTimeZone !== undefined && config.LiveTvTimeZone !== null ? config.LiveTvTimeZone : 'Europe/Berlin';
+                            page.querySelector('#liveTvRegularDays').value = config.LiveTvRegularDays !== undefined ? config.LiveTvRegularDays : 3;
+                            page.querySelector('#liveTvHistoryDays').value = config.LiveTvHistoryDays !== undefined ? config.LiveTvHistoryDays : 180;
                             page.querySelector('#liveTvMinMinutes').value = config.LiveTvMinMinutes !== undefined ? config.LiveTvMinMinutes : 3;
                             page.querySelector('#liveTvTitleMatchMinutes').value = config.LiveTvTitleMatchMinutes !== undefined ? config.LiveTvTitleMatchMinutes : 15;
                             page.querySelector('#liveTvExcludedGenres').value = config.LiveTvExcludedGenres !== undefined && config.LiveTvExcludedGenres !== null ? config.LiveTvExcludedGenres : 'Nachrichten, News, Wetter';
@@ -396,6 +484,9 @@
                             config.EnableLiveTvSection = page.querySelector('#enableLiveTvSection').checked;
                             config.LiveTvSectionTitle = page.querySelector('#liveTvSectionTitle').value.trim() || 'Heute im TV für dich';
                             config.LiveTvLookaheadHours = parseInt(page.querySelector('#liveTvLookaheadHours').value) || 24;
+                            config.LiveTvTimeZone = page.querySelector('#liveTvTimeZone').value.trim();
+                            config.LiveTvRegularDays = Math.max(2, parseInt(page.querySelector('#liveTvRegularDays').value) || 3);
+                            config.LiveTvHistoryDays = Math.min(3650, Math.max(1, parseInt(page.querySelector('#liveTvHistoryDays').value) || 180));
                             config.LiveTvMinMinutes = Math.max(0, parseInt(page.querySelector('#liveTvMinMinutes').value) || 0);
                             config.LiveTvTitleMatchMinutes = parseInt(page.querySelector('#liveTvTitleMatchMinutes').value) || 15;
                             config.LiveTvExcludedGenres = page.querySelector('#liveTvExcludedGenres').value.trim();
@@ -509,6 +600,10 @@
                     LocalRecsConfig.updateFieldVisibility(page);
                 });
                 
+                page.querySelector('#evaluationDays').addEventListener('change', function() {
+                    LocalRecsConfig.loadEvaluation(page);
+                });
+
                 // Actions tab - link to scheduled tasks
                 page.querySelector('#triggerRefreshButton').addEventListener('click', function(e) {
                     e.preventDefault();

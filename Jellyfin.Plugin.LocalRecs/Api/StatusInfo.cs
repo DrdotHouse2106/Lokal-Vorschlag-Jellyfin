@@ -31,5 +31,15 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// Gets or sets the number of live TV broadcasts in the watch history.
         /// </summary>
         public int LiveTvTrackedBroadcasts { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of live TV playbacks currently being watched.
+        /// </summary>
+        public int LiveTvActiveSessions { get; set; }
+
+        /// <summary>
+        /// Gets or sets the plugin version that computed the stored recommendations.
+        /// </summary>
+        public string? RecommendationsVersion { get; set; }
     }
 }

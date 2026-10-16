@@ -102,6 +102,30 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.HomeScreen
         }
 
         [Fact]
+        public void GetItems_SameMovieInTwoVersions_IsShownOnce()
+        {
+            var first = AddItem<Movie>();
+            var second = AddItem<Movie>();
+            var other = AddItem<Movie>();
+            _libraryManager.Object.GetItemById(first)!.ProviderIds["Tmdb"] = "123";
+            _libraryManager.Object.GetItemById(second)!.ProviderIds["Tmdb"] = "123";
+            Store(movies: new[] { first, second, other });
+
+            _handler.GetItems(_user.Id, RecommendationSectionHandler.MoviesSection).Select(i => i.Id).Should().Equal(first, other);
+        }
+
+        [Fact]
+        public void DuplicateKey_WithoutProviderIds_UsesNameAndYear()
+        {
+            var a = new Movie { Name = "Meine Wiedergeburt als Schleim", ProductionYear = 2022 };
+            var b = new Movie { Name = "meine wiedergeburt als schleim ", ProductionYear = 2022 };
+            var c = new Movie { Name = "Meine Wiedergeburt als Schleim", ProductionYear = 2018 };
+
+            RecommendationSectionHandler.DuplicateKey(a).Should().Be(RecommendationSectionHandler.DuplicateKey(b));
+            RecommendationSectionHandler.DuplicateKey(a).Should().NotBe(RecommendationSectionHandler.DuplicateKey(c));
+        }
+
+        [Fact]
         public void GetItems_UnknownUserOrNoRecommendations_ReturnsEmpty()
         {
             _handler.GetItems(Guid.NewGuid(), RecommendationSectionHandler.MoviesSection).Should().BeEmpty();

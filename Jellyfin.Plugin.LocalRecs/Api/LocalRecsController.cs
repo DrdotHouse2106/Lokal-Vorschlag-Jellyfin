@@ -24,6 +24,8 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         private readonly ILogger<LocalRecsController> _logger;
         private readonly RecommendationStore _store;
         private readonly LiveTvWatchStore _liveTvWatchStore;
+        private readonly FeedbackStore _feedback;
+        private readonly MediaBrowser.Controller.Library.IUserManager _userManager;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LocalRecsController"/> class.
@@ -31,15 +33,21 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// <param name="logger">Logger instance.</param>
         /// <param name="store">Recommendation store.</param>
         /// <param name="liveTvWatchStore">Live TV watch history.</param>
+        /// <param name="feedback">Evaluation of the recommendations.</param>
+        /// <param name="userManager">User manager.</param>
         /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
         public LocalRecsController(
             ILogger<LocalRecsController> logger,
             RecommendationStore store,
-            LiveTvWatchStore liveTvWatchStore)
+            LiveTvWatchStore liveTvWatchStore,
+            FeedbackStore feedback,
+            MediaBrowser.Controller.Library.IUserManager userManager)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _liveTvWatchStore = liveTvWatchStore ?? throw new ArgumentNullException(nameof(liveTvWatchStore));
+            _feedback = feedback ?? throw new ArgumentNullException(nameof(feedback));
+            _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
         }
 
         /// <summary>
@@ -55,8 +63,22 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 SectionsRegistered = HomeScreenSectionsIntegration.SectionsRegistered,
                 UsersWithRecommendations = _store.UserCount,
                 LastUpdated = _store.LastUpdated,
-                LiveTvTrackedBroadcasts = _liveTvWatchStore.Count
+                LiveTvTrackedBroadcasts = _liveTvWatchStore.Count,
+                LiveTvActiveSessions = LiveTvTrackingService.ActiveLiveTvSessions,
+                RecommendationsVersion = _store.Version
             });
+        }
+
+        /// <summary>
+        /// Gets the evaluation of the recommendations: how many recommended titles were watched afterwards.
+        /// </summary>
+        /// <param name="days">Period in days (default 30).</param>
+        /// <returns>The evaluation.</returns>
+        [HttpGet("Evaluation")]
+        public ActionResult<FeedbackStore.EvaluationReport> GetEvaluation([FromQuery] int days = 30)
+        {
+            var userNames = _userManager.GetUsers().ToDictionary(u => u.Id, u => u.Username);
+            return Ok(_feedback.GetReport(days, DateTime.UtcNow, userNames));
         }
 
         /// <summary>

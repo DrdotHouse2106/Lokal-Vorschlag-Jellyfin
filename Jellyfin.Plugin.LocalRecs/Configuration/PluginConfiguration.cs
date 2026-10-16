@@ -35,7 +35,19 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             LiveTvSectionTitle = "Heute im TV für dich";
             LiveTvLookaheadHours = 24;
             LiveTvRecommendationCount = 20;
+            LiveTvTimeZone = "Europe/Berlin";
+            LiveTvRegularDays = 3;
         }
+
+        /// <summary>
+        /// Gets or sets on how many different days a show must have been watched live to count as a regular show.
+        /// </summary>
+        public int LiveTvRegularDays { get; set; }
+
+        /// <summary>
+        /// Gets or sets the time zone used to display broadcast times (e.g. "Europe/Berlin"; empty = server time zone).
+        /// </summary>
+        public string LiveTvTimeZone { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether watched live TV programs are recorded and used for recommendations.

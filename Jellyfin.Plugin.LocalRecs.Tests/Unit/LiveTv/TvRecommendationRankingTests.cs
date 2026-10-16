@@ -107,6 +107,60 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.LiveTv
         }
 
         [Fact]
+        public void Row_IsChronological_AndNotOnlyOneGenre()
+        {
+            // Komödien passen am besten, Krimis etwas weniger – früher kamen erst alle Komödien, dann die Krimis
+            var profile = new TvInterestProfile();
+            profile.Add(new[] { "Komödie" }, null, null, 3f);
+            profile.Add(new[] { "Krimi" }, null, null, 1f);
+
+            var programs = new List<Candidate>();
+            for (var i = 0; i < 12; i++)
+            {
+                programs.Add(Program("Komödie " + i, "Komödie", hours: 2 + i));
+            }
+
+            programs.Add(Program("Krimi A", "Krimi", hours: 1));
+            programs.Add(Program("Krimi B", "Krimi", hours: 30));
+
+            var ranked = LiveTvRecommendationService.Rank(profile, programs, NoExclusions, NoneWatched, 6);
+
+            ranked.Should().HaveCount(6);
+            ranked.Select(p => p.StartDate).Should().BeInAscendingOrder();
+            ranked.Count(p => p.Genres[0] == "Komödie").Should().Be(4, "höchstens ein Drittel pro Genre, Rest wird aufgefüllt");
+            ranked.Should().Contain(p => p.TitleKey == "krimi a").And.Contain(p => p.TitleKey == "krimi b");
+        }
+
+        [Fact]
+        public void RegularShow_IsShownEvenInDaysAndDespiteGenreCap()
+        {
+            // „Die Sendung mit der Maus“ an mehreren Sonntagen geschaut, dazu viele Komödien
+            var profile = new TvInterestProfile();
+            profile.Add(new[] { "Kinder" }, "die sendung mit der maus", null, 0.5f);
+            profile.Add(new[] { "Komödie" }, null, null, 3f);
+            profile.MarkRegular("die sendung mit der maus");
+
+            var programs = Enumerable.Range(1, 10).Select(i => Program("Komödie " + i, "Komödie", hours: i)).ToList();
+            programs.Add(Program("Die Sendung mit der Maus", "Kinder", hours: 70)); // erst in 3 Tagen
+
+            var ranked = LiveTvRecommendationService.Rank(profile, programs, NoExclusions, NoneWatched, 3, Now.AddHours(24));
+
+            ranked.Should().HaveCount(3);
+            ranked.Should().Contain(p => p.TitleKey == "die sendung mit der maus");
+        }
+
+        [Fact]
+        public void NonRegularShow_BeyondLookahead_IsNotShown()
+        {
+            var profile = new TvInterestProfile();
+            profile.Add(new[] { "Krimi" }, "tatort", null, 1f);
+
+            var ranked = LiveTvRecommendationService.Rank(profile, new[] { Program("Tatort", "Krimi", hours: 40) }, NoExclusions, NoneWatched, 10, Now.AddHours(24));
+
+            ranked.Should().BeEmpty();
+        }
+
+        [Fact]
         public void SameShowOnSeveralDates_OnlyNextAiringIsShown()
         {
             var profile = new TvInterestProfile();

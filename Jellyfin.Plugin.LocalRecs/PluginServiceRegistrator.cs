@@ -55,6 +55,10 @@ namespace Jellyfin.Plugin.LocalRecs
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<LiveTvWatchStore>>(),
                     Path.Combine(GetPluginDataPath(sp), "livetv-history.json")));
             serviceCollection.AddSingleton<LiveTvRecommendationService>();
+            serviceCollection.AddSingleton(sp =>
+                new FeedbackStore(
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<FeedbackStore>>(),
+                    Path.Combine(GetPluginDataPath(sp), "feedback.json")));
             serviceCollection.AddHostedService<LiveTvTrackingService>();
 
             // Phase 8: Scheduled Tasks

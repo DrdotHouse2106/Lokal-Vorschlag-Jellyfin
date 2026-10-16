@@ -215,9 +215,17 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
 
                 await _legacyCleanup.RunAsync(cancellationToken).ConfigureAwait(false);
 
-                if (_store.UserCount == 0)
+                // Neu berechnen, wenn noch nichts da ist, das Plugin aktualisiert wurde oder die Daten veraltet sind
+                if (_store.UserCount == 0
+                    || _store.Version != RecommendationStore.CurrentVersion
+                    || _store.LastUpdated == null
+                    || DateTime.UtcNow - _store.LastUpdated.Value > TimeSpan.FromHours(24))
                 {
-                    _logger.LogInformation("Noch keine Empfehlungen vorhanden – starte die erste Berechnung");
+                    _logger.LogInformation(
+                        "Empfehlungen werden neu berechnet (gespeichert: Version {OldVersion} vom {LastUpdated}, aktuell: {Version})",
+                        _store.Version ?? "-",
+                        _store.LastUpdated,
+                        RecommendationStore.CurrentVersion);
                     _taskManager.QueueIfNotRunning<RecommendationRefreshTask>();
                 }
 

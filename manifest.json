@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "12.4.0.0",
+        "changelog": "Sendezeiten, Stammsendungen, Auswertung / Broadcast times, regular shows, evaluation\n- „Heute im TV für dich“ zeigt Sendezeit und Sender, chronologisch sortiert, abwechslungsreicher\n- Stammsendungen (z. B. Die Sendung mit der Maus) werden immer und bis 7 Tage im Voraus gezeigt\n- Neuer Reiter „Auswertung“: Trefferquote der Empfehlungen\n- Live-TV wird auch bei Apps ohne Fortschrittsmeldung erfasst\n- Doppelte Filme/Serien werden zusammengefasst; Neuberechnung nach Updates\n- Live-TV-Verlauf bis 10 Jahre speicherbar\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.4.0.zip",
+        "checksum": "cc1f12558c97029c644da6b2fef1468a",
+        "timestamp": "2026-10-17T00:00:00Z"
+      },
+      {
         "version": "12.3.3.0",
         "changelog": "Fehlerbehebung: leere Startseite mit Home Screen Sections / Fix: empty home screen\n- Neue Section-IDs LocalRecsMovies, LocalRecsShows, LocalRecsLiveTv (die alten GUID-IDs begannen mit einer Ziffer und brachen den Aufbau der Startseite im Browser ab)\n- Alte IDs werden in den Einstellungen von Home Screen Sections automatisch umgestellt\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
 using Jellyfin.Database.Implementations.Enums;
 using Jellyfin.Plugin.LocalRecs.Configuration;
+using Jellyfin.Plugin.LocalRecs.Services;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.LiveTv;
@@ -28,6 +29,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         private readonly ISessionManager _sessionManager;
         private readonly ILibraryManager _libraryManager;
         private readonly LiveTvWatchStore _store;
+        private readonly FeedbackStore _feedback;
         private readonly LiveTvWatchTracker _tracker;
         private readonly ConcurrentDictionary<Guid, LiveTvWatchEntry> _currentPrograms = new ConcurrentDictionary<Guid, LiveTvWatchEntry>();
         private Timer? _timer;
@@ -41,18 +43,26 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         /// <param name="sessionManager">Session manager.</param>
         /// <param name="libraryManager">Library manager.</param>
         /// <param name="store">Store for the watched minutes.</param>
+        /// <param name="feedback">Evaluation of the recommendations.</param>
         public LiveTvTrackingService(
             ILogger<LiveTvTrackingService> logger,
             ISessionManager sessionManager,
             ILibraryManager libraryManager,
-            LiveTvWatchStore store)
+            LiveTvWatchStore store,
+            FeedbackStore feedback)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _sessionManager = sessionManager ?? throw new ArgumentNullException(nameof(sessionManager));
             _libraryManager = libraryManager ?? throw new ArgumentNullException(nameof(libraryManager));
             _store = store ?? throw new ArgumentNullException(nameof(store));
+            _feedback = feedback ?? throw new ArgumentNullException(nameof(feedback));
             _tracker = new LiveTvWatchTracker(store, ResolveProgram);
         }
+
+        /// <summary>
+        /// Gets the number of live TV playbacks seen at the last check (for the status page).
+        /// </summary>
+        public static int ActiveLiveTvSessions { get; private set; }
 
         private static PluginConfiguration Config => Plugin.Instance?.Configuration ?? new PluginConfiguration();
 
@@ -74,6 +84,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             _sessionManager.PlaybackStopped -= OnPlaybackStopped;
             _timer?.Change(Timeout.Infinite, Timeout.Infinite);
             _store.SaveIfDirty();
+            _feedback.SaveIfDirty();
             return Task.CompletedTask;
         }
 
@@ -135,10 +146,41 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 {
                     _tracker.OnStopped(SessionKey(e, user.Id), now);
                 }
+
+                RecordLibraryHit(e, now);
             }
             catch (Exception ex)
             {
                 _logger.LogDebug(ex, "Ende der Live-TV-Wiedergabe konnte nicht erfasst werden");
+            }
+        }
+
+        /// <summary>
+        /// Evaluation: a recommended movie or series was watched (finished or at least 10 minutes).
+        /// </summary>
+        private void RecordLibraryHit(PlaybackStopEventArgs e, DateTime now)
+        {
+            var watchedEnough = e.PlayedToCompletion || (e.PlaybackPositionTicks ?? 0) >= TimeSpan.FromMinutes(10).Ticks;
+            if (!watchedEnough)
+            {
+                return;
+            }
+
+            var (section, key) = e.Item switch
+            {
+                MediaBrowser.Controller.Entities.Movies.Movie movie => (FeedbackStore.Movies, movie.Id.ToString("N")),
+                MediaBrowser.Controller.Entities.TV.Episode episode => (FeedbackStore.Series, episode.SeriesId.ToString("N")),
+                _ => (null, null)
+            };
+
+            if (section == null)
+            {
+                return;
+            }
+
+            foreach (var user in e.Users)
+            {
+                _feedback.RecordWatched(user.Id, section, new[] { key }, now);
             }
         }
 
@@ -186,22 +228,73 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             return entry;
         }
 
+        /// <summary>
+        /// Looks at all active sessions once a minute. This also counts live TV on clients that rarely or never
+        /// report playback progress (only start and stop).
+        /// </summary>
+        private void PollSessions(DateTime now)
+        {
+            if (!Config.EnableLiveTvTracking)
+            {
+                ActiveLiveTvSessions = 0;
+                return;
+            }
+
+            var active = 0;
+            foreach (var session in _sessionManager.Sessions.ToList())
+            {
+                var item = session.FullNowPlayingItem;
+                var channelId = GetChannelId(item);
+                if (channelId == null && session.NowPlayingItem != null)
+                {
+                    channelId = session.NowPlayingItem.Type == BaseItemKind.TvChannel
+                        ? session.NowPlayingItem.Id
+                        : session.NowPlayingItem.Type == BaseItemKind.Program ? session.NowPlayingItem.ChannelId : null;
+                }
+
+                if (channelId == null || session.UserId == Guid.Empty)
+                {
+                    continue;
+                }
+
+                active++;
+                var paused = session.PlayState?.IsPaused ?? false;
+                var userIds = new[] { session.UserId }.Concat(session.AdditionalUsers.Select(u => u.UserId)).Distinct();
+                foreach (var userId in userIds)
+                {
+                    _tracker.OnProgress(session.Id + "|" + userId.ToString("N"), userId, channelId, paused, now);
+                }
+            }
+
+            ActiveLiveTvSessions = active;
+        }
+
         private void DoMaintenance()
         {
             try
             {
                 var now = DateTime.UtcNow;
+                PollSessions(now);
                 _tracker.RemoveStaleSessions(now);
+
+                // Auswertung: live geschaute Sendungen, die vorher empfohlen wurden
+                foreach (var entry in _store.GetRecentEntries(now.AddHours(-1), Math.Max(1, Config.LiveTvMinMinutes)))
+                {
+                    _feedback.RecordWatched(entry.UserId, FeedbackStore.LiveTv, new[] { entry.BroadcastKey, "title:" + LiveTvText.TitleKey(entry) }, entry.LastWatched);
+                }
 
                 if (now - _lastPrune > TimeSpan.FromHours(24))
                 {
-                    _store.Prune(now.AddDays(-Math.Max(1, Config.LiveTvHistoryDays)));
+                    var keepDays = Math.Max(1, Config.LiveTvHistoryDays);
+                    _store.Prune(now.AddDays(-keepDays));
+                    _feedback.Prune(now.AddDays(-Math.Max(365, keepDays)));
                     _lastPrune = now;
                 }
 
                 if (now - _lastSave >= SaveInterval)
                 {
                     _store.SaveIfDirty();
+                    _feedback.SaveIfDirty();
                     _lastSave = now;
                 }
             }

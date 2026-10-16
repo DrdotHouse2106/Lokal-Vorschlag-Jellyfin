@@ -65,6 +65,32 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
         }
 
         /// <summary>
+        /// Key that identifies the same movie/series across different library items
+        /// (provider IDs first, otherwise name + year).
+        /// </summary>
+        /// <param name="item">Library item.</param>
+        /// <returns>The key.</returns>
+        public static string DuplicateKey(BaseItem item)
+        {
+            ArgumentNullException.ThrowIfNull(item);
+
+            foreach (var provider in new[] { "Tmdb", "Imdb", "Tvdb", "AniDb", "AniList" })
+            {
+                if (item.ProviderIds != null && item.ProviderIds.TryGetValue(provider, out var value) && !string.IsNullOrWhiteSpace(value))
+                {
+                    return provider + ":" + value.Trim();
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(item.Name))
+            {
+                return "id:" + item.Id.ToString("N");
+            }
+
+            return "name:" + item.Name.Trim().ToLowerInvariant() + "|" + item.ProductionYear;
+        }
+
+        /// <summary>
         /// Returns the movie recommendations of the requesting user.
         /// </summary>
         /// <param name="request">Request from Home Screen Sections.</param>
@@ -111,6 +137,7 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
             var limit = isSeries ? config.TvRecommendationCount : config.MovieRecommendationCount;
 
             var result = new List<BaseItem>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var id in ids)
             {
                 if (limit > 0 && result.Count >= limit)
@@ -127,6 +154,12 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
                 // Inzwischen gesehene oder angefangene Titel nicht mehr anzeigen
                 var userData = _userDataManager.GetUserData(user, item);
                 if (item is not Series && userData != null && (userData.Played || userData.PlaybackPositionTicks > 0))
+                {
+                    continue;
+                }
+
+                // Gleicher Titel in mehreren Versionen/Dateien nur einmal zeigen
+                if (!seen.Add(DuplicateKey(item)))
                 {
                     continue;
                 }
