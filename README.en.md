@@ -14,7 +14,7 @@ Privacy-first personalized recommendations for Jellyfin based entirely on local 
 Please report any issues or feedback on [GitHub Issues](https://github.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/issues).
 
 > [!IMPORTANT]
-> Since **12.2.0** recommendations are shown as **rows on the home screen** (via the "Home Screen Sections" plugin) instead of per-user libraries. Recommendation libraries created by older versions are removed automatically on first start. **Native apps** (Android TV, Fire TV, Roku, Swiftfin on iPhone/iPad/Apple TV) do not show these rows.
+> Since **12.2.0** recommendations are shown as **rows on the home screen** (via the "Home Screen Sections" plugin) instead of per-user libraries. Recommendation libraries created by older versions are removed automatically on first start. **Native apps** (Android TV, Fire TV, Roku, Swiftfin on iPhone/iPad/Apple TV) do not show these rows. For Android TV / Fire TV there is the customized app [Jellyfin-TV-Client](https://github.com/DrdotHouse2106/Jellyfin-TV-Client), which loads the recommendations via `GET /LocalRecs/Recommendations` (since 12.5.0).
 
 ## Features
 
@@ -119,6 +119,10 @@ Access via: **Dashboard → Plugins → Local Recommendations → Settings**
 - The plugin registers two sections with Home Screen Sections; when a user's home screen is built, the sections return the real library items for exactly that user
 - Items the user can no longer see, or has watched/started in the meantime, are filtered out at request time
 
+### API for TV apps
+
+`GET /LocalRecs/Recommendations?type=movies|series|livetv&limit=20` returns the same items as the home screen rows for the **signed-in user** (regular token, no admin) as `{ "Items": [...], "TotalRecordCount": n }`. Works without Home Screen Sections.
+
 ### Privacy
 
 **100% local processing:**
@@ -144,7 +148,7 @@ Access via: **Dashboard → Plugins → Local Recommendations → Settings**
 
 ## Known Limitations
 
-- **Native TV apps:** Android TV, Fire TV and Roku apps do not render Home Screen Sections, so recommendations are not visible there.
+- **Native TV apps:** Android TV, Fire TV and Roku apps do not render Home Screen Sections, so recommendations are not visible there (except in [Jellyfin-TV-Client](https://github.com/DrdotHouse2106/Jellyfin-TV-Client) for Android TV / Fire TV).
 - **Requires Home Screen Sections:** without it the recommendations are computed but not shown.
 
 ## Troubleshooting

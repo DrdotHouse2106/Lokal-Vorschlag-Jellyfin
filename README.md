@@ -12,7 +12,7 @@ Datenschutzfreundliche, personalisierte Empfehlungen für Jellyfin – ausschlie
 > English version: [README.en.md](README.en.md)
 
 > [!IMPORTANT]
-> Ab Version **12.2.0** erscheinen die Empfehlungen als **eigene Zeilen auf der Startseite** (über das Plugin „Home Screen Sections“) statt als eigene Bibliotheken. Die Empfehlungs-Bibliotheken älterer Versionen werden beim ersten Start automatisch entfernt. **Native Apps** (Android TV, Fire TV, Roku, Swiftfin auf iPhone/iPad/Apple TV) zeigen diese Zeilen nicht an.
+> Ab Version **12.2.0** erscheinen die Empfehlungen als **eigene Zeilen auf der Startseite** (über das Plugin „Home Screen Sections“) statt als eigene Bibliotheken. Die Empfehlungs-Bibliotheken älterer Versionen werden beim ersten Start automatisch entfernt. **Native Apps** (Android TV, Fire TV, Roku, Swiftfin auf iPhone/iPad/Apple TV) zeigen diese Zeilen nicht an. Für Android TV / Fire TV gibt es dafür die angepasste App [Jellyfin-TV-Client](https://github.com/DrdotHouse2106/Jellyfin-TV-Client), die die Empfehlungen über `GET /LocalRecs/Recommendations` lädt (ab Version 12.5.0).
 
 ## Funktionen
 
@@ -53,11 +53,11 @@ Hast du früher das Repository `https://raw.githubusercontent.com/DrdotHouse2106
 
 ### Variante B: Manuell
 
-1. [`release/jellyfin-plugin-localrecs-v12.4.2.zip`](release/jellyfin-plugin-localrecs-v12.4.2.zip) herunterladen und entpacken.
+1. [`release/jellyfin-plugin-localrecs-v12.5.0.zip`](release/jellyfin-plugin-localrecs-v12.5.0.zip) herunterladen und entpacken.
 2. Die Datei `Jellyfin.Plugin.LocalRecs.dll` in einen neuen Ordner im Plugin-Verzeichnis legen, z. B.
-   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.4.2.0/`
-   - Docker: `/config/plugins/LocalRecs_12.4.2.0/`
-   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.4.2.0\`
+   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.5.0.0/`
+   - Docker: `/config/plugins/LocalRecs_12.5.0.0/`
+   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.5.0.0\`
 3. Jellyfin-Server neu starten.
 
 ## Einrichtung
@@ -89,6 +89,19 @@ Filme und Serien mit einer Community-Bewertung unter **5.0** werden nicht empfoh
 ### Auswertung
 
 Das Plugin merkt sich, was es wem empfohlen hat, und zählt, was davon danach geschaut wurde (Filme und Serien ab 10 Minuten oder bis zum Ende, Live-TV ab der Mindestdauer). Im Reiter **Auswertung** stehen pro Bereich Anzahl der Empfehlungen, Treffer, Trefferquote und die durchschnittliche Zeit bis zum Anschauen, dazu die zuletzt geschauten Empfehlungen. Die Daten liegen in `plugins/LocalRecs/feedback.json` und lassen sich im Reiter mit **„Auswertung herunterladen (JSON)“** speichern oder über `GET /LocalRecs/Evaluation?days=30` (Admin) abrufen – z. B. um die Empfehlungen gezielt weiterzuentwickeln.
+
+### Schnittstelle für TV-Apps
+
+Apps, die „Home Screen Sections“ nicht anzeigen (z. B. [Jellyfin-TV-Client](https://github.com/DrdotHouse2106/Jellyfin-TV-Client) für Android TV / Fire TV), holen die Empfehlungen direkt:
+
+```
+GET /LocalRecs/Recommendations?type=movies|series|livetv&limit=20
+```
+
+- Nur für den **angemeldeten Benutzer** (normales Jellyfin-Token, kein Admin nötig).
+- Antwort wie bei Jellyfin üblich: `{ "Items": [ … ], "TotalRecordCount": n }` – dieselben Einträge wie in den Startseiten-Zeilen.
+- `limit` ist optional; ohne `limit` gilt die Anzahl aus den Plugin-Einstellungen.
+- Funktioniert auch **ohne** Home Screen Sections.
 
 **Gut zu wissen**
 - Jeder Benutzer sieht nur seine eigenen Empfehlungen.

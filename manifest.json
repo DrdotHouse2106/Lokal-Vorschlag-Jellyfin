@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "12.5.0.0",
+        "changelog": "Schnittstelle für TV-Apps / API for TV apps\n- Neuer Endpunkt GET /LocalRecs/Recommendations?type=movies|series|livetv für den angemeldeten Benutzer\n- Damit zeigt die Android-TV-/Fire-TV-App „Jellyfin-TV-Client“ die Empfehlungen auf dem Fernseher\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.5.0.zip",
+        "checksum": "bead68a3840ba0ce06c928d22f179269",
+        "timestamp": "2026-10-17T03:00:00Z"
+      },
+      {
         "version": "12.4.2.0",
         "changelog": "Mindestbewertung für Filme/Serien (Standard 5.0), gut bewertete Titel weiter vorne\n- TV-Karten einheitlich: Titel (Serie: Episode), darunter immer Zeit und Sender\n- Fehlersuche Live-TV im Status (gesehene Wiedergaben, Meldungen)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

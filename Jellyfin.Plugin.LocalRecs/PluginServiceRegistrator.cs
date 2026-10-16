@@ -49,6 +49,10 @@ namespace Jellyfin.Plugin.LocalRecs
 
             serviceCollection.AddHostedService<HomeScreenSectionsIntegration>();
 
+            // Empfehlungen für TV-Apps ohne Home Screen Sections (GET /LocalRecs/Recommendations)
+            serviceCollection.AddSingleton<RecommendationSectionHandler>();
+            serviceCollection.AddSingleton<LiveTvSectionHandler>();
+
             // Phase 7b: Live TV (tracking of watched programs and "Heute im TV für dich")
             serviceCollection.AddSingleton(sp =>
                 new LiveTvWatchStore(
