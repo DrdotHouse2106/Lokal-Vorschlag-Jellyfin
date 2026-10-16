@@ -51,11 +51,11 @@ Für Jellyfin 10.11.x bitte die Original-Version 0.6.1 verwenden.
 
 ### Variante B: Manuell
 
-1. [`release/jellyfin-plugin-localrecs-v12.3.2.zip`](release/jellyfin-plugin-localrecs-v12.3.2.zip) herunterladen und entpacken.
+1. [`release/jellyfin-plugin-localrecs-v12.3.3.zip`](release/jellyfin-plugin-localrecs-v12.3.3.zip) herunterladen und entpacken.
 2. Die Datei `Jellyfin.Plugin.LocalRecs.dll` in einen neuen Ordner im Plugin-Verzeichnis legen, z. B.
-   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.3.2.0/`
-   - Docker: `/config/plugins/LocalRecs_12.3.2.0/`
-   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.3.2.0\`
+   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.3.3.0/`
+   - Docker: `/config/plugins/LocalRecs_12.3.3.0/`
+   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.3.3.0\`
 3. Jellyfin-Server neu starten.
 
 ## Einrichtung

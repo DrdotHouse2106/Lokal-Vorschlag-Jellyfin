@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
@@ -8,6 +9,7 @@ using System.Threading.Tasks;
 using Jellyfin.Plugin.LocalRecs.Configuration;
 using Jellyfin.Plugin.LocalRecs.ScheduledTasks;
 using Jellyfin.Plugin.LocalRecs.Services;
+using MediaBrowser.Common.Configuration;
 using MediaBrowser.Controller;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Tasks;
@@ -23,19 +25,20 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
     public class HomeScreenSectionsIntegration : IHostedService
     {
         /// <summary>
-        /// Section ID of the movie recommendations.
+        /// Section ID of the movie recommendations. Home Screen Sections uses the ID as CSS class name,
+        /// so it must start with a letter and only contain [A-Za-z0-9_-].
         /// </summary>
-        public const string MoviesSectionId = "7d1c2a4e-4b0f-4d7c-9a51-0c6f3e2b8a11";
+        public const string MoviesSectionId = "LocalRecsMovies";
 
         /// <summary>
         /// Section ID of the series recommendations.
         /// </summary>
-        public const string SeriesSectionId = "7d1c2a4e-4b0f-4d7c-9a51-0c6f3e2b8a12";
+        public const string SeriesSectionId = "LocalRecsShows";
 
         /// <summary>
         /// Section ID of the live TV recommendations.
         /// </summary>
-        public const string LiveTvSectionId = "7d1c2a4e-4b0f-4d7c-9a51-0c6f3e2b8a13";
+        public const string LiveTvSectionId = "LocalRecsLiveTv";
 
         private const string HomeScreenSectionsAssemblyName = "Jellyfin.Plugin.HomeScreenSections";
         private const int MaxRegistrationAttempts = 30;
@@ -46,6 +49,7 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
         private readonly ITaskManager _taskManager;
         private readonly RecommendationStore _store;
         private readonly LegacyLibraryCleanup _legacyCleanup;
+        private readonly IApplicationPaths _applicationPaths;
         private readonly CancellationTokenSource _stoppingCts = new CancellationTokenSource();
 
         /// <summary>
@@ -56,18 +60,21 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
         /// <param name="taskManager">Task manager.</param>
         /// <param name="store">Recommendation store.</param>
         /// <param name="legacyCleanup">Cleanup of libraries created by older versions.</param>
+        /// <param name="applicationPaths">Application paths.</param>
         public HomeScreenSectionsIntegration(
             ILogger<HomeScreenSectionsIntegration> logger,
             IServerApplicationHost applicationHost,
             ITaskManager taskManager,
             RecommendationStore store,
-            LegacyLibraryCleanup legacyCleanup)
+            LegacyLibraryCleanup legacyCleanup,
+            IApplicationPaths applicationPaths)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _applicationHost = applicationHost ?? throw new ArgumentNullException(nameof(applicationHost));
             _taskManager = taskManager ?? throw new ArgumentNullException(nameof(taskManager));
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _legacyCleanup = legacyCleanup ?? throw new ArgumentNullException(nameof(legacyCleanup));
+            _applicationPaths = applicationPaths ?? throw new ArgumentNullException(nameof(applicationPaths));
         }
 
         /// <summary>
@@ -117,6 +124,8 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
             }
 
             var config = Plugin.Instance?.Configuration ?? new PluginConfiguration();
+
+            MigrateLegacySectionIds(registerMethod.DeclaringType!.Assembly);
 
             try
             {
@@ -168,6 +177,21 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
             var payload = parseMethod.Invoke(null, new object[] { json });
 
             registerMethod.Invoke(null, new[] { payload });
+        }
+
+        private void MigrateLegacySectionIds(Assembly homeScreenSectionsAssembly)
+        {
+            try
+            {
+                SectionIdMigration.MigrateAdminSettings(homeScreenSectionsAssembly, _logger);
+                SectionIdMigration.MigrateUserSettingsFile(
+                    Path.Combine(_applicationPaths.PluginConfigurationsPath, HomeScreenSectionsAssemblyName, "ModularHomeSettings.json"),
+                    _logger);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Alte Section-IDs in Home Screen Sections konnten nicht umgestellt werden – Bereiche bitte dort neu aktivieren");
+            }
         }
 
         private void OnConfigurationChanged(object? sender, BasePluginConfiguration e)

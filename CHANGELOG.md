@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.3.3] - 2026-10-16
+
+### Fixed
+
+- **Empty home screen with Home Screen Sections**: the section IDs were GUIDs starting with a digit. Home Screen Sections uses the ID as CSS class name (`querySelector('.' + id + '[data-page="1"]')`), which threw a `SyntaxError` in the browser and aborted the whole home screen. The sections now use the IDs `LocalRecsMovies`, `LocalRecsShows` and `LocalRecsLiveTv`.
+- **Migration**: on startup the old IDs are replaced in the Home Screen Sections admin settings (`SectionSettings`) and in the per-user settings (`ModularHomeSettings.json`, backup `ModularHomeSettings.json.bak-localrecs`), so nothing has to be re-enabled.
+
+### Known
+
+- Home Screen Sections still logs "No translation found for key 'LocalRecs…'" because it looks up the section ID in its own translation packs; the German titles from the plugin settings are used as fallback. The warning is harmless.
+
 ## [12.3.2] - 2026-10-16
 
 ### Changed

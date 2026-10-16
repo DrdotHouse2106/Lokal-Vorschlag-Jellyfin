@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "12.3.3.0",
+        "changelog": "Fehlerbehebung: leere Startseite mit Home Screen Sections / Fix: empty home screen\n- Neue Section-IDs LocalRecsMovies, LocalRecsShows, LocalRecsLiveTv (die alten GUID-IDs begannen mit einer Ziffer und brachen den Aufbau der Startseite im Browser ab)\n- Alte IDs werden in den Einstellungen von Home Screen Sections automatisch umgestellt\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.3.3.zip",
+        "checksum": "100d7a4a58e370c6fc4a83cb92acb923",
+        "timestamp": "2026-10-16T23:00:00Z"
+      },
+      {
         "version": "12.3.2.0",
         "changelog": "Sportart-Erkennung / Sport detection\n- Erkennt die Sportart aus Genre, Titel und Episodentitel (Fußball bei Sky, DAZN, Sportdigital …)\n- Fußball-Fans bekommen alle Fußballspiele, aber kein Handball, Golf oder Tennis\n- Mehrere Spiele mit gleichem Titel werden einzeln angezeigt\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
