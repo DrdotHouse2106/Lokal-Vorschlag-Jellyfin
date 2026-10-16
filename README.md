@@ -6,7 +6,9 @@
 Datenschutzfreundliche, personalisierte Empfehlungen für Jellyfin – ausschließlich auf Basis des lokalen Wiedergabeverlaufs und der Metadaten-Ähnlichkeit. Keine Cloud-Dienste, kein Tracking. Funktioniert auf allen Jellyfin-Clients (auch auf Fernsehern).
 
 > [!NOTE]
-> Dies ist ein **Jellyfin-12-kompatibler Fork** von [rdpharr/jellyfin-plugin-localrecs](https://github.com/rdpharr/jellyfin-plugin-localrecs). Das Original wird für Jellyfin 12 nicht mehr aktualisiert.
+> **Vorlage / Original:** Dieses Plugin basiert auf dem originalen Projekt **[rdpharr/jellyfin-plugin-localrecs](https://github.com/rdpharr/jellyfin-plugin-localrecs)** von Roger Pharr.
+> Dieses Repository ist eine an **Jellyfin 12** angepasste Version davon, da das Original für Jellyfin 12 nicht mehr aktualisiert wird. Alle Rechte und der Dank für die eigentliche Entwicklung gehen an den ursprünglichen Autor.
+>
 > English version: [README.en.md](README.en.md)
 
 > ⚠️ **Windows-Server:** Das Plugin legt Dateisystem-Symlinks an. Unter Windows muss Jellyfin dafür **als Administrator** laufen oder der **Entwicklermodus** aktiviert sein (Einstellungen → Datenschutz & Sicherheit → Für Entwickler). Linux und Docker unter Linux sind nicht betroffen.
