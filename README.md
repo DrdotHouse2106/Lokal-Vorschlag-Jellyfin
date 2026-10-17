@@ -53,7 +53,7 @@ Hast du früher das Repository `https://raw.githubusercontent.com/DrdotHouse2106
 
 ### Variante B: Manuell
 
-1. [`release/jellyfin-plugin-localrecs-v12.5.0.zip`](release/jellyfin-plugin-localrecs-v12.5.0.zip) herunterladen und entpacken.
+1. [`release/jellyfin-plugin-localrecs-v12.6.0.zip`](release/jellyfin-plugin-localrecs-v12.6.0.zip) herunterladen und entpacken.
 2. Die Datei `Jellyfin.Plugin.LocalRecs.dll` in einen neuen Ordner im Plugin-Verzeichnis legen, z. B.
    - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.5.0.0/`
    - Docker: `/config/plugins/LocalRecs_12.5.0.0/`
@@ -102,6 +102,17 @@ GET /LocalRecs/Recommendations?type=movies|series|livetv&limit=20
 - Antwort wie bei Jellyfin üblich: `{ "Items": [ … ], "TotalRecordCount": n }` – dieselben Einträge wie in den Startseiten-Zeilen.
 - `limit` ist optional; ohne `limit` gilt die Anzahl aus den Plugin-Einstellungen.
 - Funktioniert auch **ohne** Home Screen Sections.
+
+Außerdem (ab 12.6.0):
+
+```
+GET /LocalRecs/Top10?type=all|movies|series&days=60&limit=10
+```
+
+- **„Top 10 bei euch“**: die meistgesehenen Filme und Serien **aller Benutzer** der letzten `days` Tage. Zuerst zählt, wie viele verschiedene Personen einen Titel geschaut haben, dann die Anzahl der Wiedergaben; Folgen zählen für ihre Serie.
+- Kein Admin nötig. Geliefert werden nur Titel, die der angemeldete Benutzer sehen darf – keine Namen, keine Einzeldaten.
+
+**Daumen hoch/runter (ab 12.6.0):** „Gefällt mir“ zählt wie ein Favorit, auch wenn der Titel noch nicht geschaut wurde. „Gefällt mir nicht“ wird nie empfohlen und macht ähnliche Titel seltener. Bewerten lässt sich in der TV-App auf der Detailseite (gespeichert wird in Jellyfin selbst).
 
 **Gut zu wissen**
 - Jeder Benutzer sieht nur seine eigenen Empfehlungen.

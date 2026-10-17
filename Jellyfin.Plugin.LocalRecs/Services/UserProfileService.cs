@@ -19,6 +19,11 @@ namespace Jellyfin.Plugin.LocalRecs.Services
     /// </summary>
     public class UserProfileService
     {
+        /// <summary>
+        /// How strongly a "Gefällt mir nicht" counts against similar items (relative to a watched item).
+        /// </summary>
+        public const float DislikeFactor = 0.5f;
+
         private readonly IUserDataManager _userDataManager;
         private readonly IUserManager _userManager;
         private readonly ILibraryManager _libraryManager;
@@ -162,12 +167,18 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                     var seriesLastPlayed = GetLastWatchedEpisodeDate(series, user);
                     if (seriesLastPlayed == null)
                     {
-                        continue;
+                        // Bewertete, aber (noch) nicht gesehene Serien zählen trotzdem (Daumen hoch/runter)
+                        if (userData.Likes == null)
+                        {
+                            continue;
+                        }
+
+                        seriesLastPlayed = userData.LastPlayedDate ?? DateTime.UtcNow;
                     }
 
                     lastPlayedDate = seriesLastPlayed.Value;
                 }
-                else if (!userData.Played)
+                else if (!userData.Played && userData.Likes == null)
                 {
                     // For movies, Played = true means the movie was completed.
                     continue;
@@ -179,7 +190,8 @@ namespace Jellyfin.Plugin.LocalRecs.Services
 
                 var record = new WatchRecord(itemId, userId, lastPlayedDate)
                 {
-                    IsFavorite = userData.IsFavorite,
+                    IsFavorite = userData.IsFavorite || userData.Likes == true,
+                    Likes = userData.Likes,
                     CommunityRating = item.CommunityRating,
                     CriticRating = item.CriticRating
                 };
@@ -291,6 +303,17 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                     record.IsFavorite,
                     (float)config.FavoriteBoost,
                     (float)config.RecentWatchBoost);
+
+                // Daumen runter: vom Geschmack abziehen (ähnliche Titel werden seltener empfohlen)
+                if (record.Likes == false)
+                {
+                    for (int i = 0; i < dimension; i++)
+                    {
+                        weightedSum[i] -= embedding.Vector[i] * weight * DislikeFactor;
+                    }
+
+                    continue;
+                }
 
                 // Accumulate weighted vectors
                 for (int i = 0; i < dimension; i++)

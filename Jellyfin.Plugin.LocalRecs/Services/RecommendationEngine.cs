@@ -291,6 +291,12 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                     continue;
                 }
 
+                // Daumen runter: nie empfehlen
+                if (userData?.Likes == false)
+                {
+                    continue;
+                }
+
                 // Exclude items with any playback progress (user is currently watching or has started)
                 // These items will be removed from virtual library by PlayStatusSyncService
                 // and should not be re-added to recommendations until fully unwatched
@@ -443,9 +449,9 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                     }
 
                     var userData = _userDataManager.GetUserData(user, libraryItem);
-                    if (userData != null && userData.Played)
+                    if (userData != null && (userData.Played || userData.Likes == false))
                     {
-                        continue; // Skip watched items
+                        continue; // Skip watched and disliked items
                     }
 
                     unwatchedCandidates.Add(item);

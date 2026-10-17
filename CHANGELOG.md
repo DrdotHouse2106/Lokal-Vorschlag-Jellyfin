@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.6.0] - 2026-10-17
+
+### Added
+
+- **Thumbs up/down**: "Gefällt mir" (Jellyfin `Likes = true`) counts like a favorite, even for titles not watched yet. "Gefällt mir nicht" (`Likes = false`) is never recommended and pulls similar titles down in the taste profile. Set in the TV app [Jellyfin-TV-Client](https://github.com/DrdotHouse2106/Jellyfin-TV-Client) on the detail page.
+- **Top 10 API**: `GET /LocalRecs/Top10?type=all|movies|series&days=60&limit=10` returns the most watched movies and series of all users (more different viewers first, then more plays). No admin rights needed; only titles the signed-in user may see, no user names.
+
 ## [12.5.0] - 2026-10-16
 
 ### Added

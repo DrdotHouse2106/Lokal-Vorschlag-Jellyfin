@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.6.0.0",
+        "changelog": "Daumen hoch/runter und Top 10 / Thumbs and Top 10\n- „Gefällt mir“ zählt wie ein Favorit, „Gefällt mir nicht“ wird nie empfohlen und macht ähnliche Titel seltener (auch ohne Ansehen)\n- Neuer Endpunkt GET /LocalRecs/Top10: meistgesehene Filme und Serien aller Benutzer (für die TV-App)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.6.0.zip",
+        "checksum": "5699f3c6c32b5d40fd16d05be2e99bf8",
+        "timestamp": "2026-10-17T17:42:37Z"
+      },
+      {
         "version": "12.5.0.0",
         "changelog": "Schnittstelle für TV-Apps / API for TV apps\n- Neuer Endpunkt GET /LocalRecs/Recommendations?type=movies|series|livetv für den angemeldeten Benutzer\n- Damit zeigt die Android-TV-/Fire-TV-App „Jellyfin-TV-Client“ die Empfehlungen auf dem Fernseher\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
