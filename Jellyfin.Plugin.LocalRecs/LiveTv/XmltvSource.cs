@@ -285,7 +285,20 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                         programme.EpisodeTitle ??= episode;
                         break;
                     case "actor":
-                        AddName(programme.Actors, reader.ReadElementContentAsString(), MaxActors);
+                        var role = reader.GetAttribute("role")?.Trim();
+                        var actor = reader.ReadElementContentAsString().Trim();
+                        if (AddName(programme.Actors, actor, MaxActors))
+                        {
+                            programme.Roles.Add(string.IsNullOrEmpty(role) ? null : role);
+                        }
+
+                        break;
+                    case "writer":
+                        AddName(programme.Writers, reader.ReadElementContentAsString(), MaxDirectors);
+                        break;
+                    case "episode-num":
+                        var system = reader.GetAttribute("system")?.Trim().ToLowerInvariant();
+                        ReadEpisodeNum(programme, system, reader.ReadElementContentAsString().Trim());
                         break;
                     case "director":
                         AddName(programme.Directors, reader.ReadElementContentAsString(), MaxDirectors);
@@ -311,13 +324,69 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             return programme;
         }
 
-        private static void AddName(List<string> names, string? name, int max)
+        private static bool AddName(List<string> names, string? name, int max)
         {
             name = name?.Trim();
-            if (!string.IsNullOrEmpty(name) && names.Count < max && !names.Contains(name, StringComparer.OrdinalIgnoreCase))
+            if (string.IsNullOrEmpty(name) || names.Count >= max || names.Contains(name, StringComparer.OrdinalIgnoreCase))
             {
-                names.Add(name);
+                return false;
             }
+
+            names.Add(name);
+            return true;
+        }
+
+        /// <summary>
+        /// Reads an episode-num element: "onscreen" (e.g. "S11 E8/12") is preferred, "xmltv_ns" (zero-based
+        /// "10.7/12.") is converted; imdb.com and themoviedb.org values are kept as external IDs.
+        /// </summary>
+        private static void ReadEpisodeNum(XmltvProgramme programme, string? system, string value)
+        {
+            if (value.Length == 0)
+            {
+                return;
+            }
+
+            switch (system)
+            {
+                case "onscreen":
+                    programme.Episode = value;
+                    break;
+                case "xmltv_ns" when programme.Episode == null:
+                    var parts = value.Split('.');
+                    var season = ParseXmltvNsPart(parts.ElementAtOrDefault(0));
+                    var episode = ParseXmltvNsPart(parts.ElementAtOrDefault(1));
+                    if (season != null || episode != null)
+                    {
+                        programme.Episode = string.Join(' ', new[] { season == null ? null : "S" + season, episode == null ? null : "E" + episode }.Where(p => p != null));
+                    }
+
+                    break;
+                case "imdb.com":
+                case "imdb":
+                    var imdb = System.Text.RegularExpressions.Regex.Match(value, "tt\\d+");
+                    if (imdb.Success)
+                    {
+                        programme.ImdbId ??= imdb.Value;
+                    }
+
+                    break;
+                case "themoviedb.org":
+                case "tmdb":
+                    var tmdb = System.Text.RegularExpressions.Regex.Match(value, "\\d+");
+                    if (tmdb.Success)
+                    {
+                        programme.TmdbId ??= tmdb.Value;
+                    }
+
+                    break;
+            }
+        }
+
+        private static int? ParseXmltvNsPart(string? part)
+        {
+            var number = part?.Split('/')[0].Trim();
+            return int.TryParse(number, NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value + 1 : null;
         }
 
         private bool NeedsReload(string source, DateTime now)
@@ -428,6 +497,21 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
 
             /// <summary>Gets or sets the country.</summary>
             public string? Country { get; set; }
+
+            /// <summary>Gets the roles of the actors (same order as <see cref="Actors"/>, null if unknown).</summary>
+            public List<string?> Roles { get; } = new List<string?>();
+
+            /// <summary>Gets the writers (max. 3).</summary>
+            public List<string> Writers { get; } = new List<string>();
+
+            /// <summary>Gets or sets the episode number as shown on screen (e.g. "S11 E8/12").</summary>
+            public string? Episode { get; set; }
+
+            /// <summary>Gets or sets the IMDb ID (e.g. "tt1234567").</summary>
+            public string? ImdbId { get; set; }
+
+            /// <summary>Gets or sets the TMDb ID.</summary>
+            public string? TmdbId { get; set; }
 
             /// <summary>Gets actors and directors together.</summary>
             public IReadOnlyList<string> People => Actors.Concat(Directors).ToList();

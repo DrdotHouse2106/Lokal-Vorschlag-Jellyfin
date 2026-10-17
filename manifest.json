@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.7.1.0",
+        "changelog": "Besetzung für Live-TV-Sendungen / Credits API\n- Neuer Endpunkt GET /LocalRecs/LiveTv/Program/{id}/Credits (und /LiveTv/Credits?ids=…): Darsteller mit Rolle, Regie, Drehbuch, Jahr, Land, Episode aus der XMLTV-Quelle (für die TV-App)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.7.1.zip",
+        "checksum": "bb377a4de6de67ed25ce2fa4412dc283",
+        "timestamp": "2026-10-17T23:00:00Z"
+      },
+      {
         "version": "12.7.0.0",
         "changelog": "Darsteller aus XMLTV-Datei / Actors from XMLTV\n- Neue Einstellung „XMLTV-Quelle für Darsteller“ (Pfad oder URL, .xml/.xml.gz): Darsteller, Regie, Jahr und Land für Live-TV-Sendungen\n- Lieblingsschauspieler aus Live-TV und Bibliothek zählen für „Heute im TV für dich“\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

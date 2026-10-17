@@ -123,6 +123,8 @@ Access via: **Dashboard → Plugins → Local Recommendations → Settings**
 
 `GET /LocalRecs/Recommendations?type=movies|series|livetv&limit=20` returns the same items as the home screen rows for the **signed-in user** (regular token, no admin) as `{ "Items": [...], "TotalRecordCount": n }`. Works without Home Screen Sections.
 
+Since 12.7.1 (requires the XMLTV source setting): `GET /LocalRecs/LiveTv/Program/{programId}/Credits` and `GET /LocalRecs/LiveTv/Credits?ids=a,b,c` (max. 200) return `{ "ProgramId", "Matched", "Actors": [{ "Name", "Role" }], "Directors", "Writers", "Year", "Country", "Episode", "ImdbId", "TmdbId" }` for live TV programs (regular token with live TV access). No XMLTV match: `Matched: false` (HTTP 200); unknown ID: 404 or left out of the map.
+
 Since 12.6.0: `GET /LocalRecs/Top10?type=all|movies|series&days=60&limit=10` returns the most watched movies and series of **all users** (more different viewers first, then plays; episodes count for their series). No admin rights needed; only titles visible to the signed-in user, no user names. **Thumbs up/down:** "like" counts like a favorite (also for unwatched titles), "dislike" is never recommended and pulls similar titles down.
 
 ### Privacy

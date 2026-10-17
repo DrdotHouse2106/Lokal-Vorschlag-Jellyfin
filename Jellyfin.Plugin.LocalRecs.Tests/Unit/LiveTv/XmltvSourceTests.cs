@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text;
 using FluentAssertions;
 using Jellyfin.Plugin.LocalRecs.LiveTv;
@@ -20,14 +21,18 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.LiveTv
   <programme start=""20261016070500 +0000"" stop=""20261016075000 +0000"" channel=""Das.Erste.de"">
     <title lang=""de"">Hubert ohne Staller</title>
     <sub-title>Welpenschutz</sub-title>
-    <credits><director>Manuel Weiss</director><actor role=""Franz Hubert"">Christian Tramitz</actor><actor>Paul Sedlmeir</actor></credits>
+    <credits><director>Manuel Weiss</director><actor role=""Franz Hubert"">Christian Tramitz</actor><actor>Paul Sedlmeir</actor><writer>Anna Autorin</writer></credits>
     <date>2023</date>
     <category lang=""de"">Krimiserie</category>
     <country lang=""de"">D</country>
+    <episode-num system=""xmltv_ns"">10.7/12.</episode-num>
+    <episode-num system=""onscreen"">S11 E8/12</episode-num>
+    <episode-num system=""imdb.com"">title/tt1234567/</episode-num>
   </programme>
   <programme start=""20261016201500 +0200"" stop=""20261016214500 +0200"" channel=""ZDF.de"">
     <title>Tatort: Der Fall</title>
     <sub-title>Teil 1</sub-title>
+    <episode-num system=""xmltv_ns"">.2.</episode-num>
     <credits><actor>Axel Prahl</actor></credits>
   </programme>
   <programme start=""20261016201500 +0200"" stop=""20261016214500 +0200"" channel=""ARD.de"">
@@ -56,6 +61,28 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.LiveTv
                 .Actors.Should().Equal("Jan Josef Liefers");
             XmltvSource.Find(index, new DateTime(2026, 10, 16, 18, 15, 0, DateTimeKind.Utc), "Tatort: Der Fall", "Teil 1")!
                 .Actors.Should().Equal("Axel Prahl");
+        }
+
+        [Fact]
+        public void Credits_ContainRolesWritersEpisodeAndImdb()
+        {
+            var index = XmltvSource.Parse(new MemoryStream(Encoding.UTF8.GetBytes(Xml)));
+            var id = Guid.NewGuid();
+
+            var credits = Jellyfin.Plugin.LocalRecs.Api.LiveTvCreditsController.ToCredits(
+                id, XmltvSource.Find(index, new DateTime(2026, 10, 16, 7, 5, 0, DateTimeKind.Utc), "Hubert ohne Staller", null));
+
+            credits.Matched.Should().BeTrue();
+            credits.ProgramId.Should().Be(id.ToString("N"));
+            credits.Actors.Select(a => (a.Name, a.Role)).Should().Equal(("Christian Tramitz", "Franz Hubert"), ("Paul Sedlmeir", (string?)null));
+            credits.Directors.Should().Equal("Manuel Weiss");
+            credits.Writers.Should().Equal("Anna Autorin");
+            credits.Episode.Should().Be("S11 E8/12");
+            credits.ImdbId.Should().Be("tt1234567");
+            credits.Year.Should().Be(2023);
+
+            XmltvSource.Find(index, new DateTime(2026, 10, 16, 18, 15, 0, DateTimeKind.Utc), "Tatort: Der Fall", "Teil 1")!.Episode.Should().Be("E3");
+            Jellyfin.Plugin.LocalRecs.Api.LiveTvCreditsController.ToCredits(id, null).Matched.Should().BeFalse();
         }
 
         [Fact]

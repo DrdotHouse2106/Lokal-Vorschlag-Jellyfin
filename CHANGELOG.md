@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.7.1] - 2026-10-17
+
+### Added
+
+- **Credits API for live TV**: `GET /LocalRecs/LiveTv/Program/{programId}/Credits` and `GET /LocalRecs/LiveTv/Credits?ids=a,b,c` (max. 200) return actors with roles, directors, writers, year, country, on-screen episode number and IMDb/TMDb IDs from the XMLTV source. Regular token with live TV access; `Matched: false` (HTTP 200) if the XMLTV file has no data, 404 for unknown program IDs.
+- XMLTV source also reads actor roles, `<writer>`, `<episode-num>` (onscreen, xmltv_ns, imdb.com, themoviedb.org).
+
 ## [12.7.0] - 2026-10-17
 
 ### Added

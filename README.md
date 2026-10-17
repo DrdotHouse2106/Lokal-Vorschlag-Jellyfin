@@ -53,11 +53,11 @@ Hast du früher das Repository `https://raw.githubusercontent.com/DrdotHouse2106
 
 ### Variante B: Manuell
 
-1. [`release/jellyfin-plugin-localrecs-v12.7.0.zip`](release/jellyfin-plugin-localrecs-v12.7.0.zip) herunterladen und entpacken.
+1. [`release/jellyfin-plugin-localrecs-v12.7.1.zip`](release/jellyfin-plugin-localrecs-v12.7.1.zip) herunterladen und entpacken.
 2. Die Datei `Jellyfin.Plugin.LocalRecs.dll` in einen neuen Ordner im Plugin-Verzeichnis legen, z. B.
-   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.7.0.0/`
-   - Docker: `/config/plugins/LocalRecs_12.7.0.0/`
-   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.7.0.0\`
+   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.7.1.0/`
+   - Docker: `/config/plugins/LocalRecs_12.7.1.0/`
+   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.7.1.0\`
 3. Jellyfin-Server neu starten.
 
 ## Einrichtung
@@ -112,6 +112,16 @@ GET /LocalRecs/Top10?type=all|movies|series&days=60&limit=10
 
 - **„Top 10 bei euch“**: die meistgesehenen Filme und Serien **aller Benutzer** der letzten `days` Tage. Zuerst zählt, wie viele verschiedene Personen einen Titel geschaut haben, dann die Anzahl der Wiedergaben; Folgen zählen für ihre Serie.
 - Kein Admin nötig. Geliefert werden nur Titel, die der angemeldete Benutzer sehen darf – keine Namen, keine Einzeldaten.
+
+Besetzung von Live-TV-Sendungen (ab 12.7.1, nur mit gesetzter „XMLTV-Quelle für Darsteller“):
+
+```
+GET /LocalRecs/LiveTv/Program/{programId}/Credits
+GET /LocalRecs/LiveTv/Credits?ids=id1,id2,…   (bis 200 IDs)
+```
+
+- `programId` ist die Jellyfin-ID der Sendung (LiveTvProgram). Normales Token, der Benutzer braucht Live-TV-Zugriff.
+- Antwort: `{ "ProgramId", "Matched", "Actors": [{ "Name", "Role" }], "Directors", "Writers", "Year", "Country", "Episode", "ImdbId", "TmdbId" }`. Ohne Treffer in der XMLTV-Datei `Matched: false` (HTTP 200). Unbekannte ID: 404 bzw. bei mehreren IDs nicht in der Antwort enthalten.
 
 **Daumen hoch/runter (ab 12.6.0):** „Gefällt mir“ zählt wie ein Favorit, auch wenn der Titel noch nicht geschaut wurde. „Gefällt mir nicht“ wird nie empfohlen und macht ähnliche Titel seltener. Bewerten lässt sich in der TV-App auf der Detailseite (gespeichert wird in Jellyfin selbst).
 
