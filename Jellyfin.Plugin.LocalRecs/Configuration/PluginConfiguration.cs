@@ -39,12 +39,19 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             LiveTvRecommendationCount = 20;
             LiveTvTimeZone = "Europe/Berlin";
             LiveTvRegularDays = 3;
+            LiveTvXmltvSource = string.Empty;
         }
 
         /// <summary>
         /// Gets or sets on how many different days a show must have been watched live to count as a regular show.
         /// </summary>
         public int LiveTvRegularDays { get; set; }
+
+        /// <summary>
+        /// Gets or sets an additional XMLTV file (path or http(s) URL, .xml or .xml.gz) from which actors, directors,
+        /// production year and country of live TV programs are read. Empty = off.
+        /// </summary>
+        public string LiveTvXmltvSource { get; set; }
 
         /// <summary>
         /// Gets or sets the time zone used to display broadcast times (e.g. "Europe/Berlin"; empty = server time zone).

@@ -30,6 +30,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         private readonly ILibraryManager _libraryManager;
         private readonly LiveTvWatchStore _store;
         private readonly FeedbackStore _feedback;
+        private readonly XmltvSource _xmltv;
         private readonly LiveTvWatchTracker _tracker;
         private readonly ConcurrentDictionary<Guid, LiveTvWatchEntry> _currentPrograms = new ConcurrentDictionary<Guid, LiveTvWatchEntry>();
         private Timer? _timer;
@@ -44,18 +45,21 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         /// <param name="libraryManager">Library manager.</param>
         /// <param name="store">Store for the watched minutes.</param>
         /// <param name="feedback">Evaluation of the recommendations.</param>
+        /// <param name="xmltv">Additional XMLTV source for people.</param>
         public LiveTvTrackingService(
             ILogger<LiveTvTrackingService> logger,
             ISessionManager sessionManager,
             ILibraryManager libraryManager,
             LiveTvWatchStore store,
-            FeedbackStore feedback)
+            FeedbackStore feedback,
+            XmltvSource xmltv)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _sessionManager = sessionManager ?? throw new ArgumentNullException(nameof(sessionManager));
             _libraryManager = libraryManager ?? throw new ArgumentNullException(nameof(libraryManager));
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _feedback = feedback ?? throw new ArgumentNullException(nameof(feedback));
+            _xmltv = xmltv ?? throw new ArgumentNullException(nameof(xmltv));
             _tracker = new LiveTvWatchTracker(store, ResolveProgram);
         }
 
@@ -237,6 +241,14 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 return null;
             }
 
+            // Jellyfin speichert für EPG-Sendungen keine Personen – dann aus der XMLTV-Quelle ergänzen
+            var people = _libraryManager.GetPeople(program).Select(p => p.Name).Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n!).Take(10).ToList();
+            var xmltv = _xmltv.Lookup(program.StartDate, program.Name, program.EpisodeTitle);
+            if (people.Count == 0 && xmltv != null)
+            {
+                people = xmltv.People.ToList();
+            }
+
             var entry = new LiveTvWatchEntry
             {
                 BroadcastKey = channelId.ToString("N") + "|" + program.StartDate.ToString("yyyyMMddHHmm", System.Globalization.CultureInfo.InvariantCulture),
@@ -244,11 +256,11 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 SeriesName = string.IsNullOrWhiteSpace(program.SeriesName) ? null : program.SeriesName,
                 EpisodeTitle = program.EpisodeTitle,
                 Genres = program.Genres?.ToList() ?? new System.Collections.Generic.List<string>(),
-                People = _libraryManager.GetPeople(program).Select(p => p.Name).Where(n => !string.IsNullOrWhiteSpace(n)).Take(10).ToList()!,
+                People = people,
                 ChannelName = _libraryManager.GetItemById(channelId)?.Name,
                 IsMovie = program.IsMovie,
                 IsSports = program.IsSports,
-                ProductionYear = program.ProductionYear,
+                ProductionYear = program.ProductionYear ?? xmltv?.Year,
                 StartDate = program.StartDate,
                 EndDate = program.EndDate
             };
@@ -319,6 +331,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             try
             {
                 var now = DateTime.UtcNow;
+                _xmltv.EnsureFresh();
                 PollSessions(now);
                 _tracker.RemoveStaleSessions(now);
 

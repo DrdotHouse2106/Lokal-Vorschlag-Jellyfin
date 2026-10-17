@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.7.0.0",
+        "changelog": "Darsteller aus XMLTV-Datei / Actors from XMLTV\n- Neue Einstellung „XMLTV-Quelle für Darsteller“ (Pfad oder URL, .xml/.xml.gz): Darsteller, Regie, Jahr und Land für Live-TV-Sendungen\n- Lieblingsschauspieler aus Live-TV und Bibliothek zählen für „Heute im TV für dich“\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.7.0.zip",
+        "checksum": "e6eb011401fdd2c9a0ec9222db8ab297",
+        "timestamp": "2026-10-17T22:00:00Z"
+      },
+      {
         "version": "12.6.0.0",
         "changelog": "Daumen hoch/runter und Top 10 / Thumbs and Top 10\n- „Gefällt mir“ zählt wie ein Favorit, „Gefällt mir nicht“ wird nie empfohlen und macht ähnliche Titel seltener (auch ohne Ansehen)\n- Neuer Endpunkt GET /LocalRecs/Top10: meistgesehene Filme und Serien aller Benutzer (für die TV-App)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

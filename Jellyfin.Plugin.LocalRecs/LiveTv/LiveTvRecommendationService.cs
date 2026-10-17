@@ -28,6 +28,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         private const float MinScore = 0.15f;
         private const int MaxLibraryMovies = 300;
         private const int MaxLibraryEpisodes = 500;
+        private const int MaxLibraryActors = 5;
         private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(10);
 
         private readonly ILogger<LiveTvRecommendationService> _logger;
@@ -36,6 +37,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         private readonly ILiveTvManager _liveTvManager;
         private readonly LiveTvWatchStore _watchStore;
         private readonly FeedbackStore _feedback;
+        private readonly XmltvSource _xmltv;
         private readonly ConcurrentDictionary<Guid, (DateTime Created, IReadOnlyList<BaseItem> Items)> _cache =
             new ConcurrentDictionary<Guid, (DateTime Created, IReadOnlyList<BaseItem> Items)>();
 
@@ -48,13 +50,15 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         /// <param name="liveTvManager">Live TV manager.</param>
         /// <param name="watchStore">Live TV watch history.</param>
         /// <param name="feedback">Evaluation of the recommendations.</param>
+        /// <param name="xmltv">Additional XMLTV source for people.</param>
         public LiveTvRecommendationService(
             ILogger<LiveTvRecommendationService> logger,
             ILibraryManager libraryManager,
             IUserManager userManager,
             ILiveTvManager liveTvManager,
             LiveTvWatchStore watchStore,
-            FeedbackStore feedback)
+            FeedbackStore feedback,
+            XmltvSource xmltv)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _libraryManager = libraryManager ?? throw new ArgumentNullException(nameof(libraryManager));
@@ -62,6 +66,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             _liveTvManager = liveTvManager ?? throw new ArgumentNullException(nameof(liveTvManager));
             _watchStore = watchStore ?? throw new ArgumentNullException(nameof(watchStore));
             _feedback = feedback ?? throw new ArgumentNullException(nameof(feedback));
+            _xmltv = xmltv ?? throw new ArgumentNullException(nameof(xmltv));
         }
 
         /// <summary>
@@ -238,7 +243,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 BroadcastKey = p.ChannelId.ToString("N") + "|" + p.StartDate.ToString("yyyyMMddHHmm", System.Globalization.CultureInfo.InvariantCulture),
                 TitleKey = LiveTvText.NormalizeTitle(string.IsNullOrWhiteSpace(p.SeriesName) ? p.Name : p.SeriesName),
                 Genres = p.Genres ?? Array.Empty<string>(),
-                People = Array.Empty<string>(),
+                People = _xmltv.Lookup(p.StartDate, p.Name, p.EpisodeTitle)?.People ?? Array.Empty<string>(),
                 StartDate = p.StartDate,
                 Title = p.Name ?? string.Empty,
                 EpisodeTitle = p.EpisodeTitle,
@@ -267,6 +272,25 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 programs.Count);
 
             return ranked.Select(c => c.Item!).ToList();
+        }
+
+        /// <summary>
+        /// Main actors and directors of a library item, so that favourite actors also count for live TV
+        /// (matched against the people from the XMLTV source).
+        /// </summary>
+        private IReadOnlyList<string> GetMainPeople(BaseItem item)
+        {
+            if (string.IsNullOrWhiteSpace(Plugin.Instance?.Configuration?.LiveTvXmltvSource))
+            {
+                return Array.Empty<string>();
+            }
+
+            var people = _libraryManager.GetPeople(new InternalPeopleQuery { ItemId = item.Id });
+            return people.Where(p => p.Type == PersonKind.Actor).Take(MaxLibraryActors)
+                .Concat(people.Where(p => p.Type == PersonKind.Director).Take(2))
+                .Select(p => p.Name)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .ToList()!;
         }
 
         private TvInterestProfile BuildProfile(
@@ -313,7 +337,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
 
             foreach (var movie in movies)
             {
-                profile.Add(movie.Genres, LiveTvText.NormalizeTitle(movie.Name), null, 0.5f);
+                profile.Add(movie.Genres, LiveTvText.NormalizeTitle(movie.Name), GetMainPeople(movie), 0.5f);
             }
 
             // 3. Bibliothek: Serien mit gesehenen Folgen (neue Folgen im TV landen so weit vorne)

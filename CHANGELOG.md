@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.7.0] - 2026-10-17
+
+### Added
+
+- **Actors from an XMLTV file** (new setting `LiveTvXmltvSource`, path or http(s) URL, `.xml` or `.xml.gz`): Jellyfin stores no people for live TV programs. The plugin reads actors (max. 10), directors, production year and country from the given XMLTV file and matches them by start time (UTC, minute) and title, using the episode title if several programmes match. Used for the candidates of "Heute im TV für dich" and when recording watched programs. Reloaded in the background when the file changes or every 6 hours; on errors the last good state is kept.
+- When the XMLTV source is set, the main actors and directors of watched library movies also feed the live TV interest profile, so movies with favourite actors rank higher in "Heute im TV für dich".
+- Status shows the XMLTV source (programmes, with people, last load, error).
+
 ## [12.6.0] - 2026-10-17
 
 ### Added

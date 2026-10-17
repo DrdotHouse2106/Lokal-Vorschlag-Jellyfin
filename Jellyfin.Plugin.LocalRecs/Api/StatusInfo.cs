@@ -65,6 +65,31 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         public IReadOnlyList<LiveTvDiagnostics.PlaybackSeen> RecentPlaybacks { get; set; } = Array.Empty<LiveTvDiagnostics.PlaybackSeen>();
 
         /// <summary>
+        /// Gets or sets a value indicating whether an additional XMLTV source is configured.
+        /// </summary>
+        public bool XmltvConfigured { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of programmes read from the XMLTV source.
+        /// </summary>
+        public int XmltvProgrammes { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of programmes with actors or directors in the XMLTV source.
+        /// </summary>
+        public int XmltvProgrammesWithPeople { get; set; }
+
+        /// <summary>
+        /// Gets or sets the time the XMLTV source was last loaded (UTC).
+        /// </summary>
+        public DateTime? XmltvLastLoaded { get; set; }
+
+        /// <summary>
+        /// Gets or sets the error of the last XMLTV load, if any.
+        /// </summary>
+        public string? XmltvError { get; set; }
+
+        /// <summary>
         /// Gets or sets the plugin version that computed the stored recommendations.
         /// </summary>
         public string? RecommendationsVersion { get; set; }

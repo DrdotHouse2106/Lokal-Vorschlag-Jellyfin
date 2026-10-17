@@ -104,6 +104,12 @@
                         </div>
 
                         <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="liveTvXmltvSource">XMLTV-Quelle für Darsteller (optional):</label>
+                            <input is="emby-input" type="text" id="liveTvXmltvSource" name="liveTvXmltvSource" placeholder="/epg-source/epg.xml.gz oder https://…" />
+                            <div class="fieldDescription">Jellyfin speichert für Live-TV-Sendungen keine Darsteller. Hier kann eine XMLTV-Datei (Pfad im Jellyfin-Container oder URL, .xml oder .xml.gz) angegeben werden, aus der Darsteller, Regie, Jahr und Land gelesen werden. Dann zählen auch Lieblingsschauspieler aus Live-TV und Bibliothek. Die Zuordnung erfolgt über Startzeit und Titel. Leer = aus.</div>
+                        </div>
+
+                        <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="liveTvHistoryDays">Live-TV-Verlauf speichern (Tage):</label>
                             <input is="emby-input" type="number" id="liveTvHistoryDays" name="liveTvHistoryDays" min="1" max="3650" />
                             <div class="fieldDescription">Wie lange live geschaute Sendungen gespeichert bleiben (Standard: 180, bis 3650 = 10 Jahre). Wie stark alte Einträge zählen, bestimmt die „Recency Decay Half-Life“ in den Einstellungen.</div>
@@ -371,6 +377,13 @@
                             html += ok(true, 'Gerade laufendes Live-TV: ' + (status.LiveTvActiveSessions || 0) + ' Wiedergabe(n)');
                             html += ok(status.LiveTvEventsReceived > 0, 'Wiedergabe-Meldungen seit Serverstart: ' + (status.PlaybackEventsReceived || 0)
                                 + ', davon Live-TV: ' + (status.LiveTvEventsReceived || 0));
+                            if (status.XmltvConfigured) {
+                                html += ok(!status.XmltvError && status.XmltvProgrammes > 0, status.XmltvError
+                                    ? 'XMLTV-Quelle konnte nicht gelesen werden: ' + self.escapeHtml(status.XmltvError)
+                                    : status.XmltvLastLoaded
+                                        ? 'XMLTV-Quelle: ' + status.XmltvProgrammes + ' Sendungen, davon ' + status.XmltvProgrammesWithPeople + ' mit Darstellern/Regie (geladen ' + self.escapeHtml(new Date(status.XmltvLastLoaded).toLocaleString()) + ')'
+                                        : 'XMLTV-Quelle wird geladen …');
+                            }
                             if (status.LastProgramMissing) {
                                 html += ok(false, 'Zuletzt lief auf einem Sender keine Sendung im Programmführer (' + self.escapeHtml(new Date(status.LastProgramMissing).toLocaleString())
                                     + ') – Programmführer-Daten aktualisieren');
@@ -471,6 +484,7 @@
                             page.querySelector('#liveTvLookaheadHours').value = config.LiveTvLookaheadHours !== undefined ? config.LiveTvLookaheadHours : 24;
                             page.querySelector('#liveTvTimeZone').value = config.LiveTvTimeZone !== undefined && config.LiveTvTimeZone !== null ? config.LiveTvTimeZone : 'Europe/Berlin';
                             page.querySelector('#liveTvRegularDays').value = config.LiveTvRegularDays !== undefined ? config.LiveTvRegularDays : 3;
+                            page.querySelector('#liveTvXmltvSource').value = config.LiveTvXmltvSource || '';
                             page.querySelector('#liveTvHistoryDays').value = config.LiveTvHistoryDays !== undefined ? config.LiveTvHistoryDays : 180;
                             page.querySelector('#liveTvMinMinutes').value = config.LiveTvMinMinutes !== undefined ? config.LiveTvMinMinutes : 3;
                             page.querySelector('#liveTvTitleMatchMinutes').value = config.LiveTvTitleMatchMinutes !== undefined ? config.LiveTvTitleMatchMinutes : 15;
@@ -525,6 +539,7 @@
                             config.LiveTvLookaheadHours = parseInt(page.querySelector('#liveTvLookaheadHours').value) || 24;
                             config.LiveTvTimeZone = page.querySelector('#liveTvTimeZone').value.trim();
                             config.LiveTvRegularDays = Math.max(2, parseInt(page.querySelector('#liveTvRegularDays').value) || 3);
+                            config.LiveTvXmltvSource = page.querySelector('#liveTvXmltvSource').value.trim();
                             config.LiveTvHistoryDays = Math.min(3650, Math.max(1, parseInt(page.querySelector('#liveTvHistoryDays').value) || 180));
                             config.LiveTvMinMinutes = Math.max(0, parseInt(page.querySelector('#liveTvMinMinutes').value) || 0);
                             config.LiveTvTitleMatchMinutes = parseInt(page.querySelector('#liveTvTitleMatchMinutes').value) || 15;

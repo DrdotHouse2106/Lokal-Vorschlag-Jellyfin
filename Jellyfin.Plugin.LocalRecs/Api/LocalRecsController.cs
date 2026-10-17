@@ -26,6 +26,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         private readonly LiveTvWatchStore _liveTvWatchStore;
         private readonly FeedbackStore _feedback;
         private readonly MediaBrowser.Controller.Library.IUserManager _userManager;
+        private readonly XmltvSource _xmltv;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LocalRecsController"/> class.
@@ -35,19 +36,22 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// <param name="liveTvWatchStore">Live TV watch history.</param>
         /// <param name="feedback">Evaluation of the recommendations.</param>
         /// <param name="userManager">User manager.</param>
+        /// <param name="xmltv">Additional XMLTV source.</param>
         /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
         public LocalRecsController(
             ILogger<LocalRecsController> logger,
             RecommendationStore store,
             LiveTvWatchStore liveTvWatchStore,
             FeedbackStore feedback,
-            MediaBrowser.Controller.Library.IUserManager userManager)
+            MediaBrowser.Controller.Library.IUserManager userManager,
+            XmltvSource xmltv)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _liveTvWatchStore = liveTvWatchStore ?? throw new ArgumentNullException(nameof(liveTvWatchStore));
             _feedback = feedback ?? throw new ArgumentNullException(nameof(feedback));
             _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
+            _xmltv = xmltv ?? throw new ArgumentNullException(nameof(xmltv));
         }
 
         /// <summary>
@@ -70,6 +74,11 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 LastProgramResolved = LiveTvDiagnostics.LastProgramResolved,
                 LastProgramMissing = LiveTvDiagnostics.LastProgramMissing,
                 RecentPlaybacks = LiveTvDiagnostics.GetRecent(),
+                XmltvConfigured = !string.IsNullOrWhiteSpace(Plugin.Instance?.Configuration?.LiveTvXmltvSource),
+                XmltvProgrammes = _xmltv.ProgrammeCount,
+                XmltvProgrammesWithPeople = _xmltv.ProgrammesWithPeople,
+                XmltvLastLoaded = _xmltv.LastLoaded,
+                XmltvError = _xmltv.LastError,
                 RecommendationsVersion = _store.Version
             });
         }
