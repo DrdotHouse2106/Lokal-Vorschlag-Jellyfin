@@ -26,6 +26,28 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
         }
 
         [Fact]
+        public void ShownSince_CountsUninterruptedPeriod_AndRestartsAfterGap()
+        {
+            var store = new FeedbackStore(NullLogger<FeedbackStore>.Instance, _path);
+            store.RecordRecommended(_user, FeedbackStore.Movies, new[] { ("a", "A"), ("b", "B") }, Now.AddDays(-30));
+            for (var day = 29; day >= 0; day--)
+            {
+                store.RecordRecommended(_user, FeedbackStore.Movies, new[] { ("a", "A") }, Now.AddDays(-day));
+            }
+
+            // b war 30 Tage nicht mehr in der Zeile und kommt jetzt zurück
+            store.RecordRecommended(_user, FeedbackStore.Movies, new[] { ("b", "B") }, Now);
+            store.RecordWatched(_user, FeedbackStore.Movies, new[] { "c" }, Now);
+
+            var shown = store.GetShownSince(_user, FeedbackStore.Movies, Now);
+            shown["a"].Should().Be(Now.AddDays(-30));
+            shown["b"].Should().Be(Now, "nach einer Lücke beginnt die Zählung neu");
+
+            store.RecordWatched(_user, FeedbackStore.Movies, new[] { "a" }, Now);
+            store.GetShownSince(_user, FeedbackStore.Movies, Now).Should().NotContainKey("a", "geschaute Titel werden nicht abgewertet");
+        }
+
+        [Fact]
         public void WatchedRecommendation_CountsAsHitOnce()
         {
             var store = new FeedbackStore(NullLogger<FeedbackStore>.Instance, _path);

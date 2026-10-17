@@ -182,6 +182,26 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.LiveTv
         }
 
         [Fact]
+        public void AlreadySeenEpisode_IsSkipped_NextNewEpisodeIsShown()
+        {
+            var profile = new TvInterestProfile();
+            profile.Add(new[] { "Krimi" }, "die rosenheim-cops", null, 1f);
+            var seen = Program("Die Rosenheim-Cops", "Krimi", hours: 1);
+            seen.EpisodeTitle = "Mord im Golfclub";
+            var fresh = Program("Die Rosenheim-Cops", "Krimi", hours: 5);
+            fresh.EpisodeTitle = "Tod am See";
+
+            var ranked = LiveTvRecommendationService.Rank(
+                profile,
+                new[] { seen, fresh },
+                NoExclusions,
+                new HashSet<string> { LiveTvRecommendationService.EpisodeKey("die rosenheim-cops", "Mord im Golfclub")! },
+                10);
+
+            ranked.Should().ContainSingle().Which.EpisodeTitle.Should().Be("Tod am See");
+        }
+
+        [Fact]
         public void ExcludedGenresAndWatchedBroadcasts_AreSkipped()
         {
             var profile = new TvInterestProfile();

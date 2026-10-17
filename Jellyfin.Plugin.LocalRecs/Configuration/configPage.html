@@ -191,6 +191,12 @@
                         </div>
 
                         <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="ignoredRecommendationDays">Ignorierte Empfehlungen abwerten nach (Tagen):</label>
+                            <input is="emby-input" type="number" id="ignoredRecommendationDays" name="ignoredRecommendationDays" min="0" max="365" />
+                            <div class="fieldDescription">Steht ein Titel so lange in der Zeile, ohne geschaut zu werden, rutscht er nach und nach nach hinten (2 % pro Tag, höchstens auf die Hälfte). 0 = aus (Standard: 14)</div>
+                        </div>
+
+                        <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="ratingQualityWeight">Gewicht der Bewertung:</label>
                             <input is="emby-input" type="number" id="ratingQualityWeight" name="ratingQualityWeight" min="0" max="1" step="0.05" />
                             <div class="fieldDescription">Gut bewertete Titel rücken bei ähnlicher Passung nach vorne (0 = aus, Standard: 0.15)</div>
@@ -475,6 +481,7 @@
                             page.querySelector('#enableRatingProximity').checked = config.EnableRatingProximity || false;
                             page.querySelector('#ratingProximityWeight').value = config.RatingProximityWeight !== undefined ? config.RatingProximityWeight : 0.2;
                             page.querySelector('#minCommunityRating').value = config.MinCommunityRating !== undefined ? config.MinCommunityRating : 5;
+                            page.querySelector('#ignoredRecommendationDays').value = config.IgnoredRecommendationDays !== undefined ? config.IgnoredRecommendationDays : 14;
                             page.querySelector('#ratingQualityWeight').value = config.RatingQualityWeight !== undefined ? config.RatingQualityWeight : 0.15;
                             page.querySelector('#movieSectionTitle').value = config.MovieSectionTitle || 'Empfohlene Filme für dich';
                             page.querySelector('#tvSectionTitle').value = config.TvSectionTitle || 'Empfohlene Serien für dich';
@@ -529,6 +536,8 @@
                             config.EnableRatingProximity = page.querySelector('#enableRatingProximity').checked;
                             config.RatingProximityWeight = parseFloat(page.querySelector('#ratingProximityWeight').value);
                             config.MinCommunityRating = parseFloat(page.querySelector('#minCommunityRating').value) || 0;
+                            var ignoredDays = parseInt(page.querySelector('#ignoredRecommendationDays').value);
+                            config.IgnoredRecommendationDays = isNaN(ignoredDays) ? 14 : Math.min(365, Math.max(0, ignoredDays));
                             var qualityWeight = parseFloat(page.querySelector('#ratingQualityWeight').value);
                             config.RatingQualityWeight = isNaN(qualityWeight) ? 0.15 : qualityWeight;
                             config.MovieSectionTitle = page.querySelector('#movieSectionTitle').value.trim() || 'Empfohlene Filme für dich';

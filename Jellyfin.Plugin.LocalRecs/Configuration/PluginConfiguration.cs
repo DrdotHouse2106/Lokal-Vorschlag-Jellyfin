@@ -26,6 +26,7 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             RatingProximityWeight = 0.2;
             MinCommunityRating = 5.0;
             RatingQualityWeight = 0.15;
+            IgnoredRecommendationDays = 14;
             MovieSectionTitle = "Empfohlene Filme für dich";
             TvSectionTitle = "Empfohlene Serien für dich";
             EnableLiveTvTracking = true;
@@ -185,6 +186,12 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Well rated titles rank higher among similarly matching ones. Default: 0.15.
         /// </summary>
         public double RatingQualityWeight { get; set; }
+
+        /// <summary>
+        /// Gets or sets after how many days a recommended but never watched title slowly moves back
+        /// (2 % per day, down to half the score). 0 = off. Default: 14.
+        /// </summary>
+        public int IgnoredRecommendationDays { get; set; }
 
         /// <summary>
         /// Validates the configuration and returns validation errors.

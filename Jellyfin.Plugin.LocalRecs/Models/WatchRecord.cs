@@ -46,6 +46,11 @@ namespace Jellyfin.Plugin.LocalRecs.Models
         public bool? Likes { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the movie was stopped early and not resumed (weak negative signal).
+        /// </summary>
+        public bool IsAbandoned { get; set; }
+
+        /// <summary>
         /// Gets or sets the community rating (0-10 scale) of the item, if available.
         /// </summary>
         public float? CommunityRating { get; set; }

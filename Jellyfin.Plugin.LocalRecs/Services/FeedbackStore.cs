@@ -25,6 +25,9 @@ namespace Jellyfin.Plugin.LocalRecs.Services
 
         private const int MaxHits = 2000;
 
+        // Lücke, nach der ein wieder empfohlener Titel als neu gilt
+        private static readonly TimeSpan ShownGap = TimeSpan.FromDays(7);
+
         private readonly ILogger<FeedbackStore> _logger;
         private readonly string _filePath;
         private readonly object _lock = new object();
@@ -64,11 +67,22 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                     }
 
                     var id = Id(userId, section, key);
-                    if (!_data.Recommended.ContainsKey(id))
+                    if (!_data.Recommended.TryGetValue(id, out var entry))
                     {
-                        _data.Recommended[id] = new RecommendedEntry { UserId = userId, Section = section, Key = key, Title = title, Date = now };
+                        _data.Recommended[id] = new RecommendedEntry { UserId = userId, Section = section, Key = key, Title = title, Date = now, ShownSince = now, LastRecommended = now };
                         _dirty = true;
+                        continue;
                     }
+
+                    // War der Titel eine Weile nicht in der Zeile, beginnt die Zählung neu
+                    var last = entry.LastRecommended == default ? entry.Date : entry.LastRecommended;
+                    if (entry.ShownSince == default || now - last > ShownGap)
+                    {
+                        entry.ShownSince = now;
+                    }
+
+                    entry.LastRecommended = now;
+                    _dirty = true;
                 }
             }
         }
@@ -113,6 +127,36 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 }
 
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets since when the titles currently recommended to a user have been in the row without being watched.
+        /// </summary>
+        /// <param name="userId">User ID.</param>
+        /// <param name="section">Section.</param>
+        /// <param name="now">Current time (UTC).</param>
+        /// <returns>Start of the current recommendation period by item key.</returns>
+        public Dictionary<string, DateTime> GetShownSince(Guid userId, string section, DateTime now)
+        {
+            lock (_lock)
+            {
+                var result = new Dictionary<string, DateTime>();
+                foreach (var entry in _data.Recommended.Values)
+                {
+                    if (entry.UserId != userId || entry.Section != section || entry.WatchedAt != null)
+                    {
+                        continue;
+                    }
+
+                    var last = entry.LastRecommended == default ? entry.Date : entry.LastRecommended;
+                    if (now - last <= ShownGap)
+                    {
+                        result[entry.Key] = entry.ShownSince == default ? entry.Date : entry.ShownSince;
+                    }
+                }
+
+                return result;
             }
         }
 
@@ -263,6 +307,12 @@ namespace Jellyfin.Plugin.LocalRecs.Services
 
             /// <summary>Gets or sets the time it was watched (UTC), if any.</summary>
             public DateTime? WatchedAt { get; set; }
+
+            /// <summary>Gets or sets the start of the current (uninterrupted) recommendation period (UTC).</summary>
+            public DateTime ShownSince { get; set; }
+
+            /// <summary>Gets or sets the time of the last recommendation (UTC).</summary>
+            public DateTime LastRecommended { get; set; }
         }
 
         /// <summary>

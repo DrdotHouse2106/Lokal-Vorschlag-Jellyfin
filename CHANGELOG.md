@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.8.0] - 2026-10-18
+
+### Added
+
+- **Ignored recommendations move back**: titles recommended for more than `IgnoredRecommendationDays` (default 14, 0 = off) without being watched lose 2 % score per day, down to half. The uninterrupted recommendation period is tracked in `feedback.json` (restarts after a gap of 7 days).
+- **Abandoned movies as weak dislike**: movies stopped before 25 % of the runtime and not resumed for 3 days pull similar titles down (half as strong as "Gefällt mir nicht"). They do not count as watched items.
+- **Genre variety** for movie and series rows: at most a third from the same main genre, filled up with the next best titles (as in "Heute im TV für dich").
+- **No repeats of seen episodes** in "Heute im TV für dich": episodes already watched live or in the library (matched by show and episode title) are skipped; the next new episode is shown instead.
+
 ## [12.7.1] - 2026-10-17
 
 ### Added

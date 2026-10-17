@@ -75,7 +75,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         /// <param name="profile">Interest profile of the user.</param>
         /// <param name="programs">Candidate programs.</param>
         /// <param name="excludedGenres">Excluded genres (normalized).</param>
-        /// <param name="watchedBroadcasts">Broadcast keys the user already watched.</param>
+        /// <param name="watchedBroadcasts">Broadcast keys and episode keys (see <see cref="EpisodeKey"/>) the user already watched.</param>
         /// <param name="limit">Maximum number of programs.</param>
         /// <param name="onlyRegularShowsAfter">Programs starting after this time (UTC) are only kept if they are regular shows.</param>
         /// <returns>The recommended programs, in chronological order.</returns>
@@ -98,6 +98,9 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             var ranked = programs
                 .Where(p => !LiveTvText.IsExcluded(p.Genres, excludedGenres) && !watchedBroadcasts.Contains(p.BroadcastKey))
 
+                // Schon gesehene Folgen (live oder in der Bibliothek) nicht noch einmal vorschlagen
+                .Where(p => p.IsSports || EpisodeKey(p.TitleKey, p.EpisodeTitle) is not { } episodeKey || !watchedBroadcasts.Contains(episodeKey))
+
                 // Stammsendungen dürfen weiter in der Zukunft liegen als der normale Vorschau-Zeitraum
                 .Where(p => onlyRegularShowsAfter == null || p.StartDate <= onlyRegularShowsAfter || profile.IsRegular(p.TitleKey))
 
@@ -114,6 +117,18 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
 
             // Die besten auswählen, dann in der Zeile chronologisch anzeigen
             return PickDiverse(ranked, limit, profile).OrderBy(p => p.StartDate).ToList();
+        }
+
+        /// <summary>
+        /// Key of an episode (show + episode title) to recognize repeats of episodes already seen.
+        /// </summary>
+        /// <param name="titleKey">Normalized show title.</param>
+        /// <param name="episodeTitle">Episode title.</param>
+        /// <returns>The key, or null without show or episode title.</returns>
+        public static string? EpisodeKey(string? titleKey, string? episodeTitle)
+        {
+            var episode = LiveTvText.NormalizeFeature(episodeTitle);
+            return string.IsNullOrEmpty(titleKey) || episode.Length == 0 ? null : "episode:" + titleKey + "|" + episode;
         }
 
         /// <summary>
@@ -220,7 +235,8 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 ? _watchStore.GetEntries(userId, config.LiveTvMinMinutes)
                 : Array.Empty<LiveTvWatchEntry>();
 
-            var profile = BuildProfile(user, watchedEntries, excluded, config, now);
+            var watchedKeys = watchedEntries.Select(e => e.BroadcastKey).ToHashSet();
+            var profile = BuildProfile(user, watchedEntries, excluded, config, now, watchedKeys);
             var lookaheadEnd = now.AddHours(Math.Max(1, config.LiveTvLookaheadHours));
             if (profile.IsEmpty)
             {
@@ -261,7 +277,6 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 return c;
             });
 
-            var watchedKeys = watchedEntries.Select(e => e.BroadcastKey).ToHashSet();
             var ranked = Rank(profile, candidates, excluded, watchedKeys, config.LiveTvRecommendationCount, lookaheadEnd);
             _feedback.RecordRecommended(userId, FeedbackStore.LiveTv, ranked.Select(c => (FeedbackKey(c), LiveTvDisplay.Title(c.Title, c.EpisodeTitle, c.IsSports))), now);
 
@@ -298,9 +313,19 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             IReadOnlyList<LiveTvWatchEntry> watchedEntries,
             HashSet<string> excluded,
             PluginConfiguration config,
-            DateTime now)
+            DateTime now,
+            HashSet<string> watchedKeys)
         {
             var profile = new TvInterestProfile();
+
+            // Live gesehene Folgen merken, damit Wiederholungen nicht vorgeschlagen werden
+            foreach (var entry in watchedEntries)
+            {
+                if (EpisodeKey(LiveTvText.TitleKey(entry), entry.EpisodeTitle) is { } key)
+                {
+                    watchedKeys.Add(key);
+                }
+            }
 
             // 1. Live geschaut: Minuten zählen (max. 3 Stunden je Sendung), ältere Einträge zählen weniger
             foreach (var entry in watchedEntries.Where(e => !LiveTvText.IsExcluded(e.Genres, excluded)))
@@ -354,6 +379,14 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             {
                 var series = _libraryManager.GetItemById(group.Key) as Series;
                 var name = series?.Name ?? group.First().SeriesName;
+                foreach (var episode in group)
+                {
+                    if (EpisodeKey(LiveTvText.NormalizeTitle(name), episode.Name) is { } key)
+                    {
+                        watchedKeys.Add(key);
+                    }
+                }
+
                 profile.Add(series?.Genres, LiveTvText.NormalizeTitle(name), null, Math.Min(group.Count(), 10) / 5f);
             }
 

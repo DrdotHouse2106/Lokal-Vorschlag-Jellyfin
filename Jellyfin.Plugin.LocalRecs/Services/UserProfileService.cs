@@ -24,6 +24,21 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         /// </summary>
         public const float DislikeFactor = 0.5f;
 
+        /// <summary>
+        /// How strongly an abandoned movie (stopped early, not resumed) pulls similar titles down.
+        /// </summary>
+        public const float AbandonFactor = 0.25f;
+
+        /// <summary>
+        /// Share of the runtime below which a stopped movie counts as abandoned.
+        /// </summary>
+        public const double AbandonShare = 0.25;
+
+        /// <summary>
+        /// Days after the last playback before a stopped movie counts as abandoned (it may still be resumed).
+        /// </summary>
+        public const int AbandonAfterDays = 3;
+
         private readonly IUserDataManager _userDataManager;
         private readonly IUserManager _userManager;
         private readonly ILibraryManager _libraryManager;
@@ -50,6 +65,23 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             _libraryManager = libraryManager ?? throw new ArgumentNullException(nameof(libraryManager));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _liveTvWatchStore = liveTvWatchStore;
+        }
+
+        /// <summary>
+        /// Checks whether a movie was stopped early and not resumed for a few days.
+        /// </summary>
+        /// <param name="positionTicks">Playback position.</param>
+        /// <param name="runTimeTicks">Runtime of the movie.</param>
+        /// <param name="lastPlayed">Last playback (UTC).</param>
+        /// <param name="now">Current time (UTC).</param>
+        /// <returns>True if the movie counts as abandoned.</returns>
+        public static bool IsAbandoned(long positionTicks, long? runTimeTicks, DateTime? lastPlayed, DateTime now)
+        {
+            return positionTicks > 0
+                && runTimeTicks > 0
+                && positionTicks < runTimeTicks.Value * AbandonShare
+                && lastPlayed != null
+                && now - lastPlayed.Value >= TimeSpan.FromDays(AbandonAfterDays);
         }
 
         /// <summary>
@@ -98,11 +130,11 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             var tasteVector = ComputeTasteVector(watchRecords, embeddings, config);
 
             // Compute rating statistics from watched items
-            var (avgCommunity, avgCritic, communityStdDev, criticStdDev) = ComputeRatingStatistics(watchRecords);
+            var (avgCommunity, avgCritic, communityStdDev, criticStdDev) = ComputeRatingStatistics(watchRecords.Where(r => !r.IsAbandoned).ToList());
 
             var profile = new UserProfile(userId, tasteVector)
             {
-                WatchedItemCount = watchRecords.Count,
+                WatchedItemCount = watchRecords.Count(r => !r.IsAbandoned),
                 AverageCommunityRating = avgCommunity,
                 AverageCriticRating = avgCritic,
                 CommunityRatingStdDev = communityStdDev,
@@ -180,6 +212,17 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 }
                 else if (!userData.Played && userData.Likes == null)
                 {
+                    // Früh abgebrochene Filme zählen als leises „Gefällt mir nicht“
+                    if (IsAbandoned(userData.PlaybackPositionTicks, item.RunTimeTicks, userData.LastPlayedDate, DateTime.UtcNow))
+                    {
+                        records.Add(new WatchRecord(itemId, userId, userData.LastPlayedDate!.Value)
+                        {
+                            IsAbandoned = true,
+                            CommunityRating = item.CommunityRating,
+                            CriticRating = item.CriticRating
+                        });
+                    }
+
                     // For movies, Played = true means the movie was completed.
                     continue;
                 }
@@ -304,12 +347,13 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                     (float)config.FavoriteBoost,
                     (float)config.RecentWatchBoost);
 
-                // Daumen runter: vom Geschmack abziehen (ähnliche Titel werden seltener empfohlen)
-                if (record.Likes == false)
+                // Daumen runter bzw. früh abgebrochen: vom Geschmack abziehen (ähnliche Titel werden seltener empfohlen)
+                if (record.Likes == false || record.IsAbandoned)
                 {
+                    var factor = record.Likes == false ? DislikeFactor : AbandonFactor;
                     for (int i = 0; i < dimension; i++)
                     {
-                        weightedSum[i] -= embedding.Vector[i] * weight * DislikeFactor;
+                        weightedSum[i] -= embedding.Vector[i] * weight * factor;
                     }
 
                     continue;

@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.8.0.0",
+        "changelog": "Abwechslung und Lernen aus dem Verhalten / Variety and behaviour\n- Lange ignorierte Empfehlungen rutschen nach hinten (ab 14 Tagen, einstellbar)\n- Früh abgebrochene Filme machen ähnliche Titel etwas seltener\n- Höchstens ein Drittel der Film-/Serienzeile aus demselben Genre\n- „Heute im TV für dich“: keine schon gesehenen Folgen\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.8.0.zip",
+        "checksum": "6d18326bf52602f521bc8ec9e66e38ec",
+        "timestamp": "2026-10-18T00:00:00Z"
+      },
+      {
         "version": "12.7.1.0",
         "changelog": "Besetzung für Live-TV-Sendungen / Credits API\n- Neuer Endpunkt GET /LocalRecs/LiveTv/Program/{id}/Credits (und /LiveTv/Credits?ids=…): Darsteller mit Rolle, Regie, Drehbuch, Jahr, Land, Episode aus der XMLTV-Quelle (für die TV-App)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

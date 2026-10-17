@@ -21,6 +21,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         private readonly EmbeddingService _embeddingService;
         private readonly UserProfileService _userProfileService;
         private readonly RecommendationEngine _recommendationEngine;
+        private readonly FeedbackStore? _feedback;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RecommendationRefreshService"/> class.
@@ -31,13 +32,15 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         /// <param name="embeddingService">Embedding service.</param>
         /// <param name="userProfileService">User profile service.</param>
         /// <param name="recommendationEngine">Recommendation engine.</param>
+        /// <param name="feedback">Evaluation store (since when titles have been recommended), optional.</param>
         public RecommendationRefreshService(
             ILogger<RecommendationRefreshService> logger,
             LibraryAnalysisService libraryAnalysisService,
             VocabularyBuilder vocabularyBuilder,
             EmbeddingService embeddingService,
             UserProfileService userProfileService,
-            RecommendationEngine recommendationEngine)
+            RecommendationEngine recommendationEngine,
+            FeedbackStore? feedback = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _libraryAnalysisService = libraryAnalysisService ?? throw new ArgumentNullException(nameof(libraryAnalysisService));
@@ -45,6 +48,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             _embeddingService = embeddingService ?? throw new ArgumentNullException(nameof(embeddingService));
             _userProfileService = userProfileService ?? throw new ArgumentNullException(nameof(userProfileService));
             _recommendationEngine = recommendationEngine ?? throw new ArgumentNullException(nameof(recommendationEngine));
+            _feedback = feedback;
         }
 
         /// <summary>
@@ -105,7 +109,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                     metadata,
                     config,
                     MediaType.Movie,
-                    config.MovieRecommendationCount);
+                    CandidateCount(config.MovieRecommendationCount));
 
                 // Generate TV recommendations (will use cold-start if profile is null)
                 var tvRecs = _recommendationEngine.GenerateRecommendations(
@@ -115,7 +119,12 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                     metadata,
                     config,
                     MediaType.Series,
-                    config.TvRecommendationCount);
+                    CandidateCount(config.TvRecommendationCount));
+
+                // Lange ignorierte Titel nach hinten, höchstens ein Drittel aus demselben Genre
+                var now = DateTime.UtcNow;
+                movieRecs = RecommendationReranker.Rerank(movieRecs, metadata, ShownSince(userId, FeedbackStore.Movies, now), now, config.IgnoredRecommendationDays, config.MovieRecommendationCount);
+                tvRecs = RecommendationReranker.Rerank(tvRecs, metadata, ShownSince(userId, FeedbackStore.Series, now), now, config.IgnoredRecommendationDays, config.TvRecommendationCount);
 
                 _logger.LogDebug(
                     "Generated recommendations for user {UserId}: {MovieCount} movies, {TvCount} TV",
@@ -164,6 +173,21 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             _logger.LogInformation("Successfully generated recommendations for {Count}/{Total} users", results.Count, userIds.Count);
 
             return Task.FromResult(results);
+        }
+
+        // Mehr Kandidaten holen, damit nach Genre-Grenze und Abwertung die Zeile voll wird
+        private static int CandidateCount(int limit) => limit <= 0 ? 0 : (limit * 3) + 10;
+
+        private Dictionary<Guid, DateTime>? ShownSince(Guid userId, string section, DateTime now)
+        {
+            if (_feedback == null)
+            {
+                return null;
+            }
+
+            return _feedback.GetShownSince(userId, section, now)
+                .Where(kv => Guid.TryParse(kv.Key, out _))
+                .ToDictionary(kv => Guid.Parse(kv.Key), kv => kv.Value);
         }
     }
 }

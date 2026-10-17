@@ -53,11 +53,11 @@ Hast du früher das Repository `https://raw.githubusercontent.com/DrdotHouse2106
 
 ### Variante B: Manuell
 
-1. [`release/jellyfin-plugin-localrecs-v12.7.1.zip`](release/jellyfin-plugin-localrecs-v12.7.1.zip) herunterladen und entpacken.
+1. [`release/jellyfin-plugin-localrecs-v12.8.0.zip`](release/jellyfin-plugin-localrecs-v12.8.0.zip) herunterladen und entpacken.
 2. Die Datei `Jellyfin.Plugin.LocalRecs.dll` in einen neuen Ordner im Plugin-Verzeichnis legen, z. B.
-   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.7.1.0/`
-   - Docker: `/config/plugins/LocalRecs_12.7.1.0/`
-   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.7.1.0\`
+   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.8.0.0/`
+   - Docker: `/config/plugins/LocalRecs_12.8.0.0/`
+   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.8.0.0\`
 3. Jellyfin-Server neu starten.
 
 ## Einrichtung
@@ -86,6 +86,13 @@ Im Plugin unter **Einstellungen → Startseite** siehst du, ob alles verbunden i
 ### Bewertung
 
 Filme und Serien mit einer Community-Bewertung unter **5.0** werden nicht empfohlen (Titel ohne Bewertung bleiben drin; einstellbar unter „Mindestbewertung“, 0 = aus). Außerdem rücken gut bewertete Titel bei ähnlicher Passung nach vorne („Gewicht der Bewertung“, Standard 0.15).
+
+### Abwechslung und Lernen aus dem Verhalten (ab 12.8.0)
+
+- **Ignorierte Empfehlungen:** Steht ein Titel länger als 14 Tage in der Zeile, ohne geschaut zu werden, rutscht er nach und nach nach hinten (2 % pro Tag, höchstens auf die Hälfte). So bleibt die Zeile frisch. Einstellbar unter „Ignorierte Empfehlungen abwerten nach“, 0 = aus.
+- **Abgebrochene Filme:** Wird ein Film vor einem Viertel der Laufzeit beendet und drei Tage lang nicht weitergeschaut, zählt das als leises „Gefällt mir nicht“: Ähnliche Titel werden etwas seltener empfohlen (halb so stark wie ein echtes „Gefällt mir nicht“).
+- **Mehr Abwechslung:** Höchstens ein Drittel der Film- bzw. Serienzeile stammt aus demselben Hauptgenre, der Rest wird mit den nächstbesten Titeln aufgefüllt.
+- **Keine gesehenen Folgen im TV:** „Heute im TV für dich“ schlägt keine Folge vor, die schon live oder in der Bibliothek geschaut wurde (Abgleich über Sendung und Episodentitel). Läuft danach eine neue Folge, erscheint diese.
 
 ### Auswertung
 
