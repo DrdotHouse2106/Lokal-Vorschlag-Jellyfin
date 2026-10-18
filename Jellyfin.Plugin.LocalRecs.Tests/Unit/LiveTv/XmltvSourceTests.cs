@@ -91,9 +91,26 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.LiveTv
             var index = XmltvSource.Parse(new MemoryStream(Encoding.UTF8.GetBytes(Xml)));
 
             XmltvSource.Find(index, new DateTime(2026, 10, 16, 7, 5, 30, DateTimeKind.Utc), "HUBERT OHNE STALLER", null).Should().NotBeNull();
-            XmltvSource.Find(index, new DateTime(2026, 10, 16, 7, 10, 0, DateTimeKind.Utc), "Hubert ohne Staller", null).Should().BeNull();
+            XmltvSource.Find(index, new DateTime(2026, 10, 16, 7, 21, 0, DateTimeKind.Utc), "Hubert ohne Staller", null).Should().BeNull("mehr als 15 Minuten daneben");
             XmltvSource.Find(index, new DateTime(2026, 10, 16, 7, 5, 0, DateTimeKind.Utc), "Die Rosenheim-Cops", null).Should().BeNull();
             XmltvSource.Find(index, new DateTime(2026, 10, 16, 22, 0, 0, DateTimeKind.Utc), "Ohne Personen", null)!.People.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Find_ToleratesShiftedStart_PrefersChannelThenNearest()
+        {
+            const string xml = @"<tv>
+  <channel id=""Sky.Cinema.Family.HD.de""><display-name>Sky Cinema Family HD</display-name></channel>
+  <channel id=""Sky.Cinema.Action.de""><display-name>Sky Cinema Action</display-name></channel>
+  <programme start=""20261018072500 +0000"" channel=""Sky.Cinema.Family.HD.de""><title>Fack Ju Göhte</title><credits><director>Bora Dagtekin</director><actor>Elyas M'Barek</actor></credits></programme>
+  <programme start=""20261018071800 +0000"" channel=""Sky.Cinema.Action.de""><title>Fack Ju Göhte</title><credits><actor>Anderer Sender</actor></credits></programme>
+</tv>";
+            var index = XmltvSource.Parse(new MemoryStream(Encoding.UTF8.GetBytes(xml)));
+            var start = new DateTime(2026, 10, 18, 7, 20, 0, DateTimeKind.Utc);
+
+            XmltvSource.Find(index, start, "Fack Ju Göhte", null, "SKY CINEMA FAMILY")!.Directors.Should().Equal("Bora Dagtekin");
+            XmltvSource.Find(index, start, "Fack Ju Göhte", null)!.Actors.Should().Equal(new[] { "Anderer Sender" }, "ohne Sender gewinnt die nächste Startzeit");
+            XmltvSource.Find(index, start, "Fack Ju Göhte", null, "Unbekannter Sender")!.Actors.Should().Equal("Anderer Sender");
         }
 
         [Fact]

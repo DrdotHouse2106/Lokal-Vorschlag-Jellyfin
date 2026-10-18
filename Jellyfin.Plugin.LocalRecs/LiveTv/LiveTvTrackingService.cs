@@ -243,7 +243,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
 
             // Jellyfin speichert für EPG-Sendungen keine Personen – dann aus der XMLTV-Quelle ergänzen
             var people = _libraryManager.GetPeople(program).Select(p => p.Name).Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n!).Take(10).ToList();
-            var xmltv = _xmltv.Lookup(program.StartDate, program.Name, program.EpisodeTitle);
+            var xmltv = _xmltv.Lookup(program.StartDate, program.Name, program.EpisodeTitle, _libraryManager.GetItemById(program.ChannelId)?.Name);
             if (people.Count == 0 && xmltv != null)
             {
                 people = xmltv.People.ToList();

@@ -24,6 +24,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
     {
         private const int MaxActors = 10;
         private const int MaxDirectors = 3;
+        private const int MatchToleranceMinutes = 15;
         private static readonly TimeSpan ReloadInterval = TimeSpan.FromHours(6);
         private static readonly TimeSpan RetryInterval = TimeSpan.FromMinutes(15);
 
@@ -89,20 +90,44 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             };
 
             var index = new Dictionary<string, List<XmltvProgramme>>();
+            var channelNames = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
             using var reader = XmlReader.Create(input, settings);
             while (reader.Read())
             {
+                if (reader.NodeType == XmlNodeType.Element && reader.Name == "channel")
+                {
+                    var channelId = reader.GetAttribute("id")?.Trim();
+                    using var channelReader = reader.ReadSubtree();
+                    if (!string.IsNullOrEmpty(channelId))
+                    {
+                        channelNames[channelId] = ReadDisplayNames(channelReader);
+                    }
+
+                    continue;
+                }
+
                 if (reader.NodeType != XmlNodeType.Element || reader.Name != "programme")
                 {
                     continue;
                 }
 
                 var start = ParseXmltvTime(reader.GetAttribute("start"));
+                var channel = reader.GetAttribute("channel")?.Trim();
                 using var programmeReader = reader.ReadSubtree();
                 var programme = ReadProgramme(programmeReader);
                 if (start == null || string.IsNullOrWhiteSpace(programme.Title))
                 {
                     continue;
+                }
+
+                programme.Start = start.Value;
+                if (!string.IsNullOrEmpty(channel))
+                {
+                    programme.ChannelKeys.Add(ChannelKey(channel));
+                    foreach (var name in channelNames.GetValueOrDefault(channel) ?? new List<string>())
+                    {
+                        programme.ChannelKeys.Add(ChannelKey(name));
+                    }
                 }
 
                 var key = Key(start.Value, programme.Title);
@@ -131,28 +156,56 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         }
 
         /// <summary>
-        /// Finds a programme in an index. With several programmes at the same time and title the episode title decides.
+        /// Builds a comparable channel key: lower case letters and digits only (e.g. "Sky.Cinema.Family.HD.de" → "skycinemafamilyhdde").
+        /// </summary>
+        /// <param name="channel">Channel ID or name.</param>
+        /// <returns>The key.</returns>
+        public static string ChannelKey(string? channel)
+        {
+            return new string((channel ?? string.Empty).ToLowerInvariant().Where(char.IsLetterOrDigit).ToArray());
+        }
+
+        /// <summary>
+        /// Finds a programme in an index: same title, start within ±15 minutes (guides often differ by a few minutes).
+        /// Preferred are the same channel, then the same episode title, then the nearest start.
         /// </summary>
         /// <param name="index">The index.</param>
         /// <param name="startUtc">Start time (UTC).</param>
         /// <param name="title">Title.</param>
         /// <param name="episodeTitle">Episode title.</param>
+        /// <param name="channelName">Channel name in Jellyfin (optional).</param>
         /// <returns>The programme, or null.</returns>
-        public static XmltvProgramme? Find(IReadOnlyDictionary<string, List<XmltvProgramme>> index, DateTime startUtc, string? title, string? episodeTitle)
+        public static XmltvProgramme? Find(IReadOnlyDictionary<string, List<XmltvProgramme>> index, DateTime startUtc, string? title, string? episodeTitle, string? channelName = null)
         {
             ArgumentNullException.ThrowIfNull(index);
-            if (string.IsNullOrWhiteSpace(title) || !index.TryGetValue(Key(startUtc, title), out var list) || list.Count == 0)
+            if (string.IsNullOrWhiteSpace(title))
             {
                 return null;
             }
 
-            if (list.Count == 1)
+            var utc = startUtc.Kind == DateTimeKind.Local ? startUtc.ToUniversalTime() : startUtc;
+            var minute = new DateTime(utc.Year, utc.Month, utc.Day, utc.Hour, utc.Minute, 0, DateTimeKind.Utc);
+            var candidates = new List<(XmltvProgramme Programme, int Distance)>();
+            for (var offset = -MatchToleranceMinutes; offset <= MatchToleranceMinutes; offset++)
             {
-                return list[0];
+                if (index.TryGetValue(Key(minute.AddMinutes(offset), title), out var list))
+                {
+                    candidates.AddRange(list.Select(p => (p, Math.Abs(offset))));
+                }
             }
 
+            if (candidates.Count == 0)
+            {
+                return null;
+            }
+
+            var channel = ChannelKey(channelName);
             var episode = LiveTvText.NormalizeFeature(episodeTitle);
-            return list.FirstOrDefault(p => LiveTvText.NormalizeFeature(p.EpisodeTitle) == episode) ?? list[0];
+            return candidates
+                .OrderByDescending(c => channel.Length > 0 && c.Programme.ChannelKeys.Any(k => k.Length > 0 && (k.Contains(channel, StringComparison.Ordinal) || channel.Contains(k, StringComparison.Ordinal))))
+                .ThenByDescending(c => episode.Length > 0 && LiveTvText.NormalizeFeature(c.Programme.EpisodeTitle) == episode)
+                .ThenBy(c => c.Distance)
+                .First().Programme;
         }
 
         /// <summary>
@@ -161,8 +214,9 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         /// <param name="startUtc">Start time (UTC).</param>
         /// <param name="title">Title.</param>
         /// <param name="episodeTitle">Episode title.</param>
+        /// <param name="channelName">Channel name in Jellyfin (optional, preferred when several programmes match).</param>
         /// <returns>The programme, or null.</returns>
-        public XmltvProgramme? Lookup(DateTime startUtc, string? title, string? episodeTitle)
+        public XmltvProgramme? Lookup(DateTime startUtc, string? title, string? episodeTitle, string? channelName = null)
         {
             EnsureFresh();
             Dictionary<string, List<XmltvProgramme>> index;
@@ -171,7 +225,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 index = _index;
             }
 
-            return Find(index, startUtc, title, episodeTitle);
+            return Find(index, startUtc, title, episodeTitle, channelName);
         }
 
         /// <summary>
@@ -257,6 +311,30 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             }
 
             return DateTime.SpecifyKind(local - offset, DateTimeKind.Utc);
+        }
+
+        private static List<string> ReadDisplayNames(XmlReader reader)
+        {
+            var names = new List<string>();
+
+            // ReadElementContentAsString steht danach schon auf dem nächsten Knoten – daher nur sonst weiterlesen
+            while (!reader.EOF)
+            {
+                if (reader.NodeType == XmlNodeType.Element && reader.Name == "display-name")
+                {
+                    var name = reader.ReadElementContentAsString().Trim();
+                    if (name.Length > 0)
+                    {
+                        names.Add(name);
+                    }
+                }
+                else
+                {
+                    reader.Read();
+                }
+            }
+
+            return names;
         }
 
         private static XmltvProgramme ReadProgramme(XmlReader reader)
@@ -482,6 +560,12 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         {
             /// <summary>Gets or sets the title.</summary>
             public string? Title { get; set; }
+
+            /// <summary>Gets or sets the start time (UTC).</summary>
+            public DateTime Start { get; set; }
+
+            /// <summary>Gets the channel keys (ID and display names, see <see cref="ChannelKey"/>).</summary>
+            public HashSet<string> ChannelKeys { get; } = new HashSet<string>(StringComparer.Ordinal);
 
             /// <summary>Gets or sets the episode title (sub-title).</summary>
             public string? EpisodeTitle { get; set; }

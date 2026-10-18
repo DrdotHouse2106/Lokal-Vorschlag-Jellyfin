@@ -253,13 +253,14 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 OrderBy = new[] { (ItemSortBy.StartDate, SortOrder.Ascending) }
             }).OfType<LiveTvProgram>().ToList();
 
+            var channelNames = programs.Select(p => p.ChannelId).Distinct().ToDictionary(id => id, id => _libraryManager.GetItemById(id)?.Name);
             var candidates = programs.Select(p => new ProgramCandidate
             {
                 Item = p,
                 BroadcastKey = p.ChannelId.ToString("N") + "|" + p.StartDate.ToString("yyyyMMddHHmm", System.Globalization.CultureInfo.InvariantCulture),
                 TitleKey = LiveTvText.NormalizeTitle(string.IsNullOrWhiteSpace(p.SeriesName) ? p.Name : p.SeriesName),
                 Genres = p.Genres ?? Array.Empty<string>(),
-                People = _xmltv.Lookup(p.StartDate, p.Name, p.EpisodeTitle)?.People ?? Array.Empty<string>(),
+                People = _xmltv.Lookup(p.StartDate, p.Name, p.EpisodeTitle, channelNames[p.ChannelId])?.People ?? Array.Empty<string>(),
                 StartDate = p.StartDate,
                 Title = p.Name ?? string.Empty,
                 EpisodeTitle = p.EpisodeTitle,

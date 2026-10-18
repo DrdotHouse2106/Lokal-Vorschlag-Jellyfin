@@ -91,7 +91,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 return NotFound();
             }
 
-            return Ok(ToCredits(programId, _xmltv.Lookup(program.StartDate, program.Name, program.EpisodeTitle)));
+            return Ok(ToCredits(programId, _xmltv.Lookup(program.StartDate, program.Name, program.EpisodeTitle, _libraryManager.GetItemById(program.ChannelId)?.Name)));
         }
 
         /// <summary>
@@ -126,7 +126,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             {
                 if (_libraryManager.GetItemById(id) is LiveTvProgram program)
                 {
-                    result[id.ToString("N")] = ToCredits(id, _xmltv.Lookup(program.StartDate, program.Name, program.EpisodeTitle));
+                    result[id.ToString("N")] = ToCredits(id, _xmltv.Lookup(program.StartDate, program.Name, program.EpisodeTitle, _libraryManager.GetItemById(program.ChannelId)?.Name));
                 }
             }
 

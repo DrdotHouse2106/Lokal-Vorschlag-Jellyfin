@@ -246,6 +246,30 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Domain
         }
 
         [Fact]
+        public void BuildUserProfile_UnplayedLike_CountsOnlyWeakly()
+        {
+            // Jellyfin Enhanced setzt „Gefällt mir“ als Merkliste für angefragte Titel – das ist kein echtes Urteil
+            var library = TestMediaLibrary.CreateTestMovies();
+            var matrix = library.First(m => m.Name == "The Matrix");
+            var inception = library.First(m => m.Name == "Inception");
+            var embeddings = CreateEmbeddings(library);
+
+            SetupSpecificUserData(matrix, isFavorite: false, playCount: 1, daysAgo: 30);
+            var mockItem = new Mock<BaseItem>();
+            _mockLibraryManager.Setup(m => m.GetItemById(inception.Id)).Returns(mockItem.Object);
+            _mockUserDataManager.Setup(m => m.GetUserData(_testUser, mockItem.Object))
+                .Returns(new UserItemData { Key = inception.Id.ToString(), Played = false, Likes = true });
+
+            var profile = _service.BuildUserProfile(_testUserId, embeddings, _config);
+
+            profile.Should().NotBeNull();
+            profile!.WatchedItemCount.Should().Be(1, "ein nie gespielter Titel ist nicht gesehen");
+            profile.PositiveItemIds.Should().NotContain(inception.Id, "„Weil du … geschaut hast“ wäre falsch");
+            Utilities.VectorMath.CosineSimilarity(profile.TasteVector, embeddings[matrix.Id].Vector)
+                .Should().BeGreaterThan(Utilities.VectorMath.CosineSimilarity(profile.TasteVector, embeddings[inception.Id].Vector));
+        }
+
+        [Fact]
         public void BuildUserProfile_IgnoresUnplayedItems()
         {
             // Arrange

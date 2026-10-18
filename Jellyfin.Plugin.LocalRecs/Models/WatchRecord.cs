@@ -51,6 +51,12 @@ namespace Jellyfin.Plugin.LocalRecs.Models
         public bool IsAbandoned { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the item was liked but never played (weak positive signal:
+        /// e.g. Jellyfin Enhanced marks requested titles with "Gefällt mir" as watchlist).
+        /// </summary>
+        public bool IsUnplayedLike { get; set; }
+
+        /// <summary>
         /// Gets or sets the community rating (0-10 scale) of the item, if available.
         /// </summary>
         public float? CommunityRating { get; set; }

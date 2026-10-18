@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.17.0.0",
+        "changelog": "Live-TV-Besetzung toleranter, Merklisten-Likes schwächer / Tolerant XMLTV matching, weaker watchlist likes\n- XMLTV: Startzeit darf ±15 min abweichen; gleicher Sender, dann nächste Startzeit gewinnt\n- „Gefällt mir“ bei nie gespielten Titeln (z. B. Merkliste von Jellyfin Enhanced) zählt nur schwach\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.17.0.zip",
+        "checksum": "82f24acbe78cbbfd8111355efefbc943",
+        "timestamp": "2026-10-18T18:00:00Z"
+      },
+      {
         "version": "12.16.1.0",
         "changelog": "Welten-Trailer wechseln täglich / World trailers rotate daily\n- Einer der sieben neuesten Titel mit lokalem Trailer, innerhalb eines Tages gleich; festgelegter Titel (\"trailer\") hat Vorrang\n- /LocalRecs/Worlds schneller durch Zwischenspeicher\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

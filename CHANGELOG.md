@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.17.0] - 2026-10-18
+
+### Changed
+
+- XMLTV matching tolerates start times differing by up to ±15 minutes (guides often shift by a few minutes, e.g. "Fack Ju Göhte" 07:20 in Jellyfin vs. 07:25 in XMLTV). With several candidates the same channel wins (channel ID and display names compared loosely with the Jellyfin channel name), then the same episode title, then the nearest start.
+- "Gefällt mir" on never played titles counts only weakly (factor 0.3, no favorite boost) and is no source for "Weil du … geschaut hast". Jellyfin Enhanced sets likes as a watchlist for requested titles; such likes no longer dominate the taste profile. Likes on watched titles and dislikes are unchanged.
+
 ## [12.16.1] - 2026-10-18
 
 ### Changed

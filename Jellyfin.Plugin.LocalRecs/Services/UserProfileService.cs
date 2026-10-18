@@ -30,6 +30,11 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         public const float AbandonFactor = 0.25f;
 
         /// <summary>
+        /// How strongly a "Gefällt mir" on a never played title counts (relative to a watched item, without favorite boost).
+        /// </summary>
+        public const float UnplayedLikeFactor = 0.3f;
+
+        /// <summary>
         /// Share of the runtime below which a stopped movie counts as abandoned.
         /// </summary>
         public const double AbandonShare = 0.25;
@@ -137,13 +142,13 @@ namespace Jellyfin.Plugin.LocalRecs.Services
 
             var profile = new UserProfile(userId, tasteVector)
             {
-                WatchedItemCount = watchRecords.Count(r => !r.IsAbandoned),
+                WatchedItemCount = watchRecords.Count(r => !r.IsAbandoned && !r.IsUnplayedLike),
                 AverageCommunityRating = avgCommunity,
                 AverageCriticRating = avgCritic,
                 CommunityRatingStdDev = communityStdDev,
                 CriticRatingStdDev = criticStdDev,
                 PositiveItemIds = watchRecords
-                    .Where(r => r.Likes != false && !r.IsAbandoned)
+                    .Where(r => r.Likes != false && !r.IsAbandoned && !r.IsUnplayedLike)
                     .OrderByDescending(r => r.LastPlayedDate)
                     .Select(r => r.ItemId)
                     .Take(MaxReasonSources)
@@ -200,6 +205,8 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                     continue;
                 }
 
+                var unplayedLike = false;
+
                 // For series, userData.Played is unreliable — it only becomes true when ALL
                 // episodes are watched. Use the most recently watched episode's date instead.
                 DateTime lastPlayedDate;
@@ -215,6 +222,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                         }
 
                         seriesLastPlayed = userData.LastPlayedDate ?? DateTime.UtcNow;
+                        unplayedLike = userData.Likes == true;
                     }
 
                     lastPlayedDate = seriesLastPlayed.Value;
@@ -238,11 +246,14 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 else
                 {
                     lastPlayedDate = userData.LastPlayedDate ?? DateTime.UtcNow;
+                    unplayedLike = !userData.Played && userData.Likes == true && userData.PlaybackPositionTicks <= 0;
                 }
 
+                // Nie gespielte Titel mit „Gefällt mir“ (z. B. Merkliste von Jellyfin Enhanced) nur schwach werten
                 var record = new WatchRecord(itemId, userId, lastPlayedDate)
                 {
-                    IsFavorite = userData.IsFavorite || userData.Likes == true,
+                    IsFavorite = userData.IsFavorite || (userData.Likes == true && !unplayedLike),
+                    IsUnplayedLike = unplayedLike,
                     Likes = userData.Likes,
                     CommunityRating = item.CommunityRating,
                     CriticRating = item.CriticRating
@@ -355,6 +366,10 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                     record.IsFavorite,
                     (float)config.FavoriteBoost,
                     (float)config.RecentWatchBoost);
+                if (record.IsUnplayedLike)
+                {
+                    weight *= UnplayedLikeFactor;
+                }
 
                 // Daumen runter bzw. früh abgebrochen: vom Geschmack abziehen (ähnliche Titel werden seltener empfohlen)
                 if (record.Likes == false || record.IsAbandoned)
