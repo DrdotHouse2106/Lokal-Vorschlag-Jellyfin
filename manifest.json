@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.15.1.0",
+        "changelog": "Welten: Sortierung nach Hinzufügedatum / Sort by date added\n- /LocalRecs/Worlds/{id}/Items?sort=added (für „Neu dazugekommen“ in der TV-App)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.15.1.zip",
+        "checksum": "1455d61dc69c7ba9cce9491527b1f389",
+        "timestamp": "2026-10-18T14:30:00Z"
+      },
+      {
         "version": "12.15.0.0",
         "changelog": "Alle Titel einer Welt / All titles of a world\n- Neuer Endpunkt GET /LocalRecs/Worlds/{id}/Items für die Welt-Seite der TV-App (auch gesehene Titel und Titel aus der Liste, sortierbar)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

@@ -126,7 +126,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// Contains every title of the world: from studios, collections and the list (TMDB/IMDb/TVDB IDs).
         /// </summary>
         /// <param name="worldId">World ID (or a former ID).</param>
-        /// <param name="sort">"year" (newest first, default), "year-asc", "name" or "rating".</param>
+        /// <param name="sort">"year" (newest first, default), "year-asc", "name", "rating" or "added" (recently added first).</param>
         /// <param name="type">Optional filter: "movies" or "series".</param>
         /// <param name="startIndex">Index of the first title (paging).</param>
         /// <param name="limit">Maximum number of titles (default 100, max. 500).</param>
@@ -165,6 +165,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             items = sort?.ToLowerInvariant() switch
             {
                 "name" => items.OrderBy(i => i.SortName ?? i.Name, StringComparer.OrdinalIgnoreCase),
+                "added" => items.OrderByDescending(i => i.DateCreated).ThenBy(i => i.SortName ?? i.Name, StringComparer.OrdinalIgnoreCase),
                 "rating" => items.OrderByDescending(i => i.CommunityRating ?? 0).ThenBy(i => i.SortName ?? i.Name, StringComparer.OrdinalIgnoreCase),
                 "year-asc" => items.OrderBy(i => ReleaseDate(i) ?? DateTime.MaxValue).ThenBy(i => i.SortName ?? i.Name, StringComparer.OrdinalIgnoreCase),
                 _ => items.OrderByDescending(i => ReleaseDate(i) ?? DateTime.MinValue).ThenBy(i => i.SortName ?? i.Name, StringComparer.OrdinalIgnoreCase)

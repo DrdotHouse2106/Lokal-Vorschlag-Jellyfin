@@ -53,11 +53,11 @@ Hast du früher das Repository `https://raw.githubusercontent.com/DrdotHouse2106
 
 ### Variante B: Manuell
 
-1. [`release/jellyfin-plugin-localrecs-v12.15.0.zip`](release/jellyfin-plugin-localrecs-v12.15.0.zip) herunterladen und entpacken.
+1. [`release/jellyfin-plugin-localrecs-v12.15.1.zip`](release/jellyfin-plugin-localrecs-v12.15.1.zip) herunterladen und entpacken.
 2. Die Datei `Jellyfin.Plugin.LocalRecs.dll` in einen neuen Ordner im Plugin-Verzeichnis legen, z. B.
-   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.15.0.0/`
-   - Docker: `/config/plugins/LocalRecs_12.15.0.0/`
-   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.15.0.0\`
+   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.15.1.0/`
+   - Docker: `/config/plugins/LocalRecs_12.15.1.0/`
+   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.15.1.0\`
 3. Jellyfin-Server neu starten.
 
 ## Einrichtung
@@ -138,7 +138,7 @@ GET /LocalRecs/LiveTv/Credits?ids=id1,id2,…   (bis 200 IDs)
 GET /LocalRecs/Worlds                              → Welten des Benutzers (zuletzt geschaute zuerst)
 GET /LocalRecs/Worlds/{id}/Recommendations?limit=20 → Titel der Welt, persönlich sortiert
 GET /LocalRecs/Worlds/Recent?limit=20              → zuletzt geschaute Welt mit Titeln („Mehr aus dem …-Universum“), sonst 204
-GET /LocalRecs/Worlds/{id}/Items?sort=year|year-asc|name|rating&type=movies|series&startIndex=0&limit=100
+GET /LocalRecs/Worlds/{id}/Items?sort=year|year-asc|name|rating|added&type=movies|series&startIndex=0&limit=100
                                                    → alle Titel der Welt (auch gesehene), z. B. für die Welt-Seite (ab 12.15.0)
 ```
 
