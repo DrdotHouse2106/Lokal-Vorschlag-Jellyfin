@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.15.0.0",
+        "changelog": "Alle Titel einer Welt / All titles of a world\n- Neuer Endpunkt GET /LocalRecs/Worlds/{id}/Items für die Welt-Seite der TV-App (auch gesehene Titel und Titel aus der Liste, sortierbar)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.15.0.zip",
+        "checksum": "6d9991db7d125cc126e728b817d36531",
+        "timestamp": "2026-10-18T14:00:00Z"
+      },
+      {
         "version": "12.14.0.0",
         "changelog": "Reihen-Logos von fanart.tv / fanart.tv logos\n- Neue Einstellung „fanart.tv API-Schlüssel“: Star Wars, Wizarding World, Mittelerde, Jurassic Park und James Bond bekommen ihre Reihen-Logos (sonst Studio-Logo von TMDB)\n- Harry Potter heißt jetzt Wizarding World, die alte ID funktioniert weiter\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

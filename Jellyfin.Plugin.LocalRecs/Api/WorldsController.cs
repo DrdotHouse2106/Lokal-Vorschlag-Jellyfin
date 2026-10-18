@@ -122,6 +122,61 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         }
 
         /// <summary>
+        /// Gets all titles of a world the signed-in user can see (also watched ones), e.g. for the world page.
+        /// Contains every title of the world: from studios, collections and the list (TMDB/IMDb/TVDB IDs).
+        /// </summary>
+        /// <param name="worldId">World ID (or a former ID).</param>
+        /// <param name="sort">"year" (newest first, default), "year-asc", "name" or "rating".</param>
+        /// <param name="type">Optional filter: "movies" or "series".</param>
+        /// <param name="startIndex">Index of the first title (paging).</param>
+        /// <param name="limit">Maximum number of titles (default 100, max. 500).</param>
+        /// <returns>The titles.</returns>
+        [HttpGet("{worldId}/Items")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public ActionResult<QueryResult<BaseItemDto>> GetWorldItems(
+            [FromRoute] string worldId,
+            [FromQuery] string? sort = null,
+            [FromQuery] string? type = null,
+            [FromQuery] int? startIndex = null,
+            [FromQuery] int? limit = null)
+        {
+            var user = CurrentUser();
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            var (worlds, members) = _worlds.GetWorlds();
+            var world = worlds.FirstOrDefault(w => w.HasId(worldId));
+            if (world == null)
+            {
+                return NotFound();
+            }
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            IEnumerable<BaseItem> items = members[world.Id]
+                .Select(id => _libraryManager.GetItemById(id))
+                .Where(i => i != null && i.IsVisible(user))
+                .Select(i => i!)
+                .Where(i => string.IsNullOrEmpty(type)
+                    || (string.Equals(type, "movies", StringComparison.OrdinalIgnoreCase) && i is MediaBrowser.Controller.Entities.Movies.Movie)
+                    || (string.Equals(type, "series", StringComparison.OrdinalIgnoreCase) && i is MediaBrowser.Controller.Entities.TV.Series));
+            items = sort?.ToLowerInvariant() switch
+            {
+                "name" => items.OrderBy(i => i.SortName ?? i.Name, StringComparer.OrdinalIgnoreCase),
+                "rating" => items.OrderByDescending(i => i.CommunityRating ?? 0).ThenBy(i => i.SortName ?? i.Name, StringComparer.OrdinalIgnoreCase),
+                "year-asc" => items.OrderBy(i => ReleaseDate(i) ?? DateTime.MaxValue).ThenBy(i => i.SortName ?? i.Name, StringComparer.OrdinalIgnoreCase),
+                _ => items.OrderByDescending(i => ReleaseDate(i) ?? DateTime.MinValue).ThenBy(i => i.SortName ?? i.Name, StringComparer.OrdinalIgnoreCase)
+            };
+
+            var all = items.Where(i => seen.Add(RecommendationSectionHandler.DuplicateKey(i))).ToList();
+            var page = all.Skip(Math.Max(0, startIndex ?? 0)).Take(Math.Clamp(limit ?? 100, 1, 500)).ToList();
+            var result = ToResult(user, page);
+            return Ok(new QueryResult<BaseItemDto>(startIndex, all.Count, result.Items));
+        }
+
+        /// <summary>
         /// Gets the logo of a world (no sign-in needed, so image loaders can fetch it directly).
         /// </summary>
         /// <param name="worldId">World ID.</param>
@@ -258,6 +313,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             _worlds.Invalidate();
             return GetAdminOverview();
         }
+
+        private static DateTime? ReleaseDate(BaseItem item) =>
+            item.PremiereDate ?? (item.ProductionYear is int year and > 0 ? new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Utc) : null);
 
         private AdminTitle? ToAdminTitle(WorldMembership membership, Guid itemId, string reason)
         {

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.15.0] - 2026-10-18
+
+### Added
+
+- `GET /LocalRecs/Worlds/{id}/Items`: all titles of a world the signed-in user can see, including watched ones and titles that belong to the world only via the list (TMDB/IMDb/TVDB IDs, e.g. Bud Spencer & Terence Hill or the Star Trek series). Sorting `year` (newest first, default), `year-asc`, `name`, `rating`; filter `type=movies|series`; paging with `startIndex`/`limit` (max. 500). Former IDs (aliases) work too.
+
 ## [12.14.0] - 2026-10-18
 
 ### Added
