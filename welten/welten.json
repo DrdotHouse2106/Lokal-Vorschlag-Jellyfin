@@ -1,177 +1,3360 @@
 {
-  "beschreibung": "Welten für das Jellyfin-Plugin Local Recommendations (LocalRecs). Ein Titel gehört zu einer Welt, wenn ein Studio oder der Name einer Jellyfin-Sammlung passt (Teil des Namens genügt, Groß/Klein egal) oder wenn er unter \"titel\" steht. Titel unter \"ausschluss\" gehören nie dazu. Titel werden über \"tmdb\", \"imdb\" oder \"tvdb\" erkannt; \"typ\" (film/serie) ist bei TMDB-IDs wichtig, weil sich Film- und Serien-IDs überschneiden. \"name\" dient nur der Lesbarkeit. Unter \"ausschluss\" kann statt einer ID auch \"sammlung\" stehen: dann gehören alle Titel dieser Sammlung nicht dazu.",
-  "version": 1,
-  "welten": [
+ "beschreibung": "Welten für das Jellyfin-Plugin Local Recommendations (LocalRecs). Ein Titel gehört zu einer Welt, wenn ein Studio oder der Name einer Jellyfin-Sammlung passt (Teil des Namens genügt, Groß/Klein egal) oder wenn er unter \"titel\" steht. Titel unter \"ausschluss\" gehören nie dazu; dort kann statt einer ID auch \"sammlung\" stehen. Titel werden über \"tmdb\", \"imdb\" oder \"tvdb\" erkannt; \"typ\" (film/serie) ist bei TMDB-IDs wichtig, weil sich Film- und Serien-IDs überschneiden. \"name\" dient nur der Lesbarkeit. Die Titel-Listen sind vollständig aus TMDB zusammengestellt (auch angekündigte Titel) und sagen nichts über eine bestimmte Bibliothek aus.",
+ "quelle": "Daten: TMDB (https://www.themoviedb.org). Dieses Produkt nutzt die TMDB-API, ist aber nicht von TMDB unterstützt oder zertifiziert.",
+ "version": 2,
+ "welten": [
+  {
+   "name": "Marvel",
+   "studios": [
+    "Marvel Studios",
+    "Marvel Entertainment",
+    "Marvel Enterprises",
+    "Marvel Animation",
+    "Marvel Television"
+   ],
+   "sammlungen": [
+    "Avengers",
+    "Iron Man",
+    "Thor",
+    "Captain America",
+    "Captain Marvel",
+    "Guardians of the Galaxy",
+    "Spider-Man",
+    "X-Men",
+    "Wolverine",
+    "Deadpool",
+    "Ant-Man",
+    "Black Panther",
+    "Doctor Strange",
+    "Venom",
+    "Hulk",
+    "Fantastic Four",
+    "Ghost Rider"
+   ],
+   "titel": [
     {
-      "name": "Marvel",
-      "studios": [
-        "Marvel"
-      ],
-      "sammlungen": [
-        "Marvel",
-        "Avengers",
-        "Iron Man",
-        "Thor",
-        "Captain America",
-        "Guardians of the Galaxy",
-        "Spider-Man",
-        "X-Men",
-        "Deadpool",
-        "Ant-Man",
-        "Black Panther",
-        "Doctor Strange"
-      ],
-      "titel": [],
-      "ausschluss": []
+     "tmdb": "969681",
+     "typ": "film",
+     "name": "Spider-Man: Brand New Day"
     },
     {
-      "name": "Star Wars",
-      "studios": [
-        "Lucasfilm"
-      ],
-      "sammlungen": [
-        "Star Wars"
-      ],
-      "titel": [],
-      "ausschluss": [
-        {
-          "sammlung": "Indiana Jones",
-          "name": "Indiana Jones ist auch von Lucasfilm, gehört aber nicht zu Star Wars"
-        }
-      ]
+     "tmdb": "1003596",
+     "typ": "film",
+     "name": "Avengers: Doomsday"
     },
     {
-      "name": "DC",
-      "studios": [
-        "DC Comics",
-        "DC Entertainment",
-        "DC Films",
-        "DC Studios"
-      ],
-      "sammlungen": [
-        "Batman",
-        "Superman",
-        "Justice League",
-        "Wonder Woman",
-        "Aquaman",
-        "The Dark Knight"
-      ],
-      "titel": [],
-      "ausschluss": []
+     "tmdb": "299536",
+     "typ": "film",
+     "name": "Avengers: Infinity War"
     },
     {
-      "name": "Pixar",
-      "studios": [
-        "Pixar"
-      ],
-      "sammlungen": [
-        "Toy Story",
-        "Cars",
-        "Findet Nemo",
-        "Finding Nemo",
-        "Die Unglaublichen",
-        "The Incredibles",
-        "Monster AG",
-        "Alles steht Kopf",
-        "Inside Out"
-      ],
-      "titel": [],
-      "ausschluss": []
+     "tmdb": "299534",
+     "typ": "film",
+     "name": "Avengers: Endgame"
     },
     {
-      "name": "Disney",
-      "studios": [
-        "Walt Disney Pictures",
-        "Walt Disney Animation",
-        "Walt Disney Productions",
-        "Disney"
-      ],
-      "sammlungen": [
-        "Disney"
-      ],
-      "titel": [],
-      "ausschluss": []
+     "tmdb": "634649",
+     "typ": "film",
+     "name": "Spider-Man: No Way Home"
     },
     {
-      "name": "DreamWorks",
-      "studios": [
-        "DreamWorks"
-      ],
-      "sammlungen": [
-        "Shrek",
-        "Madagascar",
-        "Drachenzähmen",
-        "How to Train Your Dragon",
-        "Kung Fu Panda"
-      ],
-      "titel": [],
-      "ausschluss": []
+     "tmdb": "24428",
+     "typ": "film",
+     "name": "Marvel's The Avengers"
     },
     {
-      "name": "Illumination",
-      "studios": [
-        "Illumination"
-      ],
-      "sammlungen": [
-        "Ich – Einfach unverbesserlich",
-        "Despicable Me",
-        "Minions",
-        "Pets"
-      ],
-      "titel": [],
-      "ausschluss": []
+     "tmdb": "533535",
+     "typ": "film",
+     "name": "Deadpool & Wolverine"
     },
     {
-      "name": "Harry Potter",
-      "studios": [],
-      "sammlungen": [
-        "Harry Potter",
-        "Phantastische Tierwesen",
-        "Fantastic Beasts"
-      ],
-      "titel": [],
-      "ausschluss": []
+     "tmdb": "99861",
+     "typ": "film",
+     "name": "Avengers: Age of Ultron"
     },
     {
-      "name": "Mittelerde",
-      "studios": [],
-      "sammlungen": [
-        "Der Herr der Ringe",
-        "Lord of the Rings",
-        "Der Hobbit",
-        "The Hobbit"
-      ],
-      "titel": [],
-      "ausschluss": []
+     "tmdb": "447365",
+     "typ": "film",
+     "name": "Guardians of the Galaxy Vol. 3"
     },
     {
-      "name": "James Bond",
-      "studios": [
-        "Eon Productions"
-      ],
-      "sammlungen": [
-        "James Bond"
-      ],
-      "titel": [],
-      "ausschluss": []
+     "tmdb": "10138",
+     "typ": "film",
+     "name": "Iron Man 2"
     },
     {
-      "name": "Jurassic Park",
-      "studios": [],
-      "sammlungen": [
-        "Jurassic"
-      ],
-      "titel": [],
-      "ausschluss": []
+     "tmdb": "617126",
+     "typ": "film",
+     "name": "The Fantastic 4: First Steps"
     },
     {
-      "name": "Studio Ghibli",
-      "studios": [
-        "Ghibli"
-      ],
-      "sammlungen": [],
-      "titel": [],
-      "ausschluss": []
+     "tmdb": "453395",
+     "typ": "film",
+     "name": "Doctor Strange in the Multiverse of Madness"
+    },
+    {
+     "tmdb": "284054",
+     "typ": "film",
+     "name": "Black Panther"
+    },
+    {
+     "tmdb": "68721",
+     "typ": "film",
+     "name": "Iron Man 3"
+    },
+    {
+     "tmdb": "566525",
+     "typ": "film",
+     "name": "Shang-Chi and the Legend of the Ten Rings"
+    },
+    {
+     "tmdb": "1726",
+     "typ": "film",
+     "name": "Iron Man"
+    },
+    {
+     "tmdb": "315635",
+     "typ": "film",
+     "name": "Spider-Man: Homecoming"
+    },
+    {
+     "tmdb": "284052",
+     "typ": "film",
+     "name": "Doctor Strange"
+    },
+    {
+     "tmdb": "284053",
+     "typ": "film",
+     "name": "Thor: Tag der Entscheidung"
+    },
+    {
+     "tmdb": "986056",
+     "typ": "film",
+     "name": "Thunderbolts*"
+    },
+    {
+     "tmdb": "429617",
+     "typ": "film",
+     "name": "Spider-Man: Far From Home"
+    },
+    {
+     "tmdb": "1724",
+     "typ": "film",
+     "name": "Der unglaubliche Hulk"
+    },
+    {
+     "tmdb": "497698",
+     "typ": "film",
+     "name": "Black Widow"
+    },
+    {
+     "tmdb": "271110",
+     "typ": "film",
+     "name": "The First Avenger: Civil War"
+    },
+    {
+     "tmdb": "616037",
+     "typ": "film",
+     "name": "Thor: Love and Thunder"
+    },
+    {
+     "tmdb": "609681",
+     "typ": "film",
+     "name": "The Marvels"
+    },
+    {
+     "tmdb": "283995",
+     "typ": "film",
+     "name": "Guardians of the Galaxy Vol. 2"
+    },
+    {
+     "tmdb": "505642",
+     "typ": "film",
+     "name": "Black Panther: Wakanda Forever"
+    },
+    {
+     "tmdb": "1439930",
+     "typ": "film",
+     "name": "The Punisher: One Last Kill"
+    },
+    {
+     "tmdb": "822119",
+     "typ": "film",
+     "name": "Captain America: Brave New World"
+    },
+    {
+     "tmdb": "363088",
+     "typ": "film",
+     "name": "Ant-Man and the Wasp"
+    },
+    {
+     "tmdb": "76338",
+     "typ": "film",
+     "name": "Thor - The Dark Kingdom"
+    },
+    {
+     "tmdb": "640146",
+     "typ": "film",
+     "name": "Ant-Man and the Wasp: Quantumania"
+    },
+    {
+     "tmdb": "524434",
+     "typ": "film",
+     "name": "Eternals"
+    },
+    {
+     "tmdb": "559",
+     "typ": "film",
+     "name": "Spider-Man 3"
+    },
+    {
+     "tmdb": "10195",
+     "typ": "film",
+     "name": "Thor"
+    },
+    {
+     "tmdb": "299537",
+     "typ": "film",
+     "name": "Captain Marvel"
+    },
+    {
+     "tmdb": "118340",
+     "typ": "film",
+     "name": "Guardians of the Galaxy"
+    },
+    {
+     "tmdb": "1250",
+     "typ": "film",
+     "name": "Ghost Rider"
+    },
+    {
+     "tmdb": "102899",
+     "typ": "film",
+     "name": "Ant-Man"
+    },
+    {
+     "tmdb": "100402",
+     "typ": "film",
+     "name": "The Return of the First Avenger"
+    },
+    {
+     "tmdb": "1771",
+     "typ": "film",
+     "name": "Captain America: The First Avenger"
+    },
+    {
+     "tmdb": "1979",
+     "typ": "film",
+     "name": "Fantastic Four - Rise of the Silver Surfer"
+    },
+    {
+     "tmdb": "1003598",
+     "typ": "film",
+     "name": "Avengers: Secret Wars"
+    },
+    {
+     "tmdb": "894205",
+     "typ": "film",
+     "name": "Werewolf by Night"
+    },
+    {
+     "tmdb": "13056",
+     "typ": "film",
+     "name": "Punisher: War Zone"
+    },
+    {
+     "tmdb": "774752",
+     "typ": "film",
+     "name": "The Guardians of the Galaxy Holiday Special"
+    },
+    {
+     "tmdb": "211387",
+     "typ": "film",
+     "name": "Marvel One-Shot: Agent Carter"
+    },
+    {
+     "tmdb": "413279",
+     "typ": "film",
+     "name": "Marvel One-Shot: Team Thor - Teil 1"
+    },
+    {
+     "tmdb": "441829",
+     "typ": "film",
+     "name": "Marvel One-Shot: Team Thor - Teil 2"
+    },
+    {
+     "tmdb": "505945",
+     "typ": "film",
+     "name": "Marvel One-Shot: Team Darryl"
+    },
+    {
+     "tmdb": "14830",
+     "typ": "film",
+     "name": "Doctor Strange (2007)"
+    },
+    {
+     "tmdb": "253980",
+     "typ": "film",
+     "name": "Marvel One-Shot: Der Mandarin"
+    },
+    {
+     "tmdb": "119569",
+     "typ": "film",
+     "name": "Marvel One-Shot: Objekt 47"
+    },
+    {
+     "tmdb": "758025",
+     "typ": "film",
+     "name": "Peter's To-Do List"
+    },
+    {
+     "tmdb": "101907",
+     "typ": "film",
+     "name": "Hulk vs. Thor"
+    },
+    {
+     "tmdb": "76122",
+     "typ": "film",
+     "name": "Marvel One-Shot: Der Berater"
+    },
+    {
+     "tmdb": "76535",
+     "typ": "film",
+     "name": "Marvel One-Shot: Etwas Lustiges geschah auf dem Weg zu Thors Hammer"
+    },
+    {
+     "tmdb": "14613",
+     "typ": "film",
+     "name": "Next Avengers: Heroes of Tomorrow"
+    },
+    {
+     "tmdb": "1738010",
+     "typ": "film",
+     "name": "Ghost Rider (2028)"
+    },
+    {
+     "tmdb": "15257",
+     "typ": "film",
+     "name": "Hulk vs. Wolverine"
+    },
+    {
+     "tmdb": "14611",
+     "typ": "film",
+     "name": "Ultimate Avengers 2 - Rise of the Panther"
+    },
+    {
+     "tmdb": "1293690",
+     "typ": "film",
+     "name": "Untitled X-Men Film"
+    },
+    {
+     "tmdb": "13647",
+     "typ": "film",
+     "name": "The Invincible Iron Man"
+    },
+    {
+     "tmdb": "394355",
+     "typ": "film",
+     "name": "Hulk vs. Thor/Wolverine"
+    },
+    {
+     "tmdb": "1386618",
+     "typ": "film",
+     "name": "Black Panther 3"
+    },
+    {
+     "tmdb": "1737233",
+     "typ": "film",
+     "name": "Untitled Shang-Chi Sequel"
+    },
+    {
+     "tmdb": "1474568",
+     "typ": "film",
+     "name": "Untitled Deadpool/X-Men Teamup Film"
+    },
+    {
+     "tmdb": "1731190",
+     "typ": "film",
+     "name": "Nova"
+    },
+    {
+     "tmdb": "569094",
+     "typ": "film",
+     "name": "Spider-Man: Across the Spider-Verse"
+    },
+    {
+     "tmdb": "324857",
+     "typ": "film",
+     "name": "Spider-Man: A New Universe"
+    },
+    {
+     "tmdb": "335983",
+     "typ": "film",
+     "name": "Venom"
+    },
+    {
+     "tmdb": "580489",
+     "typ": "film",
+     "name": "Venom: Let There Be Carnage"
+    },
+    {
+     "tmdb": "912649",
+     "typ": "film",
+     "name": "Venom: The Last Dance"
+    },
+    {
+     "tmdb": "263115",
+     "typ": "film",
+     "name": "Logan - The Wolverine"
+    },
+    {
+     "tmdb": "293660",
+     "typ": "film",
+     "name": "Deadpool"
+    },
+    {
+     "tmdb": "1930",
+     "typ": "film",
+     "name": "The Amazing Spider-Man"
+    },
+    {
+     "tmdb": "340102",
+     "typ": "film",
+     "name": "The New Mutants"
+    },
+    {
+     "tmdb": "383498",
+     "typ": "film",
+     "name": "Deadpool 2"
+    },
+    {
+     "tmdb": "320288",
+     "typ": "film",
+     "name": "X-Men: Dark Phoenix"
+    },
+    {
+     "tmdb": "102382",
+     "typ": "film",
+     "name": "The Amazing Spider-Man 2: Rise of Electro"
+    },
+    {
+     "tmdb": "246655",
+     "typ": "film",
+     "name": "X-Men: Apocalypse"
+    },
+    {
+     "tmdb": "127585",
+     "typ": "film",
+     "name": "X-Men: Zukunft ist Vergangenheit"
+    },
+    {
+     "tmdb": "71676",
+     "typ": "film",
+     "name": "Ghost Rider: Spirit of Vengeance"
+    },
+    {
+     "tmdb": "166424",
+     "typ": "film",
+     "name": "Fantastic Four (2015)"
+    },
+    {
+     "tmdb": "567604",
+     "typ": "film",
+     "name": "Deadpool: Es war einmal ein Deadpool"
+    },
+    {
+     "tmdb": "76170",
+     "typ": "film",
+     "name": "Wolverine - Weg des Kriegers"
+    },
+    {
+     "tmdb": "911916",
+     "typ": "film",
+     "name": "Spider-Man: Beyond the Spider-Verse"
+    },
+    {
+     "tmdb": "558144",
+     "typ": "film",
+     "name": "Deadpool: Keine gute Tat"
+    },
+    {
+     "tmdb": "2080",
+     "typ": "film",
+     "name": "X-Men Origins: Wolverine"
+    },
+    {
+     "tmdb": "583055",
+     "typ": "film",
+     "name": "Spider-Ham: Caught in a Ham"
+    },
+    {
+     "tmdb": "49538",
+     "typ": "film",
+     "name": "X-Men: Erste Entscheidung"
+    },
+    {
+     "tmdb": "36668",
+     "typ": "film",
+     "name": "X-Men: Der letzte Widerstand"
+    },
+    {
+     "tmdb": "36648",
+     "typ": "film",
+     "name": "Blade: Trinity"
+    },
+    {
+     "tmdb": "9738",
+     "typ": "film",
+     "name": "Fantastic Four (2005)"
+    },
+    {
+     "tmdb": "1927",
+     "typ": "film",
+     "name": "Hulk (2003)"
+    },
+    {
+     "tmdb": "85271",
+     "typ": "serie",
+     "name": "WandaVision"
+    },
+    {
+     "tmdb": "88396",
+     "typ": "serie",
+     "name": "The Falcon and the Winter Soldier"
+    },
+    {
+     "tmdb": "84958",
+     "typ": "serie",
+     "name": "Loki"
+    },
+    {
+     "tmdb": "91363",
+     "typ": "serie",
+     "name": "What If...?"
+    },
+    {
+     "tmdb": "88329",
+     "typ": "serie",
+     "name": "Hawkeye"
+    },
+    {
+     "tmdb": "92749",
+     "typ": "serie",
+     "name": "Moon Knight"
+    },
+    {
+     "tmdb": "92782",
+     "typ": "serie",
+     "name": "Ms. Marvel"
+    },
+    {
+     "tmdb": "92783",
+     "typ": "serie",
+     "name": "She-Hulk: Die Anwältin"
+    },
+    {
+     "tmdb": "114472",
+     "typ": "serie",
+     "name": "Secret Invasion"
+    },
+    {
+     "tmdb": "122226",
+     "typ": "serie",
+     "name": "Echo"
+    },
+    {
+     "tmdb": "138501",
+     "typ": "serie",
+     "name": "Agatha All Along"
+    },
+    {
+     "tmdb": "202555",
+     "typ": "serie",
+     "name": "Daredevil: Born Again"
+    },
+    {
+     "tmdb": "114471",
+     "typ": "serie",
+     "name": "Ironheart"
+    },
+    {
+     "tmdb": "232125",
+     "typ": "serie",
+     "name": "Ich bin Groot"
+    },
+    {
+     "tmdb": "138502",
+     "typ": "serie",
+     "name": "X-Men '97"
+    },
+    {
+     "tmdb": "138505",
+     "typ": "serie",
+     "name": "Marvel Zombies"
+    },
+    {
+     "tmdb": "138503",
+     "typ": "serie",
+     "name": "Der freundliche Spider-Man aus der Nachbarschaft"
+    },
+    {
+     "tmdb": "198178",
+     "typ": "serie",
+     "name": "Wonder Man"
+    },
+    {
+     "tmdb": "38472",
+     "typ": "serie",
+     "name": "Marvel's Jessica Jones"
+    },
+    {
+     "tmdb": "62126",
+     "typ": "serie",
+     "name": "Marvel's Luke Cage"
+    },
+    {
+     "tmdb": "62127",
+     "typ": "serie",
+     "name": "Marvel's Iron Fist"
+    },
+    {
+     "tmdb": "1403",
+     "typ": "serie",
+     "name": "Marvel's Agents of S.H.I.E.L.D."
+    },
+    {
+     "tmdb": "61550",
+     "typ": "serie",
+     "name": "Marvel's Agent Carter"
+    },
+    {
+     "tmdb": "220102",
+     "typ": "serie",
+     "name": "Spider-Noir"
+    },
+    {
+     "tmdb": "62285",
+     "typ": "serie",
+     "name": "Marvel's The Defenders"
+    },
+    {
+     "tmdb": "67178",
+     "typ": "serie",
+     "name": "Marvel's The Punisher"
+    },
+    {
+     "tmdb": "61889",
+     "typ": "serie",
+     "name": "Marvel's Daredevil"
     }
-  ]
+   ],
+   "ausschluss": []
+  },
+  {
+   "name": "Star Wars",
+   "studios": [],
+   "sammlungen": [
+    "Star Wars"
+   ],
+   "titel": [
+    {
+     "tmdb": "11",
+     "typ": "film",
+     "name": "Krieg der Sterne"
+    },
+    {
+     "tmdb": "1891",
+     "typ": "film",
+     "name": "Das Imperium schlägt zurück"
+    },
+    {
+     "tmdb": "1892",
+     "typ": "film",
+     "name": "Die Rückkehr der Jedi-Ritter"
+    },
+    {
+     "tmdb": "1893",
+     "typ": "film",
+     "name": "Episode I - Die dunkle Bedrohung"
+    },
+    {
+     "tmdb": "1894",
+     "typ": "film",
+     "name": "Episode II - Angriff der Klonkrieger"
+    },
+    {
+     "tmdb": "1895",
+     "typ": "film",
+     "name": "Episode III - Die Rache der Sith"
+    },
+    {
+     "tmdb": "140607",
+     "typ": "film",
+     "name": "Das Erwachen der Macht"
+    },
+    {
+     "tmdb": "181808",
+     "typ": "film",
+     "name": "Die letzten Jedi"
+    },
+    {
+     "tmdb": "181812",
+     "typ": "film",
+     "name": "Der Aufstieg Skywalkers"
+    },
+    {
+     "tmdb": "330459",
+     "typ": "film",
+     "name": "Rogue One"
+    },
+    {
+     "tmdb": "348350",
+     "typ": "film",
+     "name": "Solo"
+    },
+    {
+     "tmdb": "1228710",
+     "typ": "film",
+     "name": "The Mandalorian and Grogu"
+    },
+    {
+     "tmdb": "82856",
+     "typ": "serie",
+     "name": "The Mandalorian"
+    },
+    {
+     "tmdb": "83867",
+     "typ": "serie",
+     "name": "Andor"
+    },
+    {
+     "tmdb": "115036",
+     "typ": "serie",
+     "name": "Das Buch von Boba Fett"
+    },
+    {
+     "tmdb": "92830",
+     "typ": "serie",
+     "name": "Obi-Wan Kenobi"
+    },
+    {
+     "tmdb": "114461",
+     "typ": "serie",
+     "name": "Ahsoka"
+    },
+    {
+     "tmdb": "114479",
+     "typ": "serie",
+     "name": "The Acolyte"
+    },
+    {
+     "tmdb": "202879",
+     "typ": "serie",
+     "name": "Skeleton Crew"
+    },
+    {
+     "tmdb": "4194",
+     "typ": "serie",
+     "name": "The Clone Wars"
+    },
+    {
+     "tmdb": "60554",
+     "typ": "serie",
+     "name": "Rebels"
+    },
+    {
+     "tmdb": "105971",
+     "typ": "serie",
+     "name": "The Bad Batch"
+    },
+    {
+     "tmdb": "79093",
+     "typ": "serie",
+     "name": "Resistance"
+    },
+    {
+     "tmdb": "203085",
+     "typ": "serie",
+     "name": "Geschichten der Jedi"
+    },
+    {
+     "tmdb": "251091",
+     "typ": "serie",
+     "name": "Geschichten des Imperiums"
+    },
+    {
+     "tmdb": "114478",
+     "typ": "serie",
+     "name": "Visionen"
+    },
+    {
+     "tmdb": "288055",
+     "typ": "serie",
+     "name": "Geschichten der Unterwelt"
+    },
+    {
+     "tmdb": "289219",
+     "typ": "serie",
+     "name": "Maul - Shadow Lord"
+    }
+   ],
+   "ausschluss": [
+    {
+     "sammlung": "Indiana Jones",
+     "name": "Indiana Jones ist auch von Lucasfilm, gehört aber nicht zu Star Wars"
+    }
+   ]
+  },
+  {
+   "name": "DC",
+   "studios": [
+    "DC Studios",
+    "DC Entertainment",
+    "DC Films",
+    "DC Comics"
+   ],
+   "sammlungen": [
+    "Batman",
+    "Superman",
+    "Justice League",
+    "Wonder Woman",
+    "Aquaman",
+    "The Dark Knight",
+    "Suicide Squad",
+    "Shazam"
+   ],
+   "titel": [
+    {
+     "tmdb": "414906",
+     "typ": "film",
+     "name": "The Batman"
+    },
+    {
+     "tmdb": "436969",
+     "typ": "film",
+     "name": "The Suicide Squad"
+    },
+    {
+     "tmdb": "475557",
+     "typ": "film",
+     "name": "Joker"
+    },
+    {
+     "tmdb": "141052",
+     "typ": "film",
+     "name": "Justice League"
+    },
+    {
+     "tmdb": "298618",
+     "typ": "film",
+     "name": "The Flash"
+    },
+    {
+     "tmdb": "791373",
+     "typ": "film",
+     "name": "Zack Snyder's Justice League"
+    },
+    {
+     "tmdb": "572802",
+     "typ": "film",
+     "name": "Aquaman: Lost Kingdom"
+    },
+    {
+     "tmdb": "436270",
+     "typ": "film",
+     "name": "Black Adam"
+    },
+    {
+     "tmdb": "287947",
+     "typ": "film",
+     "name": "Shazam!"
+    },
+    {
+     "tmdb": "495764",
+     "typ": "film",
+     "name": "Birds of Prey"
+    },
+    {
+     "tmdb": "464052",
+     "typ": "film",
+     "name": "Wonder Woman 1984"
+    },
+    {
+     "tmdb": "297761",
+     "typ": "film",
+     "name": "Suicide Squad"
+    },
+    {
+     "tmdb": "297762",
+     "typ": "film",
+     "name": "Wonder Woman"
+    },
+    {
+     "tmdb": "565770",
+     "typ": "film",
+     "name": "Blue Beetle"
+    },
+    {
+     "tmdb": "594767",
+     "typ": "film",
+     "name": "Shazam! Fury of the Gods"
+    },
+    {
+     "tmdb": "297802",
+     "typ": "film",
+     "name": "Aquaman"
+    },
+    {
+     "tmdb": "324849",
+     "typ": "film",
+     "name": "The Lego Batman Movie"
+    },
+    {
+     "tmdb": "474395",
+     "typ": "film",
+     "name": "Teen Titans Go! To the Movies"
+    },
+    {
+     "tmdb": "155",
+     "typ": "film",
+     "name": "The Dark Knight"
+    },
+    {
+     "tmdb": "49026",
+     "typ": "film",
+     "name": "The Dark Knight Rises"
+    },
+    {
+     "tmdb": "272",
+     "typ": "film",
+     "name": "Batman Begins"
+    },
+    {
+     "tmdb": "209112",
+     "typ": "film",
+     "name": "Batman v Superman"
+    },
+    {
+     "tmdb": "49521",
+     "typ": "film",
+     "name": "Man of Steel"
+    },
+    {
+     "tmdb": "539681",
+     "typ": "film",
+     "name": "DC League of Super-Pets"
+    },
+    {
+     "tmdb": "1452",
+     "typ": "film",
+     "name": "Superman Returns"
+    },
+    {
+     "tmdb": "44912",
+     "typ": "film",
+     "name": "Green Lantern"
+    },
+    {
+     "tmdb": "13183",
+     "typ": "film",
+     "name": "Watchmen"
+    },
+    {
+     "tmdb": "20533",
+     "typ": "film",
+     "name": "Jonah Hex"
+    },
+    {
+     "tmdb": "624479",
+     "typ": "film",
+     "name": "Superman II - Richard Donner Cut"
+    },
+    {
+     "tmdb": "1081003",
+     "typ": "film",
+     "name": "Supergirl"
+    },
+    {
+     "tmdb": "1061474",
+     "typ": "film",
+     "name": "Superman (2025)"
+    },
+    {
+     "tmdb": "487242",
+     "typ": "film",
+     "name": "Suicide Squad: Hell to Pay"
+    },
+    {
+     "tmdb": "539517",
+     "typ": "film",
+     "name": "Constantine — City of Demons"
+    },
+    {
+     "tmdb": "408220",
+     "typ": "film",
+     "name": "Justice League Dark"
+    },
+    {
+     "tmdb": "556901",
+     "typ": "film",
+     "name": "Teen Titans Go! Vs. Teen Titans"
+    },
+    {
+     "tmdb": "485942",
+     "typ": "film",
+     "name": "Batman Ninja"
+    },
+    {
+     "tmdb": "408648",
+     "typ": "film",
+     "name": "Batman und Harley Quinn"
+    },
+    {
+     "tmdb": "408647",
+     "typ": "film",
+     "name": "Teen Titans: Der Judas-Auftrag"
+    },
+    {
+     "tmdb": "487670",
+     "typ": "film",
+     "name": "The Death of Superman"
+    },
+    {
+     "tmdb": "65291",
+     "typ": "film",
+     "name": "Green Lantern - Emerald Knights"
+    },
+    {
+     "tmdb": "464882",
+     "typ": "film",
+     "name": "Batman vs. Two-Face"
+    },
+    {
+     "tmdb": "471474",
+     "typ": "film",
+     "name": "Batman: Gotham by Gaslight"
+    },
+    {
+     "tmdb": "411736",
+     "typ": "film",
+     "name": "Batman: Return of the Caped Crusaders"
+    },
+    {
+     "tmdb": "43641",
+     "typ": "film",
+     "name": "Superman/Shazam!: The Return of Black Adam"
+    },
+    {
+     "tmdb": "1560520",
+     "typ": "film",
+     "name": "Batman: Knightfall Part 1"
+    },
+    {
+     "tmdb": "1389765",
+     "typ": "film",
+     "name": "Batman: Knightfall Part 2"
+    },
+    {
+     "tmdb": "1389764",
+     "typ": "film",
+     "name": "Batman: Knightfall Part 3"
+    },
+    {
+     "tmdb": "242643",
+     "typ": "film",
+     "name": "Batman: Assault on Arkham"
+    },
+    {
+     "tmdb": "1155089",
+     "typ": "film",
+     "name": "Justice League: Crisis on Infinite Earths 1"
+    },
+    {
+     "tmdb": "1209288",
+     "typ": "film",
+     "name": "Justice League: Crisis on Infinite Earths 2"
+    },
+    {
+     "tmdb": "1209290",
+     "typ": "film",
+     "name": "Justice League: Crisis on Infinite Earths 3"
+    },
+    {
+     "tmdb": "1003579",
+     "typ": "film",
+     "name": "Batman: The Doom That Came to Gotham"
+    },
+    {
+     "tmdb": "987400",
+     "typ": "film",
+     "name": "Aztec Batman"
+    },
+    {
+     "tmdb": "732450",
+     "typ": "film",
+     "name": "Batman: Soul of the Dragon"
+    },
+    {
+     "tmdb": "382322",
+     "typ": "film",
+     "name": "Batman: The Killing Joke"
+    },
+    {
+     "tmdb": "13851",
+     "typ": "film",
+     "name": "Batman: Gotham Knight"
+    },
+    {
+     "tmdb": "887357",
+     "typ": "film",
+     "name": "Green Lantern: Beware My Power"
+    },
+    {
+     "tmdb": "321528",
+     "typ": "film",
+     "name": "Batman vs. Robin"
+    },
+    {
+     "tmdb": "618344",
+     "typ": "film",
+     "name": "Justice League Dark: Apokolips War"
+    },
+    {
+     "tmdb": "297556",
+     "typ": "film",
+     "name": "Justice League: Throne of Atlantis"
+    },
+    {
+     "tmdb": "618354",
+     "typ": "film",
+     "name": "Superman: Man of Tomorrow"
+    },
+    {
+     "tmdb": "1003580",
+     "typ": "film",
+     "name": "Legion of Super-Heroes"
+    },
+    {
+     "tmdb": "76589",
+     "typ": "film",
+     "name": "Justice League: Doom"
+    },
+    {
+     "tmdb": "1297763",
+     "typ": "film",
+     "name": "Batman Ninja vs. Yakuza League"
+    },
+    {
+     "tmdb": "40662",
+     "typ": "film",
+     "name": "Batman: Under the Red Hood"
+    },
+    {
+     "tmdb": "870358",
+     "typ": "film",
+     "name": "Merry Little Batman"
+    },
+    {
+     "tmdb": "537055",
+     "typ": "film",
+     "name": "Wonder Woman: Bloodlines"
+    },
+    {
+     "tmdb": "69735",
+     "typ": "film",
+     "name": "Batman: Year One"
+    },
+    {
+     "tmdb": "17445",
+     "typ": "film",
+     "name": "Green Lantern: First Flight"
+    },
+    {
+     "tmdb": "366924",
+     "typ": "film",
+     "name": "Batman: Bad Blood"
+    },
+    {
+     "tmdb": "30061",
+     "typ": "film",
+     "name": "Justice League: Crisis on Two Earths"
+    },
+    {
+     "tmdb": "1155058",
+     "typ": "film",
+     "name": "Watchmen: Chapter I"
+    },
+    {
+     "tmdb": "1299652",
+     "typ": "film",
+     "name": "Watchmen: Chapter II"
+    },
+    {
+     "tmdb": "183011",
+     "typ": "film",
+     "name": "Justice League: The Flashpoint Paradox"
+    },
+    {
+     "tmdb": "251519",
+     "typ": "film",
+     "name": "Son of Batman"
+    },
+    {
+     "tmdb": "123025",
+     "typ": "film",
+     "name": "The Dark Knight Returns 1"
+    },
+    {
+     "tmdb": "142061",
+     "typ": "film",
+     "name": "The Dark Knight Returns 2"
+    },
+    {
+     "tmdb": "886396",
+     "typ": "film",
+     "name": "Batman und Superman: Kampf der Supersöhne"
+    },
+    {
+     "tmdb": "862491",
+     "typ": "film",
+     "name": "Catwoman: Gejagt"
+    },
+    {
+     "tmdb": "103269",
+     "typ": "film",
+     "name": "Superman vs. The Elite"
+    },
+    {
+     "tmdb": "217993",
+     "typ": "film",
+     "name": "Justice League: War"
+    },
+    {
+     "tmdb": "537056",
+     "typ": "film",
+     "name": "Batman: Hush"
+    },
+    {
+     "tmdb": "736069",
+     "typ": "film",
+     "name": "Justice Society: World War II"
+    },
+    {
+     "tmdb": "1003581",
+     "typ": "film",
+     "name": "Justice League: Warworld"
+    },
+    {
+     "tmdb": "15359",
+     "typ": "film",
+     "name": "Wonder Woman (2009)"
+    },
+    {
+     "tmdb": "487672",
+     "typ": "film",
+     "name": "Reign of the Supermen"
+    },
+    {
+     "tmdb": "13640",
+     "typ": "film",
+     "name": "Superman: Doomsday"
+    },
+    {
+     "tmdb": "166076",
+     "typ": "film",
+     "name": "Superman: Unbound"
+    },
+    {
+     "tmdb": "379291",
+     "typ": "film",
+     "name": "Justice League vs. Teen Titans"
+    },
+    {
+     "tmdb": "323027",
+     "typ": "film",
+     "name": "Justice League: Götter und Monster"
+    },
+    {
+     "tmdb": "56590",
+     "typ": "film",
+     "name": "All Star Superman"
+    },
+    {
+     "tmdb": "618355",
+     "typ": "film",
+     "name": "Superman: Red Son"
+    },
+    {
+     "tmdb": "14011",
+     "typ": "film",
+     "name": "Justice League: The New Frontier"
+    },
+    {
+     "tmdb": "736073",
+     "typ": "film",
+     "name": "Batman: The Long Halloween 1"
+    },
+    {
+     "tmdb": "736074",
+     "typ": "film",
+     "name": "Batman: The Long Halloween 2"
+    },
+    {
+     "tmdb": "537059",
+     "typ": "film",
+     "name": "Justice League vs. the Fatal Five"
+    },
+    {
+     "tmdb": "22855",
+     "typ": "film",
+     "name": "Superman/Batman: Public Enemies"
+    },
+    {
+     "tmdb": "45162",
+     "typ": "film",
+     "name": "Superman/Batman: Apocalypse"
+    },
+    {
+     "tmdb": "831405",
+     "typ": "film",
+     "name": "Injustice"
+    },
+    {
+     "tmdb": "703771",
+     "typ": "film",
+     "name": "Deathstroke: Knights & Dragons"
+    },
+    {
+     "tmdb": "110492",
+     "typ": "serie",
+     "name": "Peacemaker"
+    },
+    {
+     "tmdb": "219543",
+     "typ": "serie",
+     "name": "Creature Commandos"
+    },
+    {
+     "tmdb": "194764",
+     "typ": "serie",
+     "name": "The Penguin"
+    },
+    {
+     "tmdb": "95057",
+     "typ": "serie",
+     "name": "Superman & Lois"
+    },
+    {
+     "tmdb": "75450",
+     "typ": "serie",
+     "name": "Titans"
+    },
+    {
+     "tmdb": "79501",
+     "typ": "serie",
+     "name": "Doom Patrol"
+    },
+    {
+     "tmdb": "60708",
+     "typ": "serie",
+     "name": "Gotham"
+    },
+    {
+     "tmdb": "1412",
+     "typ": "serie",
+     "name": "Arrow"
+    },
+    {
+     "tmdb": "60735",
+     "typ": "serie",
+     "name": "The Flash"
+    },
+    {
+     "tmdb": "95350",
+     "typ": "serie",
+     "name": "Lanterns"
+    },
+    {
+     "tmdb": "74440",
+     "typ": "serie",
+     "name": "Harley Quinn"
+    },
+    {
+     "tmdb": "2098",
+     "typ": "serie",
+     "name": "Batman: The Animated Series"
+    },
+    {
+     "tmdb": "79788",
+     "typ": "serie",
+     "name": "Watchmen (Serie)"
+    }
+   ],
+   "ausschluss": [
+    {
+     "tmdb": "39514",
+     "typ": "film",
+     "name": "R.E.D."
+    },
+    {
+     "tmdb": "146216",
+     "typ": "film",
+     "name": "R.E.D. 2"
+    }
+   ]
+  },
+  {
+   "name": "Pixar",
+   "studios": [
+    "Pixar"
+   ],
+   "sammlungen": [
+    "Toy Story",
+    "Findet Nemo",
+    "Finding Nemo",
+    "Die Unglaublichen",
+    "The Incredibles",
+    "Monster AG",
+    "Alles steht Kopf",
+    "Inside Out",
+    "Cars"
+   ],
+   "titel": [
+    {
+     "tmdb": "862",
+     "typ": "film",
+     "name": "Toy Story"
+    },
+    {
+     "tmdb": "863",
+     "typ": "film",
+     "name": "Toy Story 2"
+    },
+    {
+     "tmdb": "10193",
+     "typ": "film",
+     "name": "Toy Story 3"
+    },
+    {
+     "tmdb": "301528",
+     "typ": "film",
+     "name": "A Toy Story: Alles hört auf kein Kommando"
+    },
+    {
+     "tmdb": "1084244",
+     "typ": "film",
+     "name": "Toy Story 5"
+    },
+    {
+     "tmdb": "1689448",
+     "typ": "film",
+     "name": "Toy Story 6"
+    },
+    {
+     "tmdb": "9487",
+     "typ": "film",
+     "name": "Das große Krabbeln"
+    },
+    {
+     "tmdb": "585",
+     "typ": "film",
+     "name": "Die Monster AG"
+    },
+    {
+     "tmdb": "62211",
+     "typ": "film",
+     "name": "Die Monster Uni"
+    },
+    {
+     "tmdb": "12",
+     "typ": "film",
+     "name": "Findet Nemo"
+    },
+    {
+     "tmdb": "127380",
+     "typ": "film",
+     "name": "Findet Dorie"
+    },
+    {
+     "tmdb": "9806",
+     "typ": "film",
+     "name": "Die Unglaublichen"
+    },
+    {
+     "tmdb": "260513",
+     "typ": "film",
+     "name": "Die Unglaublichen 2"
+    },
+    {
+     "tmdb": "1327821",
+     "typ": "film",
+     "name": "Die Unglaublichen 3"
+    },
+    {
+     "tmdb": "920",
+     "typ": "film",
+     "name": "Cars"
+    },
+    {
+     "tmdb": "49013",
+     "typ": "film",
+     "name": "Cars 2"
+    },
+    {
+     "tmdb": "260514",
+     "typ": "film",
+     "name": "Cars 3"
+    },
+    {
+     "tmdb": "2062",
+     "typ": "film",
+     "name": "Ratatouille"
+    },
+    {
+     "tmdb": "10681",
+     "typ": "film",
+     "name": "WALL·E"
+    },
+    {
+     "tmdb": "14160",
+     "typ": "film",
+     "name": "Oben"
+    },
+    {
+     "tmdb": "62177",
+     "typ": "film",
+     "name": "Merida"
+    },
+    {
+     "tmdb": "150540",
+     "typ": "film",
+     "name": "Alles steht Kopf"
+    },
+    {
+     "tmdb": "1022789",
+     "typ": "film",
+     "name": "Alles steht Kopf 2"
+    },
+    {
+     "tmdb": "105864",
+     "typ": "film",
+     "name": "Arlo & Spot"
+    },
+    {
+     "tmdb": "354912",
+     "typ": "film",
+     "name": "Coco"
+    },
+    {
+     "tmdb": "1451567",
+     "typ": "film",
+     "name": "Coco 2"
+    },
+    {
+     "tmdb": "508439",
+     "typ": "film",
+     "name": "Onward"
+    },
+    {
+     "tmdb": "508442",
+     "typ": "film",
+     "name": "Soul"
+    },
+    {
+     "tmdb": "508943",
+     "typ": "film",
+     "name": "Luca"
+    },
+    {
+     "tmdb": "508947",
+     "typ": "film",
+     "name": "Rot"
+    },
+    {
+     "tmdb": "718789",
+     "typ": "film",
+     "name": "Lightyear"
+    },
+    {
+     "tmdb": "976573",
+     "typ": "film",
+     "name": "Elemental"
+    },
+    {
+     "tmdb": "1022787",
+     "typ": "film",
+     "name": "Elio"
+    },
+    {
+     "tmdb": "1327819",
+     "typ": "film",
+     "name": "Hoppers"
+    },
+    {
+     "tmdb": "1497464",
+     "typ": "film",
+     "name": "Gatto"
+    },
+    {
+     "tmdb": "1647603",
+     "typ": "film",
+     "name": "Ghost Market"
+    },
+    {
+     "tmdb": "1076364",
+     "typ": "film",
+     "name": "Carl's Date"
+    },
+    {
+     "tmdb": "13931",
+     "typ": "film",
+     "name": "Mikes neues Auto"
+    },
+    {
+     "tmdb": "355338",
+     "typ": "film",
+     "name": "Rileys erstes Date?"
+    },
+    {
+     "tmdb": "546728",
+     "typ": "film",
+     "name": "Tante Edna"
+    },
+    {
+     "tmdb": "811367",
+     "typ": "film",
+     "name": "22 gegen die Erde"
+    },
+    {
+     "tmdb": "13932",
+     "typ": "film",
+     "name": "Jack-Jack Superbaby"
+    },
+    {
+     "tmdb": "40619",
+     "typ": "film",
+     "name": "Day & Night"
+    },
+    {
+     "tmdb": "399106",
+     "typ": "film",
+     "name": "Piper"
+    },
+    {
+     "tmdb": "876716",
+     "typ": "film",
+     "name": "Ciao Alberto"
+    },
+    {
+     "tmdb": "13062",
+     "typ": "film",
+     "name": "Boundin'"
+    },
+    {
+     "tmdb": "24480",
+     "typ": "film",
+     "name": "Teilweise wolkig"
+    },
+    {
+     "tmdb": "433471",
+     "typ": "film",
+     "name": "Lou"
+    },
+    {
+     "tmdb": "13413",
+     "typ": "film",
+     "name": "BURN·E"
+    },
+    {
+     "tmdb": "13042",
+     "typ": "film",
+     "name": "Presto"
+    },
+    {
+     "tmdb": "83564",
+     "typ": "film",
+     "name": "La Luna"
+    },
+    {
+     "tmdb": "13925",
+     "typ": "film",
+     "name": "Die kleine Lampe"
+    },
+    {
+     "tmdb": "286192",
+     "typ": "film",
+     "name": "Lava"
+    },
+    {
+     "tmdb": "514754",
+     "typ": "film",
+     "name": "Bao"
+    },
+    {
+     "tmdb": "13927",
+     "typ": "film",
+     "name": "Tin Toy"
+    },
+    {
+     "tmdb": "213121",
+     "typ": "film",
+     "name": "Toy Story of Terror!"
+    },
+    {
+     "tmdb": "256835",
+     "typ": "film",
+     "name": "Toy Story - Mögen die Spiele beginnen"
+    },
+    {
+     "tmdb": "77887",
+     "typ": "film",
+     "name": "Toy Story Toons - Urlaub auf Hawaii"
+    },
+    {
+     "tmdb": "16187",
+     "typ": "film",
+     "name": "Captain Buzz Lightyear - Star Command"
+    }
+   ],
+   "ausschluss": []
+  },
+  {
+   "name": "Disney",
+   "studios": [
+    "Walt Disney Pictures",
+    "Walt Disney Animation",
+    "Walt Disney Productions"
+   ],
+   "sammlungen": [
+    "Disney"
+   ],
+   "titel": [
+    {
+     "tmdb": "1084242",
+     "typ": "film",
+     "name": "Zoomania 2"
+    },
+    {
+     "tmdb": "269149",
+     "typ": "film",
+     "name": "Zoomania"
+    },
+    {
+     "tmdb": "1241982",
+     "typ": "film",
+     "name": "Vaiana 2"
+    },
+    {
+     "tmdb": "177572",
+     "typ": "film",
+     "name": "Baymax"
+    },
+    {
+     "tmdb": "82690",
+     "typ": "film",
+     "name": "Ralph reichts"
+    },
+    {
+     "tmdb": "10198",
+     "typ": "film",
+     "name": "Küss den Frosch"
+    },
+    {
+     "tmdb": "109445",
+     "typ": "film",
+     "name": "Die Eiskönigin"
+    },
+    {
+     "tmdb": "330457",
+     "typ": "film",
+     "name": "Die Eiskönigin 2"
+    },
+    {
+     "tmdb": "527774",
+     "typ": "film",
+     "name": "Raya und der letzte Drache"
+    },
+    {
+     "tmdb": "38757",
+     "typ": "film",
+     "name": "Rapunzel - Neu verföhnt"
+    },
+    {
+     "tmdb": "877269",
+     "typ": "film",
+     "name": "Strange World"
+    },
+    {
+     "tmdb": "1538497",
+     "typ": "film",
+     "name": "Wie verhext"
+    },
+    {
+     "tmdb": "404368",
+     "typ": "film",
+     "name": "Chaos im Netz"
+    },
+    {
+     "tmdb": "51162",
+     "typ": "film",
+     "name": "Winnie Puuh"
+    },
+    {
+     "tmdb": "568124",
+     "typ": "film",
+     "name": "Encanto"
+    },
+    {
+     "tmdb": "1022796",
+     "typ": "film",
+     "name": "Wish"
+    },
+    {
+     "tmdb": "1267",
+     "typ": "film",
+     "name": "Triff die Robinsons"
+    },
+    {
+     "tmdb": "460793",
+     "typ": "film",
+     "name": "Olaf taut auf"
+    },
+    {
+     "tmdb": "13053",
+     "typ": "film",
+     "name": "Bolt"
+    },
+    {
+     "tmdb": "1139087",
+     "typ": "film",
+     "name": "Once Upon a Studio"
+    },
+    {
+     "tmdb": "277834",
+     "typ": "film",
+     "name": "Vaiana"
+    },
+    {
+     "tmdb": "234567",
+     "typ": "film",
+     "name": "Get a Horse!"
+    },
+    {
+     "tmdb": "326359",
+     "typ": "film",
+     "name": "Die Eiskönigin - Party-Fieber"
+    },
+    {
+     "tmdb": "293299",
+     "typ": "film",
+     "name": "Liebe geht durch den Magen"
+    },
+    {
+     "tmdb": "741074",
+     "typ": "film",
+     "name": "Es war einmal ein Schneemann"
+    },
+    {
+     "tmdb": "82881",
+     "typ": "film",
+     "name": "Rapunzel - Verföhnt, Verlobt, Verheiratet"
+    },
+    {
+     "tmdb": "140420",
+     "typ": "film",
+     "name": "Im Flug erobert"
+    },
+    {
+     "tmdb": "406785",
+     "typ": "film",
+     "name": "Inner Workings"
+    },
+    {
+     "tmdb": "1024604",
+     "typ": "film",
+     "name": "Frozen III"
+    },
+    {
+     "tmdb": "1500099",
+     "typ": "film",
+     "name": "Versa"
+    },
+    {
+     "tmdb": "16604",
+     "typ": "film",
+     "name": "Super Dino"
+    },
+    {
+     "tmdb": "831827",
+     "typ": "film",
+     "name": "Far from the Tree"
+    },
+    {
+     "tmdb": "38580",
+     "typ": "film",
+     "name": "Das Mädchen mit den Schwefelhölzern"
+    },
+    {
+     "tmdb": "1591771",
+     "typ": "film",
+     "name": "Zoomania 3"
+    },
+    {
+     "tmdb": "1749880",
+     "typ": "film",
+     "name": "Clay"
+    },
+    {
+     "tmdb": "1720486",
+     "typ": "film",
+     "name": "Lilo & Scratch"
+    },
+    {
+     "tmdb": "779047",
+     "typ": "film",
+     "name": "Noch einmal wir"
+    },
+    {
+     "tmdb": "76346",
+     "typ": "film",
+     "name": "Die Ballade von Nessie"
+    },
+    {
+     "tmdb": "1647287",
+     "typ": "film",
+     "name": "Moana 3"
+    },
+    {
+     "tmdb": "1205983",
+     "typ": "film",
+     "name": "Frozen IV"
+    },
+    {
+     "tmdb": "1451244",
+     "typ": "film",
+     "name": "Encanto 2"
+    },
+    {
+     "tmdb": "1108427",
+     "typ": "film",
+     "name": "Vaiana (Realfilm)"
+    },
+    {
+     "tmdb": "285",
+     "typ": "film",
+     "name": "Pirates of the Caribbean - Am Ende der Welt"
+    },
+    {
+     "tmdb": "58",
+     "typ": "film",
+     "name": "Pirates of the Caribbean - Fluch der Karibik 2"
+    },
+    {
+     "tmdb": "22",
+     "typ": "film",
+     "name": "Fluch der Karibik"
+    },
+    {
+     "tmdb": "1865",
+     "typ": "film",
+     "name": "Pirates of the Caribbean - Fremde Gezeiten"
+    },
+    {
+     "tmdb": "166426",
+     "typ": "film",
+     "name": "Pirates of the Caribbean - Salazars Rache"
+    },
+    {
+     "tmdb": "10020",
+     "typ": "film",
+     "name": "Die Schöne und das Biest (1991)"
+    },
+    {
+     "tmdb": "321612",
+     "typ": "film",
+     "name": "Die Schöne und das Biest (2017)"
+    },
+    {
+     "tmdb": "552524",
+     "typ": "film",
+     "name": "Lilo & Stitch (2025)"
+    },
+    {
+     "tmdb": "11544",
+     "typ": "film",
+     "name": "Lilo & Stitch (2002)"
+    },
+    {
+     "tmdb": "1504349",
+     "typ": "film",
+     "name": "Lilo & Stitch 2"
+    },
+    {
+     "tmdb": "411",
+     "typ": "film",
+     "name": "Die Chroniken von Narnia: Der König von Narnia"
+    },
+    {
+     "tmdb": "2454",
+     "typ": "film",
+     "name": "Die Chroniken von Narnia: Prinz Kaspian"
+    },
+    {
+     "tmdb": "447273",
+     "typ": "film",
+     "name": "Schneewittchen (2025)"
+    },
+    {
+     "tmdb": "9016",
+     "typ": "film",
+     "name": "Der Schatzplanet"
+    },
+    {
+     "tmdb": "8587",
+     "typ": "film",
+     "name": "Der König der Löwen (1994)"
+    },
+    {
+     "tmdb": "420818",
+     "typ": "film",
+     "name": "Der König der Löwen (2019)"
+    },
+    {
+     "tmdb": "762509",
+     "typ": "film",
+     "name": "Mufasa"
+    },
+    {
+     "tmdb": "150689",
+     "typ": "film",
+     "name": "Cinderella (2015)"
+    },
+    {
+     "tmdb": "12155",
+     "typ": "film",
+     "name": "Alice im Wunderland (2010)"
+    },
+    {
+     "tmdb": "241259",
+     "typ": "film",
+     "name": "Alice: Hinter den Spiegeln"
+    },
+    {
+     "tmdb": "11688",
+     "typ": "film",
+     "name": "Ein Königreich für ein Lama"
+    },
+    {
+     "tmdb": "447277",
+     "typ": "film",
+     "name": "Arielle, die Meerjungfrau (2023)"
+    },
+    {
+     "tmdb": "337404",
+     "typ": "film",
+     "name": "Cruella"
+    },
+    {
+     "tmdb": "10439",
+     "typ": "film",
+     "name": "Hocus Pocus"
+    },
+    {
+     "tmdb": "642885",
+     "typ": "film",
+     "name": "Hocus Pocus 2"
+    },
+    {
+     "tmdb": "616747",
+     "typ": "film",
+     "name": "Geistervilla (2023)"
+    },
+    {
+     "tmdb": "10756",
+     "typ": "film",
+     "name": "Die Geistervilla (2003)"
+    },
+    {
+     "tmdb": "4523",
+     "typ": "film",
+     "name": "Verwünscht"
+    },
+    {
+     "tmdb": "338958",
+     "typ": "film",
+     "name": "Verwünscht nochmal"
+    },
+    {
+     "tmdb": "27022",
+     "typ": "film",
+     "name": "Duell der Magier"
+    },
+    {
+     "tmdb": "37135",
+     "typ": "film",
+     "name": "Tarzan"
+    },
+    {
+     "tmdb": "10481",
+     "typ": "film",
+     "name": "102 Dalmatiner"
+    },
+    {
+     "tmdb": "11674",
+     "typ": "film",
+     "name": "101 Dalmatiner (1996)"
+    },
+    {
+     "tmdb": "102651",
+     "typ": "film",
+     "name": "Maleficent"
+    },
+    {
+     "tmdb": "420809",
+     "typ": "film",
+     "name": "Maleficent 2"
+    },
+    {
+     "tmdb": "451048",
+     "typ": "film",
+     "name": "Jungle Cruise"
+    },
+    {
+     "tmdb": "10545",
+     "typ": "film",
+     "name": "Der Glöckner von Notre Dame"
+    },
+    {
+     "tmdb": "15789",
+     "typ": "film",
+     "name": "Der Goofy Film"
+    },
+    {
+     "tmdb": "17979",
+     "typ": "film",
+     "name": "Eine Weihnachtsgeschichte (2009)"
+    },
+    {
+     "tmdb": "278927",
+     "typ": "film",
+     "name": "The Jungle Book"
+    },
+    {
+     "tmdb": "9880",
+     "typ": "film",
+     "name": "Plötzlich Prinzessin"
+    },
+    {
+     "tmdb": "11130",
+     "typ": "film",
+     "name": "Plötzlich Prinzessin 2"
+    },
+    {
+     "tmdb": "2059",
+     "typ": "film",
+     "name": "Das Vermächtnis der Tempelritter"
+    },
+    {
+     "tmdb": "6637",
+     "typ": "film",
+     "name": "Das Vermächtnis des geheimen Buches"
+    },
+    {
+     "tmdb": "267935",
+     "typ": "film",
+     "name": "BFG"
+    },
+    {
+     "tmdb": "337401",
+     "typ": "film",
+     "name": "Mulan (2020)"
+    },
+    {
+     "tmdb": "10674",
+     "typ": "film",
+     "name": "Mulan (1998)"
+    },
+    {
+     "tmdb": "10865",
+     "typ": "film",
+     "name": "Atlantis"
+    },
+    {
+     "tmdb": "12233",
+     "typ": "film",
+     "name": "Oliver & Co."
+    },
+    {
+     "tmdb": "20526",
+     "typ": "film",
+     "name": "TRON: Legacy"
+    },
+    {
+     "tmdb": "533533",
+     "typ": "film",
+     "name": "TRON: Ares"
+    },
+    {
+     "tmdb": "9354",
+     "typ": "film",
+     "name": "Liebling, ich habe die Kinder geschrumpft"
+    },
+    {
+     "tmdb": "420817",
+     "typ": "film",
+     "name": "Aladdin (2019)"
+    },
+    {
+     "tmdb": "9982",
+     "typ": "film",
+     "name": "Himmel und Huhn"
+    },
+    {
+     "tmdb": "10567",
+     "typ": "film",
+     "name": "Dinosaurier"
+    },
+    {
+     "tmdb": "49948",
+     "typ": "film",
+     "name": "Fantasia 2000"
+    },
+    {
+     "tmdb": "13700",
+     "typ": "film",
+     "name": "Die Kühe sind los!"
+    },
+    {
+     "tmdb": "68728",
+     "typ": "film",
+     "name": "Die fantastische Welt von Oz"
+    },
+    {
+     "tmdb": "400650",
+     "typ": "film",
+     "name": "Mary Poppins' Rückkehr"
+    },
+    {
+     "tmdb": "512895",
+     "typ": "film",
+     "name": "Susi und Strolch (2019)"
+    },
+    {
+     "tmdb": "420814",
+     "typ": "film",
+     "name": "Christopher Robin"
+    },
+    {
+     "tmdb": "420808",
+     "typ": "film",
+     "name": "Peter Pan & Wendy"
+    },
+    {
+     "tmdb": "420821",
+     "typ": "film",
+     "name": "Chip und Chap"
+    },
+    {
+     "tmdb": "62214",
+     "typ": "film",
+     "name": "Frankenweenie"
+    },
+    {
+     "tmdb": "294272",
+     "typ": "film",
+     "name": "Elliot, der Drache"
+    },
+    {
+     "tmdb": "329996",
+     "typ": "film",
+     "name": "Dumbo (2019)"
+    },
+    {
+     "tmdb": "10957",
+     "typ": "film",
+     "name": "Taran und der Zauberkessel"
+    },
+    {
+     "tmdb": "9994",
+     "typ": "film",
+     "name": "Basil, der große Mäusedetektiv"
+    },
+    {
+     "tmdb": "10530",
+     "typ": "film",
+     "name": "Pocahontas"
+    },
+    {
+     "tmdb": "532639",
+     "typ": "film",
+     "name": "Pinocchio (2022)"
+    },
+    {
+     "tmdb": "13682",
+     "typ": "film",
+     "name": "Heffalump"
+    },
+    {
+     "tmdb": "15655",
+     "typ": "film",
+     "name": "Tiggers großes Abenteuer"
+    },
+    {
+     "tmdb": "13691",
+     "typ": "film",
+     "name": "Ferkels großes Abenteuer"
+    },
+    {
+     "tmdb": "16690",
+     "typ": "film",
+     "name": "Peter Pan: Neue Abenteuer in Nimmerland"
+    },
+    {
+     "tmdb": "12448",
+     "typ": "film",
+     "name": "Der Glöckner von Notre Dame 2"
+    },
+    {
+     "tmdb": "14813",
+     "typ": "film",
+     "name": "Micky's Weihnachtserzählung"
+    },
+    {
+     "tmdb": "10330",
+     "typ": "film",
+     "name": "Freaky Friday"
+    },
+    {
+     "tmdb": "1125257",
+     "typ": "film",
+     "name": "Freakier Friday"
+    },
+    {
+     "tmdb": "11395",
+     "typ": "film",
+     "name": "Santa Clause"
+    },
+    {
+     "tmdb": "9021",
+     "typ": "film",
+     "name": "Santa Clause 2"
+    },
+    {
+     "tmdb": "13767",
+     "typ": "film",
+     "name": "Santa Clause 3"
+    },
+    {
+     "tmdb": "4244",
+     "typ": "film",
+     "name": "The Kid - Image ist alles"
+    }
+   ],
+   "ausschluss": [
+    {
+     "tmdb": "920",
+     "typ": "film",
+     "name": "Cars (Pixar)"
+    },
+    {
+     "tmdb": "49013",
+     "typ": "film",
+     "name": "Cars 2 (Pixar)"
+    },
+    {
+     "tmdb": "260514",
+     "typ": "film",
+     "name": "Cars 3 (Pixar)"
+    },
+    {
+     "tmdb": "508439",
+     "typ": "film",
+     "name": "Onward (Pixar)"
+    },
+    {
+     "tmdb": "774825",
+     "typ": "film",
+     "name": "Ice Age – Die Abenteuer von Buck Wild"
+    },
+    {
+     "sammlung": "Cars",
+     "name": "Cars gehört zu Pixar"
+    }
+   ]
+  },
+  {
+   "name": "DreamWorks",
+   "studios": [
+    "DreamWorks Animation"
+   ],
+   "sammlungen": [
+    "Shrek",
+    "Madagascar",
+    "Drachenzähmen",
+    "How to Train Your Dragon",
+    "Kung Fu Panda",
+    "Die Croods",
+    "Trolls",
+    "Boss Baby",
+    "Der gestiefelte Kater"
+   ],
+   "titel": [
+    {
+     "tmdb": "8916",
+     "typ": "film",
+     "name": "Antz"
+    },
+    {
+     "tmdb": "9837",
+     "typ": "film",
+     "name": "Der Prinz von Ägypten"
+    },
+    {
+     "tmdb": "7443",
+     "typ": "film",
+     "name": "Chicken Run"
+    },
+    {
+     "tmdb": "10501",
+     "typ": "film",
+     "name": "Der Weg nach El Dorado"
+    },
+    {
+     "tmdb": "16366",
+     "typ": "film",
+     "name": "Joseph - König der Träume"
+    },
+    {
+     "tmdb": "808",
+     "typ": "film",
+     "name": "Shrek"
+    },
+    {
+     "tmdb": "9023",
+     "typ": "film",
+     "name": "Spirit - Der wilde Mustang"
+    },
+    {
+     "tmdb": "14411",
+     "typ": "film",
+     "name": "Sinbad"
+    },
+    {
+     "tmdb": "809",
+     "typ": "film",
+     "name": "Shrek 2"
+    },
+    {
+     "tmdb": "10555",
+     "typ": "film",
+     "name": "Große Haie - Kleine Fische"
+    },
+    {
+     "tmdb": "953",
+     "typ": "film",
+     "name": "Madagascar"
+    },
+    {
+     "tmdb": "533",
+     "typ": "film",
+     "name": "Wallace & Gromit - Auf der Jagd nach dem Riesenkaninchen"
+    },
+    {
+     "tmdb": "7518",
+     "typ": "film",
+     "name": "Ab durch die Hecke"
+    },
+    {
+     "tmdb": "11619",
+     "typ": "film",
+     "name": "Flutsch und weg"
+    },
+    {
+     "tmdb": "810",
+     "typ": "film",
+     "name": "Shrek der Dritte"
+    },
+    {
+     "tmdb": "5559",
+     "typ": "film",
+     "name": "Bee Movie"
+    },
+    {
+     "tmdb": "9502",
+     "typ": "film",
+     "name": "Kung Fu Panda"
+    },
+    {
+     "tmdb": "10527",
+     "typ": "film",
+     "name": "Madagascar 2"
+    },
+    {
+     "tmdb": "15512",
+     "typ": "film",
+     "name": "Monsters vs. Aliens"
+    },
+    {
+     "tmdb": "10191",
+     "typ": "film",
+     "name": "Drachenzähmen leicht gemacht"
+    },
+    {
+     "tmdb": "10192",
+     "typ": "film",
+     "name": "Für immer Shrek"
+    },
+    {
+     "tmdb": "38055",
+     "typ": "film",
+     "name": "Megamind"
+    },
+    {
+     "tmdb": "49444",
+     "typ": "film",
+     "name": "Kung Fu Panda 2"
+    },
+    {
+     "tmdb": "417859",
+     "typ": "film",
+     "name": "Der gestiefelte Kater"
+    },
+    {
+     "tmdb": "80321",
+     "typ": "film",
+     "name": "Madagascar 3"
+    },
+    {
+     "tmdb": "81188",
+     "typ": "film",
+     "name": "Die Hüter des Lichts"
+    },
+    {
+     "tmdb": "49519",
+     "typ": "film",
+     "name": "Die Croods"
+    },
+    {
+     "tmdb": "77950",
+     "typ": "film",
+     "name": "Turbo"
+    },
+    {
+     "tmdb": "82702",
+     "typ": "film",
+     "name": "Drachenzähmen leicht gemacht 2"
+    },
+    {
+     "tmdb": "82703",
+     "typ": "film",
+     "name": "Die Abenteuer von Mr. Peabody & Sherman"
+    },
+    {
+     "tmdb": "270946",
+     "typ": "film",
+     "name": "Die Pinguine aus Madagascar"
+    },
+    {
+     "tmdb": "228161",
+     "typ": "film",
+     "name": "Home"
+    },
+    {
+     "tmdb": "140300",
+     "typ": "film",
+     "name": "Kung Fu Panda 3"
+    },
+    {
+     "tmdb": "136799",
+     "typ": "film",
+     "name": "Trolls"
+    },
+    {
+     "tmdb": "295693",
+     "typ": "film",
+     "name": "The Boss Baby"
+    },
+    {
+     "tmdb": "268531",
+     "typ": "film",
+     "name": "Captain Underpants"
+    },
+    {
+     "tmdb": "166428",
+     "typ": "film",
+     "name": "Drachenzähmen leicht gemacht 3"
+    },
+    {
+     "tmdb": "431580",
+     "typ": "film",
+     "name": "Everest - Ein Yeti will hoch hinaus"
+    },
+    {
+     "tmdb": "446893",
+     "typ": "film",
+     "name": "Trolls World Tour"
+    },
+    {
+     "tmdb": "529203",
+     "typ": "film",
+     "name": "Die Croods - Alles auf Anfang"
+    },
+    {
+     "tmdb": "459151",
+     "typ": "film",
+     "name": "Boss Baby 2"
+    },
+    {
+     "tmdb": "637693",
+     "typ": "film",
+     "name": "Spirit - Frei und ungezähmt"
+    },
+    {
+     "tmdb": "629542",
+     "typ": "film",
+     "name": "Die Gangster Gang"
+    },
+    {
+     "tmdb": "315162",
+     "typ": "film",
+     "name": "Der gestiefelte Kater: Der letzte Wunsch"
+    },
+    {
+     "tmdb": "1040148",
+     "typ": "film",
+     "name": "Ruby taucht ab"
+    },
+    {
+     "tmdb": "901362",
+     "typ": "film",
+     "name": "Trolls - Gemeinsam stark"
+    },
+    {
+     "tmdb": "1011985",
+     "typ": "film",
+     "name": "Kung Fu Panda 4"
+    },
+    {
+     "tmdb": "1184918",
+     "typ": "film",
+     "name": "Der wilde Roboter"
+    },
+    {
+     "tmdb": "1139829",
+     "typ": "film",
+     "name": "Orion und das Dunkel"
+    },
+    {
+     "tmdb": "774370",
+     "typ": "film",
+     "name": "Dog Man"
+    },
+    {
+     "tmdb": "1175942",
+     "typ": "film",
+     "name": "Die Gangster Gang 2"
+    },
+    {
+     "tmdb": "1087192",
+     "typ": "film",
+     "name": "Drachenzähmen leicht gemacht (Realfilm)"
+    },
+    {
+     "tmdb": "1280282",
+     "typ": "film",
+     "name": "Gabby's Dollhouse: Der Film"
+    },
+    {
+     "tmdb": "1465063",
+     "typ": "film",
+     "name": "Forgotten Island"
+    },
+    {
+     "tmdb": "421892",
+     "typ": "film",
+     "name": "Shrek 5"
+    },
+    {
+     "tmdb": "1458319",
+     "typ": "film",
+     "name": "Drachenzähmen leicht gemacht 2 (Realfilm)"
+    }
+   ],
+   "ausschluss": []
+  },
+  {
+   "name": "Illumination",
+   "studios": [
+    "Illumination"
+   ],
+   "sammlungen": [
+    "Einfach unverbesserlich",
+    "Despicable Me",
+    "Minions",
+    "Pets",
+    "Sing",
+    "Super Mario"
+   ],
+   "titel": [
+    {
+     "tmdb": "20352",
+     "typ": "film",
+     "name": "Ich - Einfach unverbesserlich"
+    },
+    {
+     "tmdb": "50359",
+     "typ": "film",
+     "name": "Hop"
+    },
+    {
+     "tmdb": "73723",
+     "typ": "film",
+     "name": "Der Lorax"
+    },
+    {
+     "tmdb": "93456",
+     "typ": "film",
+     "name": "Ich - Einfach unverbesserlich 2"
+    },
+    {
+     "tmdb": "211672",
+     "typ": "film",
+     "name": "Minions"
+    },
+    {
+     "tmdb": "328111",
+     "typ": "film",
+     "name": "Pets"
+    },
+    {
+     "tmdb": "335797",
+     "typ": "film",
+     "name": "Sing"
+    },
+    {
+     "tmdb": "324852",
+     "typ": "film",
+     "name": "Ich - Einfach unverbesserlich 3"
+    },
+    {
+     "tmdb": "360920",
+     "typ": "film",
+     "name": "Der Grinch"
+    },
+    {
+     "tmdb": "412117",
+     "typ": "film",
+     "name": "Pets 2"
+    },
+    {
+     "tmdb": "438695",
+     "typ": "film",
+     "name": "Sing - Die Show deines Lebens"
+    },
+    {
+     "tmdb": "438148",
+     "typ": "film",
+     "name": "Minions - Auf der Suche nach dem Mini-Boss"
+    },
+    {
+     "tmdb": "502356",
+     "typ": "film",
+     "name": "Der Super Mario Bros. Film"
+    },
+    {
+     "tmdb": "940551",
+     "typ": "film",
+     "name": "Raus aus dem Teich"
+    },
+    {
+     "tmdb": "519182",
+     "typ": "film",
+     "name": "Ich - Einfach unverbesserlich 4"
+    },
+    {
+     "tmdb": "1226863",
+     "typ": "film",
+     "name": "Der Super Mario Galaxy Film"
+    },
+    {
+     "tmdb": "1315772",
+     "typ": "film",
+     "name": "Minions & Monster"
+    },
+    {
+     "tmdb": "1718699",
+     "typ": "film",
+     "name": "Nicht Allein"
+    },
+    {
+     "tmdb": "1108794",
+     "typ": "film",
+     "name": "Sing 3"
+    },
+    {
+     "tmdb": "1109206",
+     "typ": "film",
+     "name": "Pets 3"
+    },
+    {
+     "tmdb": "366141",
+     "typ": "film",
+     "name": "Cro Minion"
+    },
+    {
+     "tmdb": "366143",
+     "typ": "film",
+     "name": "Binky Nelson Schnullerlos"
+    },
+    {
+     "tmdb": "484809",
+     "typ": "film",
+     "name": "Kyles geheimes Leben"
+    },
+    {
+     "tmdb": "624993",
+     "typ": "film",
+     "name": "Super Gidget"
+    },
+    {
+     "tmdb": "624995",
+     "typ": "film",
+     "name": "Minion Pfadfinder"
+    },
+    {
+     "tmdb": "54553",
+     "typ": "film",
+     "name": "Minions: Frühjahrsputz"
+    },
+    {
+     "tmdb": "229408",
+     "typ": "film",
+     "name": "Minions: Übungsräder"
+    },
+    {
+     "tmdb": "403052",
+     "typ": "film",
+     "name": "Rasenmäher-Minions"
+    },
+    {
+     "tmdb": "229407",
+     "typ": "film",
+     "name": "Minions: Puppy"
+    },
+    {
+     "tmdb": "54551",
+     "typ": "film",
+     "name": "Banane"
+    },
+    {
+     "tmdb": "229405",
+     "typ": "film",
+     "name": "Panik im Postraum"
+    },
+    {
+     "tmdb": "424873",
+     "typ": "film",
+     "name": "Würstchen"
+    },
+    {
+     "tmdb": "580312",
+     "typ": "film",
+     "name": "Der Grinch - Die Hundstage im Winter"
+    },
+    {
+     "tmdb": "764079",
+     "typ": "film",
+     "name": "Minions: Holiday Special"
+    },
+    {
+     "tmdb": "375186",
+     "typ": "film",
+     "name": "Minions - Jingle Bells"
+    },
+    {
+     "tmdb": "1029119",
+     "typ": "film",
+     "name": "Minions & mehr 1"
+    },
+    {
+     "tmdb": "1045644",
+     "typ": "film",
+     "name": "Minions & mehr 2"
+    },
+    {
+     "tmdb": "1371727",
+     "typ": "film",
+     "name": "Sing: Thriller"
+    },
+    {
+     "tmdb": "1207417",
+     "typ": "film",
+     "name": "Hinter'm Mond"
+    },
+    {
+     "tmdb": "878357",
+     "typ": "film",
+     "name": "Minions und Monster (Kurzfilm)"
+    },
+    {
+     "tmdb": "1018814",
+     "typ": "film",
+     "name": "Post-Modern Minion"
+    }
+   ],
+   "ausschluss": []
+  },
+  {
+   "name": "Harry Potter",
+   "studios": [],
+   "sammlungen": [
+    "Harry Potter",
+    "Phantastische Tierwesen",
+    "Fantastic Beasts"
+   ],
+   "titel": [
+    {
+     "tmdb": "671",
+     "typ": "film",
+     "name": "Harry Potter und der Stein der Weisen"
+    },
+    {
+     "tmdb": "672",
+     "typ": "film",
+     "name": "Harry Potter und die Kammer des Schreckens"
+    },
+    {
+     "tmdb": "673",
+     "typ": "film",
+     "name": "Harry Potter und der Gefangene von Askaban"
+    },
+    {
+     "tmdb": "674",
+     "typ": "film",
+     "name": "Harry Potter und der Feuerkelch"
+    },
+    {
+     "tmdb": "675",
+     "typ": "film",
+     "name": "Harry Potter und der Orden des Phönix"
+    },
+    {
+     "tmdb": "767",
+     "typ": "film",
+     "name": "Harry Potter und der Halbblutprinz"
+    },
+    {
+     "tmdb": "12444",
+     "typ": "film",
+     "name": "Harry Potter und die Heiligtümer des Todes 1"
+    },
+    {
+     "tmdb": "12445",
+     "typ": "film",
+     "name": "Harry Potter und die Heiligtümer des Todes 2"
+    },
+    {
+     "tmdb": "259316",
+     "typ": "film",
+     "name": "Phantastische Tierwesen und wo sie zu finden sind"
+    },
+    {
+     "tmdb": "338952",
+     "typ": "film",
+     "name": "Phantastische Tierwesen: Grindelwalds Verbrechen"
+    },
+    {
+     "tmdb": "338953",
+     "typ": "film",
+     "name": "Phantastische Tierwesen: Dumbledores Geheimnisse"
+    }
+   ],
+   "ausschluss": []
+  },
+  {
+   "name": "Mittelerde",
+   "studios": [],
+   "sammlungen": [
+    "Der Herr der Ringe",
+    "Lord of the Rings",
+    "Der Hobbit",
+    "The Hobbit"
+   ],
+   "titel": [
+    {
+     "tmdb": "120",
+     "typ": "film",
+     "name": "Der Herr der Ringe - Die Gefährten"
+    },
+    {
+     "tmdb": "121",
+     "typ": "film",
+     "name": "Der Herr der Ringe - Die zwei Türme"
+    },
+    {
+     "tmdb": "122",
+     "typ": "film",
+     "name": "Der Herr der Ringe - Die Rückkehr des Königs"
+    },
+    {
+     "tmdb": "49051",
+     "typ": "film",
+     "name": "Der Hobbit - Eine unerwartete Reise"
+    },
+    {
+     "tmdb": "57158",
+     "typ": "film",
+     "name": "Der Hobbit - Smaugs Einöde"
+    },
+    {
+     "tmdb": "122917",
+     "typ": "film",
+     "name": "Der Hobbit - Die Schlacht der fünf Heere"
+    },
+    {
+     "tmdb": "839033",
+     "typ": "film",
+     "name": "Der Herr der Ringe: Die Schlacht der Rohirrim"
+    },
+    {
+     "tmdb": "84773",
+     "typ": "serie",
+     "name": "Der Herr der Ringe: Die Ringe der Macht"
+    }
+   ],
+   "ausschluss": []
+  },
+  {
+   "name": "James Bond",
+   "studios": [
+    "Eon Productions"
+   ],
+   "sammlungen": [
+    "James Bond"
+   ],
+   "titel": [
+    {
+     "tmdb": "646",
+     "typ": "film"
+    },
+    {
+     "tmdb": "657",
+     "typ": "film"
+    },
+    {
+     "tmdb": "658",
+     "typ": "film"
+    },
+    {
+     "tmdb": "660",
+     "typ": "film"
+    },
+    {
+     "tmdb": "667",
+     "typ": "film"
+    },
+    {
+     "tmdb": "668",
+     "typ": "film"
+    },
+    {
+     "tmdb": "681",
+     "typ": "film"
+    },
+    {
+     "tmdb": "682",
+     "typ": "film"
+    },
+    {
+     "tmdb": "253",
+     "typ": "film"
+    },
+    {
+     "tmdb": "691",
+     "typ": "film"
+    },
+    {
+     "tmdb": "698",
+     "typ": "film"
+    },
+    {
+     "tmdb": "699",
+     "typ": "film"
+    },
+    {
+     "tmdb": "700",
+     "typ": "film"
+    },
+    {
+     "tmdb": "707",
+     "typ": "film"
+    },
+    {
+     "tmdb": "708",
+     "typ": "film"
+    },
+    {
+     "tmdb": "709",
+     "typ": "film"
+    },
+    {
+     "tmdb": "710",
+     "typ": "film"
+    },
+    {
+     "tmdb": "714",
+     "typ": "film"
+    },
+    {
+     "tmdb": "36643",
+     "typ": "film"
+    },
+    {
+     "tmdb": "36669",
+     "typ": "film"
+    },
+    {
+     "tmdb": "36557",
+     "typ": "film"
+    },
+    {
+     "tmdb": "10764",
+     "typ": "film"
+    },
+    {
+     "tmdb": "37724",
+     "typ": "film"
+    },
+    {
+     "tmdb": "206647",
+     "typ": "film"
+    },
+    {
+     "tmdb": "370172",
+     "typ": "film"
+    },
+    {
+     "tmdb": "36670",
+     "typ": "film"
+    },
+    {
+     "tmdb": "1184696",
+     "typ": "film",
+     "name": "Untitled James Bond Film"
+    }
+   ],
+   "ausschluss": []
+  },
+  {
+   "name": "Jurassic Park",
+   "studios": [],
+   "sammlungen": [
+    "Jurassic"
+   ],
+   "titel": [
+    {
+     "tmdb": "329",
+     "typ": "film",
+     "name": "Jurassic Park"
+    },
+    {
+     "tmdb": "330",
+     "typ": "film",
+     "name": "Vergessene Welt: Jurassic Park"
+    },
+    {
+     "tmdb": "331",
+     "typ": "film",
+     "name": "Jurassic Park III"
+    },
+    {
+     "tmdb": "135397",
+     "typ": "film",
+     "name": "Jurassic World"
+    },
+    {
+     "tmdb": "351286",
+     "typ": "film",
+     "name": "Jurassic World - Das gefallene Königreich"
+    },
+    {
+     "tmdb": "507086",
+     "typ": "film",
+     "name": "Jurassic World - Ein neues Zeitalter"
+    },
+    {
+     "tmdb": "1234821",
+     "typ": "film",
+     "name": "Jurassic World: Die Wiedergeburt"
+    },
+    {
+     "tmdb": "1714034",
+     "typ": "film",
+     "name": "Untitled Jurassic World Rebirth Sequel"
+    },
+    {
+     "tmdb": "93741",
+     "typ": "serie",
+     "name": "Jurassic World: Neue Abenteuer"
+    },
+    {
+     "tmdb": "237512",
+     "typ": "serie",
+     "name": "Jurassic World: Die Chaostheorie"
+    }
+   ],
+   "ausschluss": []
+  },
+  {
+   "name": "Studio Ghibli",
+   "studios": [
+    "Studio Ghibli"
+   ],
+   "sammlungen": [],
+   "titel": [
+    {
+     "tmdb": "81",
+     "typ": "film",
+     "name": "Nausicaä aus dem Tal der Winde"
+    },
+    {
+     "tmdb": "10515",
+     "typ": "film",
+     "name": "Das Schloss im Himmel"
+    },
+    {
+     "tmdb": "8392",
+     "typ": "film",
+     "name": "Mein Nachbar Totoro"
+    },
+    {
+     "tmdb": "12477",
+     "typ": "film",
+     "name": "Die letzten Glühwürmchen"
+    },
+    {
+     "tmdb": "16859",
+     "typ": "film",
+     "name": "Kikis kleiner Lieferservice"
+    },
+    {
+     "tmdb": "15080",
+     "typ": "film",
+     "name": "Tränen der Erinnerung"
+    },
+    {
+     "tmdb": "11621",
+     "typ": "film",
+     "name": "Porco Rosso"
+    },
+    {
+     "tmdb": "21057",
+     "typ": "film",
+     "name": "Flüstern des Meeres"
+    },
+    {
+     "tmdb": "15283",
+     "typ": "film",
+     "name": "Pom Poko"
+    },
+    {
+     "tmdb": "37797",
+     "typ": "film",
+     "name": "Stimme des Herzens"
+    },
+    {
+     "tmdb": "128",
+     "typ": "film",
+     "name": "Prinzessin Mononoke"
+    },
+    {
+     "tmdb": "16198",
+     "typ": "film",
+     "name": "Meine Nachbarn die Yamadas"
+    },
+    {
+     "tmdb": "129",
+     "typ": "film",
+     "name": "Chihiros Reise ins Zauberland"
+    },
+    {
+     "tmdb": "15370",
+     "typ": "film",
+     "name": "Das Königreich der Katzen"
+    },
+    {
+     "tmdb": "4935",
+     "typ": "film",
+     "name": "Das wandelnde Schloss"
+    },
+    {
+     "tmdb": "37933",
+     "typ": "film",
+     "name": "Die Chroniken von Erdsee"
+    },
+    {
+     "tmdb": "12429",
+     "typ": "film",
+     "name": "Ponyo"
+    },
+    {
+     "tmdb": "51739",
+     "typ": "film",
+     "name": "Arrietty"
+    },
+    {
+     "tmdb": "83389",
+     "typ": "film",
+     "name": "Der Mohnblumenberg"
+    },
+    {
+     "tmdb": "149870",
+     "typ": "film",
+     "name": "Wie der Wind sich hebt"
+    },
+    {
+     "tmdb": "149871",
+     "typ": "film",
+     "name": "Die Legende der Prinzessin Kaguya"
+    },
+    {
+     "tmdb": "242828",
+     "typ": "film",
+     "name": "Erinnerungen an Marnie"
+    },
+    {
+     "tmdb": "337703",
+     "typ": "film",
+     "name": "Die rote Schildkröte"
+    },
+    {
+     "tmdb": "683127",
+     "typ": "film",
+     "name": "Aya und die Hexe"
+    },
+    {
+     "tmdb": "508883",
+     "typ": "film",
+     "name": "Der Junge und der Reiher"
+    }
+   ],
+   "ausschluss": [
+    {
+     "tmdb": "12140",
+     "typ": "film",
+     "name": "Ghost in the Shell 2: Innocence"
+    },
+    {
+     "tmdb": "252511",
+     "typ": "film",
+     "name": "The Kingdom of Dreams and Madness (Doku)"
+    },
+    {
+     "tmdb": "1044343",
+     "typ": "film",
+     "name": "Zen: Grogu und die Rußmännchen"
+    }
+   ]
+  }
+ ]
 }

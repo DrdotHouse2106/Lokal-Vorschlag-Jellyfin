@@ -2,6 +2,8 @@
 
 `welten.json` legt fest, welche Filme und Serien zu welcher „Welt“ gehören (Marvel, Star Wars, Pixar …). Das Plugin **Local Recommendations** lädt diese Datei einmal täglich (Einstellung „Welten-Liste“, Standard: diese Datei auf GitHub) und zeigt die Welten in Apps wie Quallenkino persönlich sortiert an. Die Jellyfin-Bibliothek selbst wird dabei nicht verändert.
 
+Die Titel-Listen sind **vollständig aus TMDB** zusammengestellt, auch mit angekündigten Titeln. Sie sagen also nichts darüber aus, was in einer bestimmten Bibliothek liegt; fehlende Titel werden einfach ignoriert und gehören automatisch zur richtigen Welt, sobald sie hinzukommen.
+
 Eine eigene Liste ist möglich: Datei kopieren, anpassen und in den Plugin-Einstellungen unter „Welten-Liste“ den Link (oder einen Pfad auf dem Server) eintragen.
 
 ## Aufbau
@@ -37,3 +39,7 @@ Ein Titel wird über `tmdb`, `imdb` oder `tvdb` erkannt. Bei `tmdb` bitte `typ` 
 ## Pflegen
 
 Im Plugin unter **Einstellungen → Welten** steht pro Welt, welche Titel dazugehören und warum (Studio, Sammlung oder Liste). Darunter stehen **Vorschläge**: Titel aus derselben Sammlung, die noch fehlen. Für jeden Titel gibt es eine fertige Zeile zum Kopieren in `titel` oder `ausschluss`. Nach dem Speichern auf GitHub dort **„Liste neu laden“** drücken.
+
+## Quelle
+
+Daten: [TMDB](https://www.themoviedb.org). Dieses Produkt nutzt die TMDB-API, ist aber nicht von TMDB unterstützt oder zertifiziert.
