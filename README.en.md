@@ -199,6 +199,18 @@ Contributions welcome! See [DESIGN.md](DESIGN.md) for technical details and arch
 - **Issues:** [GitHub Issues](https://github.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/issues)
 - **Documentation:** [DESIGN.md](DESIGN.md)
 
+## Data sources
+
+Data and images: [TMDB](https://www.themoviedb.org). This product uses the TMDB API but is not endorsed or certified by TMDB.
+
+World logos (optional): [fanart.tv](https://fanart.tv).
+
+## Support the project
+
+Development costs time and money (servers, test devices, AI tools). If you like the project, a small donation is very welcome:
+
+[![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-0070ba?logo=paypal&logoColor=white)](https://paypal.me/DrdotHouse)
+
 ## License
 
 GNU General Public License v3.0 - see [LICENSE.txt](LICENSE.txt)
