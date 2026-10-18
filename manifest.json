@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.9.0.0",
+        "changelog": "Filmreihen und Begründungen / Film series and reasons\n- Nächster ungesehener Teil einer Sammlung (z. B. Harry Potter) steht vorne\n- Auf den Karten steht, warum etwas empfohlen wird („Weil du … geschaut hast“)\n- Neuer Endpunkt GET /LocalRecs/Recommendations/Reasons für Apps\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.9.0.zip",
+        "checksum": "422b40965c7c4ac38dc256825192df57",
+        "timestamp": "2026-10-18T01:00:00Z"
+      },
+      {
         "version": "12.8.0.0",
         "changelog": "Abwechslung und Lernen aus dem Verhalten / Variety and behaviour\n- Lange ignorierte Empfehlungen rutschen nach hinten (ab 14 Tagen, einstellbar)\n- Früh abgebrochene Filme machen ähnliche Titel etwas seltener\n- Höchstens ein Drittel der Film-/Serienzeile aus demselben Genre\n- „Heute im TV für dich“: keine schon gesehenen Folgen\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

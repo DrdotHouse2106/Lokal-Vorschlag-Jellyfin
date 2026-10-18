@@ -108,7 +108,11 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
                         stored[user.Id] = new UserRecommendations
                         {
                             Movies = recs.Movies.Select(r => r.ItemId).ToList(),
-                            Series = recs.Tv.Select(r => r.ItemId).ToList()
+                            Series = recs.Tv.Select(r => r.ItemId).ToList(),
+                            Reasons = recs.Movies.Concat(recs.Tv)
+                                .Where(r => !string.IsNullOrEmpty(r.Reason))
+                                .GroupBy(r => r.ItemId)
+                                .ToDictionary(g => g.Key, g => g.First().Reason!)
                         };
                         successfulUsers++;
                         _logger.LogDebug(

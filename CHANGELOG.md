@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.9.0] - 2026-10-18
+
+### Added
+
+- **Film series**: if a part of a Jellyfin collection (BoxSet) was watched, the next unwatched part (by release date) is put at the front of the movie row, at most a quarter of the row; started or disliked parts are skipped, the minimum rating still applies. Setting `EnableCollectionNextParts` (default on).
+- **Reasons**: each movie/series recommendation gets the most similar watched title as reason ("Weil du „Frieren“ geschaut hast", similarity ≥ 0.35) or "Nächster Teil nach „…“". Shown above the title on the Home Screen Sections cards (setting `ShowRecommendationReason`, default on) and available for apps via `GET /LocalRecs/Recommendations/Reasons`. `GET /LocalRecs/Recommendations` returns the items unchanged.
+
+### Fixed
+
+- Sporadically failing unit test (test vectors were based on the per-process random `string.GetHashCode()`).
+
 ## [12.8.0] - 2026-10-18
 
 ### Added

@@ -441,6 +441,20 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Domain
             return library;
         }
 
+        private static int StableSeed(string text)
+        {
+            unchecked
+            {
+                var hash = 17;
+                foreach (var c in text)
+                {
+                    hash = (hash * 31) + c;
+                }
+
+                return hash;
+            }
+        }
+
         private Dictionary<Guid, ItemEmbedding> CreateEmbeddings(List<MediaItemMetadata> library)
         {
             var embeddings = new Dictionary<Guid, ItemEmbedding>();
@@ -449,10 +463,13 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Domain
             foreach (var item in library)
             {
                 var vector = new float[dimension];
-                // Create a simple test vector (just use item index for variation)
+
+                // Deterministischer Testvektor je Titel: string.GetHashCode() ist pro Prozess zufällig und
+                // erzeugte gelegentlich fast gleiche Vektoren (sporadisch fehlschlagende Tests)
+                var random = new Random(StableSeed(item.Name));
                 for (int i = 0; i < dimension; i++)
                 {
-                    vector[i] = (float)Math.Sin(i + item.Name.GetHashCode() % 100);
+                    vector[i] = (float)((random.NextDouble() * 2) - 1);
                 }
 
                 // Normalize

@@ -39,6 +39,9 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         /// </summary>
         public const int AbandonAfterDays = 3;
 
+        // Höchstens so viele gesehene Titel kommen als Begründung („Weil du … geschaut hast“) in Frage
+        private const int MaxReasonSources = 300;
+
         private readonly IUserDataManager _userDataManager;
         private readonly IUserManager _userManager;
         private readonly ILibraryManager _libraryManager;
@@ -138,7 +141,13 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 AverageCommunityRating = avgCommunity,
                 AverageCriticRating = avgCritic,
                 CommunityRatingStdDev = communityStdDev,
-                CriticRatingStdDev = criticStdDev
+                CriticRatingStdDev = criticStdDev,
+                PositiveItemIds = watchRecords
+                    .Where(r => r.Likes != false && !r.IsAbandoned)
+                    .OrderByDescending(r => r.LastPlayedDate)
+                    .Select(r => r.ItemId)
+                    .Take(MaxReasonSources)
+                    .ToList()
             };
 
             _logger.LogDebug(

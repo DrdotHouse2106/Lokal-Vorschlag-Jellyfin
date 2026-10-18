@@ -53,11 +53,11 @@ Hast du früher das Repository `https://raw.githubusercontent.com/DrdotHouse2106
 
 ### Variante B: Manuell
 
-1. [`release/jellyfin-plugin-localrecs-v12.8.0.zip`](release/jellyfin-plugin-localrecs-v12.8.0.zip) herunterladen und entpacken.
+1. [`release/jellyfin-plugin-localrecs-v12.9.0.zip`](release/jellyfin-plugin-localrecs-v12.9.0.zip) herunterladen und entpacken.
 2. Die Datei `Jellyfin.Plugin.LocalRecs.dll` in einen neuen Ordner im Plugin-Verzeichnis legen, z. B.
-   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.8.0.0/`
-   - Docker: `/config/plugins/LocalRecs_12.8.0.0/`
-   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.8.0.0\`
+   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.9.0.0/`
+   - Docker: `/config/plugins/LocalRecs_12.9.0.0/`
+   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.9.0.0\`
 3. Jellyfin-Server neu starten.
 
 ## Einrichtung
@@ -92,6 +92,8 @@ Filme und Serien mit einer Community-Bewertung unter **5.0** werden nicht empfoh
 - **Ignorierte Empfehlungen:** Steht ein Titel länger als 14 Tage in der Zeile, ohne geschaut zu werden, rutscht er nach und nach nach hinten (2 % pro Tag, höchstens auf die Hälfte). So bleibt die Zeile frisch. Einstellbar unter „Ignorierte Empfehlungen abwerten nach“, 0 = aus.
 - **Abgebrochene Filme:** Wird ein Film vor einem Viertel der Laufzeit beendet und drei Tage lang nicht weitergeschaut, zählt das als leises „Gefällt mir nicht“: Ähnliche Titel werden etwas seltener empfohlen (halb so stark wie ein echtes „Gefällt mir nicht“).
 - **Mehr Abwechslung:** Höchstens ein Drittel der Film- bzw. Serienzeile stammt aus demselben Hauptgenre, der Rest wird mit den nächstbesten Titeln aufgefüllt.
+- **Filmreihen (ab 12.9.0):** Wurde ein Teil einer Jellyfin-Sammlung gesehen (z. B. „Harry Potter“), steht der nächste ungesehene Teil vorne in der Filmzeile – höchstens ein Viertel der Zeile, Mindestbewertung gilt weiterhin. Abschaltbar unter „Filmreihen: nächsten Teil vorziehen“.
+- **Begründung (ab 12.9.0):** Über dem Titel steht auf der Startseite, warum etwas empfohlen wird, z. B. „Weil du „Frieren“ geschaut hast“ (ähnlichster gesehener Titel) oder „Nächster Teil nach „Harry Potter 1““. Voraussetzung: In Home Screen Sections ist die Anzeige der Titel eingeschaltet. Abschaltbar unter „Begründung auf den Karten anzeigen“. Apps holen die Begründungen über `GET /LocalRecs/Recommendations/Reasons` (Zuordnung Element-ID → Text).
 - **Keine gesehenen Folgen im TV:** „Heute im TV für dich“ schlägt keine Folge vor, die schon live oder in der Bibliothek geschaut wurde (Abgleich über Sendung und Episodentitel). Läuft danach eine neue Folge, erscheint diese.
 
 ### Auswertung

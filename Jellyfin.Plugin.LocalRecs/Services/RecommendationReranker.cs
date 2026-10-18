@@ -37,6 +37,41 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         }
 
         /// <summary>
+        /// Puts the next parts of started film series at the front of the row (at most a quarter of the row).
+        /// </summary>
+        /// <param name="recommendations">The row so far (best first).</param>
+        /// <param name="nextParts">Next parts with reason, most relevant first.</param>
+        /// <param name="isAllowed">Filter for the next parts (e.g. minimum rating).</param>
+        /// <param name="limit">Length of the row.</param>
+        /// <returns>The new row.</returns>
+        public static List<ScoredRecommendation> AddNextParts(
+            IReadOnlyList<ScoredRecommendation> recommendations,
+            IEnumerable<(Guid ItemId, string Reason)> nextParts,
+            Func<Guid, bool> isAllowed,
+            int limit)
+        {
+            ArgumentNullException.ThrowIfNull(recommendations);
+            ArgumentNullException.ThrowIfNull(nextParts);
+            ArgumentNullException.ThrowIfNull(isAllowed);
+            if (limit <= 0)
+            {
+                return new List<ScoredRecommendation>();
+            }
+
+            var maxParts = Math.Max(1, (int)Math.Ceiling(limit / 4.0));
+            var parts = nextParts.Where(p => isAllowed(p.ItemId)).GroupBy(p => p.ItemId).Select(g => g.First()).Take(maxParts).ToList();
+            if (parts.Count == 0)
+            {
+                return recommendations.Take(limit).ToList();
+            }
+
+            var top = recommendations.Count > 0 ? recommendations.Max(r => r.Score) : 1f;
+            var front = parts.Select((p, i) => new ScoredRecommendation(p.ItemId, top + (0.01f * (parts.Count - i))) { Reason = p.Reason });
+            var ids = parts.Select(p => p.ItemId).ToHashSet();
+            return front.Concat(recommendations.Where(r => !ids.Contains(r.ItemId))).Take(limit).ToList();
+        }
+
+        /// <summary>
         /// Applies the penalty for ignored titles and the genre limit, and returns the final row.
         /// </summary>
         /// <param name="scored">Scored candidates (more than <paramref name="limit"/>, best first).</param>
@@ -70,7 +105,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                     }
 
                     var factor = IgnoredFactor((now - since).TotalDays, graceDays);
-                    return factor >= 1f ? r : new ScoredRecommendation(r.ItemId, r.Score * factor);
+                    return factor >= 1f ? r : new ScoredRecommendation(r.ItemId, r.Score * factor) { Reason = r.Reason };
                 })
                 .OrderByDescending(r => r.Score)
                 .ToList();

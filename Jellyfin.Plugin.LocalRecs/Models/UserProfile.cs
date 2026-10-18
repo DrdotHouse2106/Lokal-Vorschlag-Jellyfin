@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Jellyfin.Plugin.LocalRecs.Models
 {
@@ -64,5 +65,11 @@ namespace Jellyfin.Plugin.LocalRecs.Models
         /// Gets or sets the standard deviation of critic ratings from watched items.
         /// </summary>
         public float CriticRatingStdDev { get; set; }
+
+        /// <summary>
+        /// Gets or sets the items the user watched and liked (not disliked or abandoned), most recent first.
+        /// Used to explain recommendations.
+        /// </summary>
+        public IReadOnlyList<Guid> PositiveItemIds { get; set; } = Array.Empty<Guid>();
     }
 }

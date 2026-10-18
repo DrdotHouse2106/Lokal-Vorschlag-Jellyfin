@@ -22,6 +22,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         private readonly UserProfileService _userProfileService;
         private readonly RecommendationEngine _recommendationEngine;
         private readonly FeedbackStore? _feedback;
+        private readonly CollectionService? _collections;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RecommendationRefreshService"/> class.
@@ -33,6 +34,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         /// <param name="userProfileService">User profile service.</param>
         /// <param name="recommendationEngine">Recommendation engine.</param>
         /// <param name="feedback">Evaluation store (since when titles have been recommended), optional.</param>
+        /// <param name="collections">Film series (collections), optional.</param>
         public RecommendationRefreshService(
             ILogger<RecommendationRefreshService> logger,
             LibraryAnalysisService libraryAnalysisService,
@@ -40,7 +42,8 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             EmbeddingService embeddingService,
             UserProfileService userProfileService,
             RecommendationEngine recommendationEngine,
-            FeedbackStore? feedback = null)
+            FeedbackStore? feedback = null,
+            CollectionService? collections = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _libraryAnalysisService = libraryAnalysisService ?? throw new ArgumentNullException(nameof(libraryAnalysisService));
@@ -49,6 +52,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             _userProfileService = userProfileService ?? throw new ArgumentNullException(nameof(userProfileService));
             _recommendationEngine = recommendationEngine ?? throw new ArgumentNullException(nameof(recommendationEngine));
             _feedback = feedback;
+            _collections = collections;
         }
 
         /// <summary>
@@ -125,6 +129,22 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 var now = DateTime.UtcNow;
                 movieRecs = RecommendationReranker.Rerank(movieRecs, metadata, ShownSince(userId, FeedbackStore.Movies, now), now, config.IgnoredRecommendationDays, config.MovieRecommendationCount);
                 tvRecs = RecommendationReranker.Rerank(tvRecs, metadata, ShownSince(userId, FeedbackStore.Series, now), now, config.IgnoredRecommendationDays, config.TvRecommendationCount);
+
+                // Filmreihen: nächster ungesehener Teil nach vorne
+                if (_collections != null && config.EnableCollectionNextParts)
+                {
+                    movieRecs = RecommendationReranker.AddNextParts(
+                        movieRecs,
+                        _collections.GetNextParts(userId),
+                        id => !metadata.TryGetValue(id, out var item) || !RatingQuality.IsBelowMinimum(item, config),
+                        config.MovieRecommendationCount);
+                }
+
+                // Begründung: ähnlichster gesehener Titel
+                if (profile != null)
+                {
+                    RecommendationExplainer.Explain(movieRecs.Concat(tvRecs), profile.PositiveItemIds, embeddings, metadata);
+                }
 
                 _logger.LogDebug(
                     "Generated recommendations for user {UserId}: {MovieCount} movies, {TvCount} TV",

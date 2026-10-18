@@ -97,7 +97,7 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
         /// <returns>The items to display.</returns>
         public QueryResult<BaseItemDto> GetMovieResults(SectionRequest request)
         {
-            return GetResults(request, MoviesSection);
+            return GetResults(request, MoviesSection, true);
         }
 
         /// <summary>
@@ -107,7 +107,28 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
         /// <returns>The items to display.</returns>
         public QueryResult<BaseItemDto> GetSeriesResults(SectionRequest request)
         {
-            return GetResults(request, SeriesSection);
+            return GetResults(request, SeriesSection, true);
+        }
+
+        /// <summary>
+        /// Returns the recommendations for apps (unchanged items, without the reason line on the card).
+        /// </summary>
+        /// <param name="request">Request with the user ID.</param>
+        /// <param name="section">Section type (<see cref="MoviesSection"/> or <see cref="SeriesSection"/>).</param>
+        /// <returns>The items to display.</returns>
+        public QueryResult<BaseItemDto> GetApiResults(SectionRequest request, string section)
+        {
+            return GetResults(request, section, false);
+        }
+
+        /// <summary>
+        /// Gets the reasons of the recommendations of a user (e.g. "Weil du „Frieren“ geschaut hast").
+        /// </summary>
+        /// <param name="userId">User ID.</param>
+        /// <returns>Reasons by item ID.</returns>
+        public IReadOnlyDictionary<Guid, string> GetReasons(Guid userId)
+        {
+            return _store.Get(userId)?.Reasons ?? new Dictionary<Guid, string>();
         }
 
         /// <summary>
@@ -170,7 +191,7 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
             return result;
         }
 
-        private QueryResult<BaseItemDto> GetResults(SectionRequest? request, string section)
+        private QueryResult<BaseItemDto> GetResults(SectionRequest? request, string section, bool reasonLine)
         {
             try
             {
@@ -191,6 +212,22 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
                 };
 
                 var dtos = _dtoService.GetBaseItemDtos(items, options, user);
+
+                // Begründung als erste Zeile der Karte: Home Screen Sections zeigt dort den „Elterntitel“,
+                // der bei Filmen und Serien sonst leer bleibt
+                var config = Plugin.Instance?.Configuration ?? new PluginConfiguration();
+                if (reasonLine && config.ShowRecommendationReason)
+                {
+                    var reasons = GetReasons(request.UserId);
+                    foreach (var dto in dtos)
+                    {
+                        if (reasons.TryGetValue(dto.Id, out var reason) && string.IsNullOrEmpty(dto.SeriesName))
+                        {
+                            dto.SeriesName = reason;
+                        }
+                    }
+                }
+
                 return new QueryResult<BaseItemDto>(null, dtos.Count, dtos);
             }
             catch (Exception ex)

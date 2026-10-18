@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using Jellyfin.Plugin.LocalRecs.HomeScreen;
@@ -94,11 +95,11 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             QueryResult<BaseItemDto> result;
             if (string.Equals(type, RecommendationSectionHandler.MoviesSection, StringComparison.OrdinalIgnoreCase))
             {
-                result = _recommendations.GetMovieResults(request);
+                result = _recommendations.GetApiResults(request, RecommendationSectionHandler.MoviesSection);
             }
             else if (string.Equals(type, RecommendationSectionHandler.SeriesSection, StringComparison.OrdinalIgnoreCase))
             {
-                result = _recommendations.GetSeriesResults(request);
+                result = _recommendations.GetApiResults(request, RecommendationSectionHandler.SeriesSection);
             }
             else if (string.Equals(type, LiveTvType, StringComparison.OrdinalIgnoreCase))
             {
@@ -110,6 +111,24 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             }
 
             return Ok(Limit(result, limit));
+        }
+
+        /// <summary>
+        /// Gets the reasons of the movie and series recommendations of the signed-in user,
+        /// e.g. "Weil du „Frieren“ geschaut hast" or "Nächster Teil nach „Harry Potter 1“".
+        /// </summary>
+        /// <returns>Reasons by item ID (without dashes).</returns>
+        [HttpGet("Recommendations/Reasons")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public ActionResult<Dictionary<string, string>> GetReasons()
+        {
+            var userId = GetUserId(User);
+            if (userId == Guid.Empty)
+            {
+                return Unauthorized();
+            }
+
+            return Ok(_recommendations.GetReasons(userId).ToDictionary(kv => kv.Key.ToString("N"), kv => kv.Value));
         }
     }
 }

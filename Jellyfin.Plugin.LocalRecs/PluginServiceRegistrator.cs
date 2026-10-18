@@ -32,6 +32,7 @@ namespace Jellyfin.Plugin.LocalRecs
             serviceCollection.AddSingleton<RecommendationEngine>();
 
             // Phase 6: Recommendation Refresh Service
+            serviceCollection.AddSingleton<CollectionService>();
             serviceCollection.AddSingleton<RecommendationRefreshService>();
 
             // Phase 7: Home screen sections (via the "Home Screen Sections" plugin)

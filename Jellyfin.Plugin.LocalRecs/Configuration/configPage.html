@@ -172,6 +172,22 @@
 
                         <div class="checkboxContainer checkboxContainer-withDescription">
                             <label>
+                                <input is="emby-checkbox" type="checkbox" id="enableCollectionNextParts" name="enableCollectionNextParts" />
+                                <span>Filmreihen: nächsten Teil vorziehen</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Wurde ein Teil einer Sammlung (z. B. „Harry Potter“) gesehen, steht der nächste ungesehene Teil vorne in der Filmzeile (höchstens ein Viertel der Zeile).</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="showRecommendationReason" name="showRecommendationReason" />
+                                <span>Begründung auf den Karten anzeigen</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Zeigt über dem Titel z. B. „Weil du „Frieren“ geschaut hast“ oder „Nächster Teil nach …“ (Startseite über Home Screen Sections, Anzeige „Titel“ muss eingeschaltet sein).</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
                                 <input is="emby-checkbox" type="checkbox" id="enableRatingProximity" name="enableRatingProximity" />
                                 <span>Enable Rating Proximity Weighting</span>
                             </label>
@@ -479,6 +495,8 @@
                             page.querySelector('#maxVocabularyDirectors').value = config.MaxVocabularyDirectors !== undefined ? config.MaxVocabularyDirectors : 0;
                             page.querySelector('#maxVocabularyTags').value = config.MaxVocabularyTags !== undefined ? config.MaxVocabularyTags : 500;
                             page.querySelector('#enableRatingProximity').checked = config.EnableRatingProximity || false;
+                            page.querySelector('#enableCollectionNextParts').checked = config.EnableCollectionNextParts !== false;
+                            page.querySelector('#showRecommendationReason').checked = config.ShowRecommendationReason !== false;
                             page.querySelector('#ratingProximityWeight').value = config.RatingProximityWeight !== undefined ? config.RatingProximityWeight : 0.2;
                             page.querySelector('#minCommunityRating').value = config.MinCommunityRating !== undefined ? config.MinCommunityRating : 5;
                             page.querySelector('#ignoredRecommendationDays').value = config.IgnoredRecommendationDays !== undefined ? config.IgnoredRecommendationDays : 14;
@@ -534,6 +552,8 @@
                             config.MaxVocabularyDirectors = parseInt(page.querySelector('#maxVocabularyDirectors').value);
                             config.MaxVocabularyTags = parseInt(page.querySelector('#maxVocabularyTags').value);
                             config.EnableRatingProximity = page.querySelector('#enableRatingProximity').checked;
+                            config.EnableCollectionNextParts = page.querySelector('#enableCollectionNextParts').checked;
+                            config.ShowRecommendationReason = page.querySelector('#showRecommendationReason').checked;
                             config.RatingProximityWeight = parseFloat(page.querySelector('#ratingProximityWeight').value);
                             config.MinCommunityRating = parseFloat(page.querySelector('#minCommunityRating').value) || 0;
                             var ignoredDays = parseInt(page.querySelector('#ignoredRecommendationDays').value);

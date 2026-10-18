@@ -27,6 +27,8 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             MinCommunityRating = 5.0;
             RatingQualityWeight = 0.15;
             IgnoredRecommendationDays = 14;
+            EnableCollectionNextParts = true;
+            ShowRecommendationReason = true;
             MovieSectionTitle = "Empfohlene Filme für dich";
             TvSectionTitle = "Empfohlene Serien für dich";
             EnableLiveTvTracking = true;
@@ -192,6 +194,17 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// (2 % per day, down to half the score). 0 = off. Default: 14.
         /// </summary>
         public int IgnoredRecommendationDays { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the next unwatched part of a started film series (Jellyfin collection)
+        /// is put at the front of the movie row. Default: true.
+        /// </summary>
+        public bool EnableCollectionNextParts { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the reason ("Weil du … geschaut hast") is shown on the home screen cards. Default: true.
+        /// </summary>
+        public bool ShowRecommendationReason { get; set; }
 
         /// <summary>
         /// Validates the configuration and returns validation errors.

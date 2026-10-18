@@ -27,5 +27,10 @@ namespace Jellyfin.Plugin.LocalRecs.Models
         /// Gets the cosine similarity score (higher is better, range 0-1).
         /// </summary>
         public float Score { get; }
+
+        /// <summary>
+        /// Gets or sets the reason shown with the recommendation (e.g. "Weil du „Frieren“ geschaut hast"), if any.
+        /// </summary>
+        public string? Reason { get; set; }
     }
 }
