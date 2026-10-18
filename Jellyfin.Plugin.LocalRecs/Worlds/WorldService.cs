@@ -22,6 +22,7 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
     {
         private const int MaxRecentMovies = 300;
         private const int MaxRecentEpisodes = 500;
+        private const int TrailerRotation = 7;
         private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(30);
 
         private readonly ILogger<WorldService> _logger;
@@ -29,6 +30,7 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         private readonly IUserDataManager _userDataManager;
         private readonly object _lock = new object();
         private readonly WorldListSource? _listSource;
+        private readonly Dictionary<(Guid User, string World), (DateTime Day, WorldMembership Data, (Guid Item, Guid Trailer)? Choice)> _trailerCache = new();
         private (DateTime Created, string Key, WorldMembership Data)? _cache;
 
         /// <summary>
@@ -47,6 +49,19 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         }
 
         private static PluginConfiguration Config => Plugin.Instance?.Configuration ?? new PluginConfiguration();
+
+        /// <summary>
+        /// Picks one entry per day from a list (rotates daily, stable within a day).
+        /// </summary>
+        /// <typeparam name="T">Entry type.</typeparam>
+        /// <param name="entries">Entries.</param>
+        /// <param name="date">The day.</param>
+        /// <returns>The entry of the day, or default for an empty list.</returns>
+        public static T? PickForDay<T>(IReadOnlyList<T> entries, DateTime date)
+        {
+            ArgumentNullException.ThrowIfNull(entries);
+            return entries.Count == 0 ? default : entries[(int)((long)date.Date.Subtract(DateTime.UnixEpoch.Date).TotalDays % entries.Count)];
+        }
 
         /// <summary>
         /// Gets the configured worlds and their members (movie and series IDs). Cached for 30 minutes.
@@ -182,7 +197,8 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
 
         /// <summary>
         /// Picks the title whose local trailer plays behind the world (like Disney+): the title set in the list
-        /// (field "trailer") if it has a local trailer, otherwise the most recently added visible title with one.
+        /// (field "trailer") if it has a local trailer, otherwise one of the most recently added visible titles with one,
+        /// changing daily. The choice is cached per user and world for the day.
         /// </summary>
         /// <param name="user">The user.</param>
         /// <param name="worldId">World ID.</param>
@@ -192,32 +208,63 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         {
             ArgumentNullException.ThrowIfNull(user);
             ArgumentNullException.ThrowIfNull(members);
-            var candidates = members
-                .Select(id => _libraryManager.GetItemById(id))
-                .Where(i => i != null)
-                .OrderByDescending(i => i!.DateCreated)
-                .ThenByDescending(i => i!.CommunityRating ?? 0)
-                .Select(i => i!);
-            if (GetData().PinnedTrailers.TryGetValue(worldId, out var pinnedId) && _libraryManager.GetItemById(pinnedId) is { } pinned)
+            var data = GetData();
+            var today = DateTime.Now.Date;
+            var key = (user.Id, worldId);
+            lock (_lock)
             {
-                candidates = candidates.Prepend(pinned);
-            }
-
-            foreach (var item in candidates)
-            {
-                if (!item.IsVisible(user) || item is not IHasTrailers hasTrailers)
+                if (_trailerCache.TryGetValue(key, out var cached) && cached.Day == today && ReferenceEquals(cached.Data, data))
                 {
-                    continue;
-                }
-
-                var trailer = hasTrailers.LocalTrailers.FirstOrDefault(t => t.IsVisible(user));
-                if (trailer != null)
-                {
-                    return (item, trailer);
+                    return cached.Choice is { } ids
+                        && _libraryManager.GetItemById(ids.Item) is { } cachedItem
+                        && _libraryManager.GetItemById(ids.Trailer) is { } cachedTrailer
+                        ? (cachedItem, cachedTrailer)
+                        : null;
                 }
             }
 
-            return null;
+            (BaseItem Item, BaseItem Trailer)? choice = null;
+            if (data.PinnedTrailers.TryGetValue(worldId, out var pinnedId) && _libraryManager.GetItemById(pinnedId) is { } pinned)
+            {
+                choice = FindTrailer(user, pinned);
+            }
+
+            if (choice == null)
+            {
+                var withTrailer = members
+                    .Select(id => _libraryManager.GetItemById(id))
+                    .Where(i => i != null)
+                    .OrderByDescending(i => i!.DateCreated)
+                    .ThenByDescending(i => i!.CommunityRating ?? 0)
+                    .Select(i => FindTrailer(user, i!))
+                    .Where(c => c != null)
+                    .Take(TrailerRotation)
+                    .ToList();
+                choice = PickForDay(withTrailer, today);
+            }
+
+            lock (_lock)
+            {
+                if (_trailerCache.Count > 10000)
+                {
+                    _trailerCache.Clear();
+                }
+
+                _trailerCache[key] = (today, data, choice is { } c ? (c.Item.Id, c.Trailer.Id) : null);
+            }
+
+            return choice;
+        }
+
+        private static (BaseItem Item, BaseItem Trailer)? FindTrailer(User user, BaseItem item)
+        {
+            if (!item.IsVisible(user) || item is not IHasTrailers hasTrailers)
+            {
+                return null;
+            }
+
+            var trailer = hasTrailers.LocalTrailers.FirstOrDefault(t => t.IsVisible(user));
+            return trailer == null ? null : (item, trailer);
         }
 
         private WorldMembership GetData()

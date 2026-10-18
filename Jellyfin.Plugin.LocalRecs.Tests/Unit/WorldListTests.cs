@@ -76,6 +76,17 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
         }
 
         [Fact]
+        public void PickForDay_RotatesDaily_StableWithinDay()
+        {
+            var entries = new[] { "a", "b", "c" };
+            var day = new DateTime(2026, 10, 18, 8, 0, 0);
+
+            WorldService.PickForDay(entries, day).Should().Be(WorldService.PickForDay(entries, day.AddHours(15)));
+            new[] { 0, 1, 2 }.Select(d => WorldService.PickForDay(entries, day.AddDays(d))).Should().OnlyHaveUniqueItems();
+            WorldService.PickForDay(Array.Empty<string>(), day).Should().BeNull();
+        }
+
+        [Fact]
         public void ParseJson_WithoutWorlds_Throws()
         {
             var act = () => WorldDefinition.ParseJson("{ \"x\": 1 }");

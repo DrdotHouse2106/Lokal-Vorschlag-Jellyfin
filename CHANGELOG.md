@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.16.1] - 2026-10-18
+
+### Changed
+
+- World trailers rotate daily among the seven most recently added titles with a local trailer (stable within a day); a title pinned in the list always wins. The choice is cached per user and world, so `GET /LocalRecs/Worlds` no longer searches for trailers on every call.
+
 ## [12.16.0] - 2026-10-18
 
 ### Added

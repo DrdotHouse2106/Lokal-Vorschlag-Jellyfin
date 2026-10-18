@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.16.1.0",
+        "changelog": "Welten-Trailer wechseln täglich / World trailers rotate daily\n- Einer der sieben neuesten Titel mit lokalem Trailer, innerhalb eines Tages gleich; festgelegter Titel (\"trailer\") hat Vorrang\n- /LocalRecs/Worlds schneller durch Zwischenspeicher\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.16.1.zip",
+        "checksum": "c164b10a3200687372910ca77caaf38f",
+        "timestamp": "2026-10-18T17:00:00Z"
+      },
+      {
         "version": "12.16.0.0",
         "changelog": "Welten-Trailer wie bei Disney+ / World trailers\n- /LocalRecs/Worlds liefert je Welt TrailerItemId, TrailerItemName und TrailerId (Titel mit lokalem Trailer, z. B. von Trailarr)\n- Festlegbar in der Welten-Liste über \"trailer\"\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
