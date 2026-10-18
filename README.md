@@ -53,11 +53,11 @@ Hast du früher das Repository `https://raw.githubusercontent.com/DrdotHouse2106
 
 ### Variante B: Manuell
 
-1. [`release/jellyfin-plugin-localrecs-v12.9.0.zip`](release/jellyfin-plugin-localrecs-v12.9.0.zip) herunterladen und entpacken.
+1. [`release/jellyfin-plugin-localrecs-v12.10.0.zip`](release/jellyfin-plugin-localrecs-v12.10.0.zip) herunterladen und entpacken.
 2. Die Datei `Jellyfin.Plugin.LocalRecs.dll` in einen neuen Ordner im Plugin-Verzeichnis legen, z. B.
-   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.9.0.0/`
-   - Docker: `/config/plugins/LocalRecs_12.9.0.0/`
-   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.9.0.0\`
+   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.10.0.0/`
+   - Docker: `/config/plugins/LocalRecs_12.10.0.0/`
+   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.10.0.0\`
 3. Jellyfin-Server neu starten.
 
 ## Einrichtung
@@ -131,6 +131,17 @@ GET /LocalRecs/LiveTv/Credits?ids=id1,id2,…   (bis 200 IDs)
 
 - `programId` ist die Jellyfin-ID der Sendung (LiveTvProgram). Normales Token, der Benutzer braucht Live-TV-Zugriff.
 - Antwort: `{ "ProgramId", "Matched", "Actors": [{ "Name", "Role" }], "Directors", "Writers", "Year", "Country", "Episode", "ImdbId", "TmdbId" }`. Ohne Treffer in der XMLTV-Datei `Matched: false` (HTTP 200). Unbekannte ID: 404 bzw. bei mehreren IDs nicht in der Antwort enthalten.
+
+**Welten wie bei Disney+ (ab 12.10.0):** Marvel, Star Wars, DC, Pixar, Disney, DreamWorks, Illumination, Harry Potter, Mittelerde, James Bond, Jurassic Park – zugeordnet über Studios und Jellyfin-Sammlungen (Teil des Namens genügt). Die Liste lässt sich in den Einstellungen unter „Welten“ ändern (eine Zeile pro Welt: `Name | Studios | Sammlungen`). Angezeigt werden nur Welten mit mindestens 5 Titeln.
+
+```
+GET /LocalRecs/Worlds                              → Welten des Benutzers (zuletzt geschaute zuerst)
+GET /LocalRecs/Worlds/{id}/Recommendations?limit=20 → Titel der Welt, persönlich sortiert
+GET /LocalRecs/Worlds/Recent?limit=20              → zuletzt geschaute Welt mit Titeln („Mehr aus dem …-Universum“), sonst 204
+```
+
+- Sortiert nach dem Geschmack des Benutzers (ohne Verlauf nach Bewertung). Der nächste ungesehene Teil einer begonnenen Filmreihe steht vorne. Gesehene, angefangene und mit „Gefällt mir nicht“ bewertete Titel fehlen, Serien bleiben bis zur letzten Folge.
+- Die Begründungen der Welt-Titel stehen ebenfalls in `/LocalRecs/Recommendations/Reasons`.
 
 **Daumen hoch/runter (ab 12.6.0):** „Gefällt mir“ zählt wie ein Favorit, auch wenn der Titel noch nicht geschaut wurde. „Gefällt mir nicht“ wird nie empfohlen und macht ähnliche Titel seltener. Bewerten lässt sich in der TV-App auf der Detailseite (gespeichert wird in Jellyfin selbst).
 

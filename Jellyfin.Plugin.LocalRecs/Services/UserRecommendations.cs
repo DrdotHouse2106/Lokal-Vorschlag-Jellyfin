@@ -22,5 +22,10 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         /// Gets or sets the reasons by item ID (e.g. "Weil du „Frieren“ geschaut hast").
         /// </summary>
         public Dictionary<Guid, string> Reasons { get; set; } = new Dictionary<Guid, string>();
+
+        /// <summary>
+        /// Gets or sets the personal ranking of each world (world ID → item IDs, best first).
+        /// </summary>
+        public Dictionary<string, List<Guid>> Worlds { get; set; } = new Dictionary<string, List<Guid>>();
     }
 }

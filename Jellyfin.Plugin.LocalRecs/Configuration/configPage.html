@@ -168,6 +168,20 @@
                             <div class="fieldDescription">Time for watch weight to decay by half (default: 365)</div>
                         </div>
                         
+                        <h2 class="sectionTitle">Welten (für Apps)</h2>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="worldDefinitions">Welten (eine pro Zeile: Name | Studios | Sammlungen):</label>
+                            <textarea is="emby-textarea" id="worldDefinitions" name="worldDefinitions" rows="8" style="width: 100%; font-family: monospace;"></textarea>
+                            <div class="fieldDescription">Wie bei Disney+: Alle Filme und Serien, deren Studio oder Sammlung (Teil des Namens genügt, durch Komma getrennt) passt, gehören zur Welt. Apps zeigen sie über <code>/LocalRecs/Worlds</code> persönlich sortiert an. Zeilen mit # werden ignoriert. Leer lassen = Standard wiederherstellen.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="minWorldItems">Welt erst ab so vielen Titeln anzeigen:</label>
+                            <input is="emby-input" type="number" id="minWorldItems" name="minWorldItems" min="1" max="100" />
+                            <div class="fieldDescription">Standard: 5</div>
+                        </div>
+
                         <h2 class="sectionTitle">Advanced Features</h2>
 
                         <div class="checkboxContainer checkboxContainer-withDescription">
@@ -495,6 +509,8 @@
                             page.querySelector('#maxVocabularyDirectors').value = config.MaxVocabularyDirectors !== undefined ? config.MaxVocabularyDirectors : 0;
                             page.querySelector('#maxVocabularyTags').value = config.MaxVocabularyTags !== undefined ? config.MaxVocabularyTags : 500;
                             page.querySelector('#enableRatingProximity').checked = config.EnableRatingProximity || false;
+                            page.querySelector('#worldDefinitions').value = config.WorldDefinitions || '';
+                            page.querySelector('#minWorldItems').value = config.MinWorldItems !== undefined ? config.MinWorldItems : 5;
                             page.querySelector('#enableCollectionNextParts').checked = config.EnableCollectionNextParts !== false;
                             page.querySelector('#showRecommendationReason').checked = config.ShowRecommendationReason !== false;
                             page.querySelector('#ratingProximityWeight').value = config.RatingProximityWeight !== undefined ? config.RatingProximityWeight : 0.2;
@@ -552,6 +568,13 @@
                             config.MaxVocabularyDirectors = parseInt(page.querySelector('#maxVocabularyDirectors').value);
                             config.MaxVocabularyTags = parseInt(page.querySelector('#maxVocabularyTags').value);
                             config.EnableRatingProximity = page.querySelector('#enableRatingProximity').checked;
+                            var worldDefinitions = page.querySelector('#worldDefinitions').value.trim();
+                            if (worldDefinitions) {
+                                config.WorldDefinitions = worldDefinitions;
+                            } else {
+                                delete config.WorldDefinitions;
+                            }
+                            config.MinWorldItems = Math.min(100, Math.max(1, parseInt(page.querySelector('#minWorldItems').value) || 5));
                             config.EnableCollectionNextParts = page.querySelector('#enableCollectionNextParts').checked;
                             config.ShowRecommendationReason = page.querySelector('#showRecommendationReason').checked;
                             config.RatingProximityWeight = parseFloat(page.querySelector('#ratingProximityWeight').value);

@@ -114,6 +114,18 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
                                 .GroupBy(r => r.ItemId)
                                 .ToDictionary(g => g.Key, g => g.First().Reason!)
                         };
+
+                        // Welten: Rangliste je Welt, Begründungen ergänzen
+                        var worldRankings = _refreshService.GetWorldRankings(user.Id);
+                        if (worldRankings != null)
+                        {
+                            stored[user.Id].Worlds = worldRankings.Items;
+                            foreach (var (itemId, reason) in worldRankings.Reasons)
+                            {
+                                stored[user.Id].Reasons.TryAdd(itemId, reason);
+                            }
+                        }
+
                         successfulUsers++;
                         _logger.LogDebug(
                             "Stored recommendations for {UserName}: {MovieCount} movies, {TvCount} TV shows",

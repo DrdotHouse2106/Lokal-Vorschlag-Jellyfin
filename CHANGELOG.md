@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.10.0] - 2026-10-18
+
+### Added
+
+- **Worlds** like on Disney+: movies and series grouped by studio and Jellyfin collection (partial names). Default worlds: Marvel, Star Wars, DC, Pixar, Disney, DreamWorks, Illumination, Harry Potter, Mittelerde, James Bond, Jurassic Park; editable as text (`WorldDefinitions`, one line per world `Name | Studios | Collections`), shown from `MinWorldItems` (default 5) visible titles.
+- API for apps: `GET /LocalRecs/Worlds`, `GET /LocalRecs/Worlds/{id}/Recommendations?limit=N`, `GET /LocalRecs/Worlds/Recent?limit=N` (regular token). Titles are ranked per user during the daily refresh (taste profile and rating, next part of a started film series first); watched, started and disliked titles are removed when shown, new titles are appended by rating. Reasons of world titles are added to `/LocalRecs/Recommendations/Reasons`.
+
 ## [12.9.0] - 2026-10-18
 
 ### Added

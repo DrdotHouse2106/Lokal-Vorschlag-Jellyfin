@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.10.0.0",
+        "changelog": "Welten wie bei Disney+ / Worlds\n- Marvel, Star Wars, Pixar, Disney … über Studios und Sammlungen (in den Einstellungen änderbar)\n- Neue Endpunkte /LocalRecs/Worlds, /Worlds/{id}/Recommendations, /Worlds/Recent für die TV-App\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.10.0.zip",
+        "checksum": "dd6dc065e3e499baed5f017c2cada40e",
+        "timestamp": "2026-10-18T08:00:00Z"
+      },
+      {
         "version": "12.9.0.0",
         "changelog": "Filmreihen und Begründungen / Film series and reasons\n- Nächster ungesehener Teil einer Sammlung (z. B. Harry Potter) steht vorne\n- Auf den Karten steht, warum etwas empfohlen wird („Weil du … geschaut hast“)\n- Neuer Endpunkt GET /LocalRecs/Recommendations/Reasons für Apps\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

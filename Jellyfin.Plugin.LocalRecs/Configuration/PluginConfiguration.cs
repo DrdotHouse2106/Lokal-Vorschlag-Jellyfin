@@ -29,6 +29,8 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             IgnoredRecommendationDays = 14;
             EnableCollectionNextParts = true;
             ShowRecommendationReason = true;
+            WorldDefinitions = Worlds.WorldDefinition.DefaultDefinitions;
+            MinWorldItems = 5;
             MovieSectionTitle = "Empfohlene Filme für dich";
             TvSectionTitle = "Empfohlene Serien für dich";
             EnableLiveTvTracking = true;
@@ -205,6 +207,16 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Gets or sets a value indicating whether the reason ("Weil du … geschaut hast") is shown on the home screen cards. Default: true.
         /// </summary>
         public bool ShowRecommendationReason { get; set; }
+
+        /// <summary>
+        /// Gets or sets the worlds (one per line: Name | Studios | Collections, comma separated partial names).
+        /// </summary>
+        public string WorldDefinitions { get; set; }
+
+        /// <summary>
+        /// Gets or sets the minimum number of titles a world needs to be offered. Default: 5.
+        /// </summary>
+        public int MinWorldItems { get; set; }
 
         /// <summary>
         /// Validates the configuration and returns validation errors.
