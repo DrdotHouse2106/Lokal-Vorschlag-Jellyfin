@@ -53,11 +53,11 @@ Hast du früher das Repository `https://raw.githubusercontent.com/DrdotHouse2106
 
 ### Variante B: Manuell
 
-1. [`release/jellyfin-plugin-localrecs-v12.11.0.zip`](release/jellyfin-plugin-localrecs-v12.11.0.zip) herunterladen und entpacken.
+1. [`release/jellyfin-plugin-localrecs-v12.12.0.zip`](release/jellyfin-plugin-localrecs-v12.12.0.zip) herunterladen und entpacken.
 2. Die Datei `Jellyfin.Plugin.LocalRecs.dll` in einen neuen Ordner im Plugin-Verzeichnis legen, z. B.
-   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.11.0.0/`
-   - Docker: `/config/plugins/LocalRecs_12.11.0.0/`
-   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.11.0.0\`
+   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.12.0.0/`
+   - Docker: `/config/plugins/LocalRecs_12.12.0.0/`
+   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.12.0.0\`
 3. Jellyfin-Server neu starten.
 
 ## Einrichtung
@@ -132,7 +132,7 @@ GET /LocalRecs/LiveTv/Credits?ids=id1,id2,…   (bis 200 IDs)
 - `programId` ist die Jellyfin-ID der Sendung (LiveTvProgram). Normales Token, der Benutzer braucht Live-TV-Zugriff.
 - Antwort: `{ "ProgramId", "Matched", "Actors": [{ "Name", "Role" }], "Directors", "Writers", "Year", "Country", "Episode", "ImdbId", "TmdbId" }`. Ohne Treffer in der XMLTV-Datei `Matched: false` (HTTP 200). Unbekannte ID: 404 bzw. bei mehreren IDs nicht in der Antwort enthalten.
 
-**Welten wie bei Disney+ (ab 12.10.0):** Marvel, Star Wars, DC, Pixar, Disney, DreamWorks, Illumination, Harry Potter, Mittelerde, James Bond, Jurassic Park, Studio Ghibli. Welche Titel dazugehören, steht ab 12.11.0 in einer **gepflegten Liste auf GitHub** ([`welten/welten.json`](welten/welten.json), Aufbau siehe [`welten/README.md`](welten/README.md)): Studios, Namen von Jellyfin-Sammlungen und einzelne Titel per TMDB-/IMDb-/TVDB-ID, dazu Ausschlüsse. Das Plugin lädt die Liste täglich und behält bei Fehlern den letzten Stand; die Bibliothek wird nicht verändert. Wer eine andere Zuordnung möchte, trägt unter **Settings → Welten-Liste** einen Link zu einer eigenen Datei ein (leer = nur die Regeln aus dem Textfeld). Im Reiter **Welten** steht pro Welt, welche Titel warum dazugehören, dazu Vorschläge für fehlende Titel mit fertiger Zeile zum Einfügen in die Liste. Angezeigt werden nur Welten mit mindestens 5 Titeln.
+**Welten wie bei Disney+ (ab 12.10.0):** Marvel, Star Wars, DC, Pixar, Disney, DreamWorks, Illumination, Harry Potter, Mittelerde, James Bond, Jurassic Park, Studio Ghibli. Welche Titel dazugehören, steht in einer **gepflegten Liste auf GitHub** – ab 12.12.0 im eigenen Repository [Jellyfin-Welten](https://github.com/DrdotHouse2106/Jellyfin-Welten), dort wöchentlich vollständig aus TMDB aktualisiert (auch angekündigte Titel); von Hand ergänzte Titel und Ausschlüsse stehen in dessen `regeln.json` und gehen nie verloren: Studios, Namen von Jellyfin-Sammlungen und einzelne Titel per TMDB-/IMDb-/TVDB-ID, dazu Ausschlüsse. Das Plugin lädt die Liste täglich und behält bei Fehlern den letzten Stand; die Bibliothek wird nicht verändert. Wer eine andere Zuordnung möchte, trägt unter **Settings → Welten-Liste** einen Link zu einer eigenen Datei ein (leer = nur die Regeln aus dem Textfeld). Im Reiter **Welten** steht pro Welt, welche Titel warum dazugehören, dazu Vorschläge für fehlende Titel mit fertiger Zeile zum Einfügen in die Liste. Angezeigt werden nur Welten mit mindestens 5 Titeln.
 
 ```
 GET /LocalRecs/Worlds                              → Welten des Benutzers (zuletzt geschaute zuerst)

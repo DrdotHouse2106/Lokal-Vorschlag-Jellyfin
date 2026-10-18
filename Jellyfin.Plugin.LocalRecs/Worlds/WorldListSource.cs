@@ -18,9 +18,14 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
     public class WorldListSource
     {
         /// <summary>
-        /// Default list: maintained in the plugin repository.
+        /// Default list: maintained in the repository Jellyfin-Welten (updated weekly from TMDB).
         /// </summary>
-        public const string DefaultUrl = "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/welten/welten.json";
+        public const string DefaultUrl = "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Welten/main/welten.json";
+
+        /// <summary>
+        /// Former default list in the plugin repository (12.11.x). Configurations still pointing there use <see cref="DefaultUrl"/>.
+        /// </summary>
+        public const string FormerDefaultUrl = "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/welten/welten.json";
 
         private static readonly TimeSpan ReloadInterval = TimeSpan.FromHours(24);
         private static readonly TimeSpan RetryInterval = TimeSpan.FromHours(1);
@@ -62,12 +67,22 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         private static PluginConfiguration Config => Plugin.Instance?.Configuration ?? new PluginConfiguration();
 
         /// <summary>
+        /// Gets the configured source; the former default in the plugin repository is replaced by the new default.
+        /// </summary>
+        /// <returns>The source, or null/empty if none.</returns>
+        public static string? ConfiguredSource()
+        {
+            var source = Config.WorldListSource?.Trim();
+            return string.Equals(source, FormerDefaultUrl, StringComparison.OrdinalIgnoreCase) ? DefaultUrl : source;
+        }
+
+        /// <summary>
         /// Gets the worlds of the configured list. Starts a (re)load in the background if needed.
         /// </summary>
         /// <returns>The worlds, or null if no list is configured or none could be loaded yet.</returns>
         public IReadOnlyList<WorldDefinition>? GetWorlds()
         {
-            var source = Config.WorldListSource?.Trim();
+            var source = ConfiguredSource();
             if (string.IsNullOrEmpty(source))
             {
                 return null;
@@ -110,7 +125,7 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         /// <returns>A task.</returns>
         public Task ReloadAsync()
         {
-            var source = Config.WorldListSource?.Trim();
+            var source = ConfiguredSource();
             if (string.IsNullOrEmpty(source))
             {
                 return Task.CompletedTask;
@@ -138,7 +153,9 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                 }
 
                 var cache = JsonSerializer.Deserialize<CacheFile>(File.ReadAllText(_cachePath));
-                if (cache?.Json != null && string.Equals(cache.Source, source, StringComparison.Ordinal))
+                var sameSource = string.Equals(cache?.Source, source, StringComparison.Ordinal)
+                    || (string.Equals(source, DefaultUrl, StringComparison.Ordinal) && string.Equals(cache?.Source, FormerDefaultUrl, StringComparison.Ordinal));
+                if (cache?.Json != null && sameSource)
                 {
                     _worlds = WorldDefinition.ParseJson(cache.Json);
                     LastLoaded = cache.Loaded;

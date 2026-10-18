@@ -165,7 +165,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         public ActionResult<AdminOverview> GetAdminOverview()
         {
             var membership = _worlds.GetMembership();
-            var source = Config.WorldListSource?.Trim();
+            var source = WorldListSource.ConfiguredSource();
             return Ok(new AdminOverview
             {
                 ListSource = string.IsNullOrEmpty(source) ? null : source,

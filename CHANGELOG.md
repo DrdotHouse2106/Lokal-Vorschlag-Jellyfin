@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.12.0] - 2026-10-18
+
+### Changed
+
+- The world list moved to its own repository [Jellyfin-Welten](https://github.com/DrdotHouse2106/Jellyfin-Welten): complete from TMDB (626 titles, also announced ones), updated weekly by a GitHub Action; manual additions and exclusions are kept in `regeln.json` there and are never overwritten. New default for `WorldListSource`; configurations still pointing to the former list in this repository are switched automatically (the cached copy is reused until the first load).
+
 ## [12.11.0] - 2026-10-18
 
 ### Added

@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.12.0.0",
+        "changelog": "Welten-Liste im eigenen Repository / World list moved\n- Liste jetzt aus github.com/DrdotHouse2106/Jellyfin-Welten, wöchentlich vollständig aus TMDB aktualisiert (auch angekündigte Titel)\n- Von Hand ergänzte Titel bleiben dort dauerhaft erhalten; alte Adresse wird automatisch umgestellt\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.12.0.zip",
+        "checksum": "d903af59532e068e548605c4f8c15654",
+        "timestamp": "2026-10-18T11:00:00Z"
+      },
+      {
         "version": "12.11.0.0",
         "changelog": "Gepflegte Welten-Liste / Maintained world list\n- Welten kommen aus welten.json auf GitHub (eigene Liste per Link möglich), täglich geladen\n- Neuer Reiter „Welten“: Zuordnung mit Grund, Vorschläge für fehlende Titel\n- Studio Ghibli neu, Indiana Jones nicht mehr bei Star Wars\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

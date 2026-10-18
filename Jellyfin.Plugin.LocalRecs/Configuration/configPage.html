@@ -174,7 +174,7 @@
                         <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="worldListSource">Welten-Liste (Link oder Pfad zu einer welten.json):</label>
                             <input is="emby-input" type="text" id="worldListSource" name="worldListSource" />
-                            <div class="fieldDescription">Gepflegte Liste, welche Titel zu welcher Welt gehören. Standard ist die Liste aus dem Plugin-Repository auf GitHub; eine eigene Liste geht über einen eigenen Link oder eine Datei auf dem Server. Wird täglich geladen, der letzte Stand bleibt bei Fehlern erhalten. Leer = nur die Regeln unten.</div>
+                            <div class="fieldDescription">Gepflegte Liste, welche Titel zu welcher Welt gehören. Standard ist die Liste aus dem Repository Jellyfin-Welten auf GitHub (wöchentlich aus TMDB aktualisiert); eine eigene Liste geht über einen eigenen Link oder eine Datei auf dem Server. Wird täglich geladen, der letzte Stand bleibt bei Fehlern erhalten. Leer = nur die Regeln unten.</div>
                         </div>
 
                         <div class="inputContainer">
@@ -287,7 +287,7 @@
                     <!-- Welten Tab -->
                     <div id="tab-worlds" class="tab-content" style="display:none;">
                         <h2 class="sectionTitle">Welten</h2>
-                        <p>Welten (Marvel, Star Wars, Pixar …) zeigen Apps wie Quallenkino persönlich sortiert an. Welche Titel dazugehören, steht in der <b>Welten-Liste</b> (Einstellung im Reiter „Settings“, Standard: <a is="emby-linkbutton" class="button-link" href="https://github.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/blob/main/welten/welten.json" target="_blank">welten.json auf GitHub</a>). Hier siehst du, was bei dir zugeordnet ist, und bekommst fertige Zeilen zum Ergänzen der Liste.</p>
+                        <p>Welten (Marvel, Star Wars, Pixar …) zeigen Apps wie Quallenkino persönlich sortiert an. Welche Titel dazugehören, steht in der <b>Welten-Liste</b> (Einstellung im Reiter „Settings“, Standard: <a is="emby-linkbutton" class="button-link" href="https://github.com/DrdotHouse2106/Jellyfin-Welten" target="_blank">Jellyfin-Welten auf GitHub</a>, wöchentlich aus TMDB aktualisiert). Hier siehst du, was bei dir zugeordnet ist, und bekommst fertige Zeilen zum Ergänzen der Liste.</p>
                         <button is="emby-button" type="button" class="raised" id="reloadWorldList"><span>Liste neu laden</span></button>
                         <div id="worldsOverview"><p>Lade Welten...</p></div>
                         <div class="selectContainer">
@@ -625,7 +625,11 @@
                             page.querySelector('#maxVocabularyTags').value = config.MaxVocabularyTags !== undefined ? config.MaxVocabularyTags : 500;
                             page.querySelector('#enableRatingProximity').checked = config.EnableRatingProximity || false;
                             page.querySelector('#worldDefinitions').value = config.WorldDefinitions || '';
-                            page.querySelector('#worldListSource').value = config.WorldListSource !== undefined && config.WorldListSource !== null ? config.WorldListSource : '';
+                            var listSource = config.WorldListSource !== undefined && config.WorldListSource !== null ? config.WorldListSource : '';
+                            if (listSource === 'https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/welten/welten.json') {
+                                listSource = 'https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Welten/main/welten.json';
+                            }
+                            page.querySelector('#worldListSource').value = listSource;
                             page.querySelector('#minWorldItems').value = config.MinWorldItems !== undefined ? config.MinWorldItems : 5;
                             page.querySelector('#enableCollectionNextParts').checked = config.EnableCollectionNextParts !== false;
                             page.querySelector('#showRecommendationReason').checked = config.ShowRecommendationReason !== false;
