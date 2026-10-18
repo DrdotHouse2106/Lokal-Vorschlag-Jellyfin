@@ -26,6 +26,7 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         private static readonly TimeSpan RetryFailedAfter = TimeSpan.FromHours(1);
         private static readonly System.Text.RegularExpressions.Regex FanartPattern =
             new System.Text.RegularExpressions.Regex("^fanart:(collection|movie|tv)/([0-9]+)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
         private static readonly string[] ImageExtensions = { ".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif" };
 
         private readonly ILogger<WorldLogoService> _logger;

@@ -238,17 +238,17 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 return result;
             }
 
+            float WorldScore(Guid id) => profile != null
+                ? (float)RatingQuality.Apply(VectorMath.CosineSimilarity(profile.TasteVector, embeddings[id].Vector), metadata[id], config)
+                : (metadata[id].CommunityRating ?? 0) / 10f;
+
             var (worlds, members) = _worlds.GetWorlds();
             foreach (var world in worlds)
             {
                 var worldMembers = members[world.Id];
                 var scored = worldMembers
                     .Where(id => embeddings.ContainsKey(id) && metadata.ContainsKey(id) && !RatingQuality.IsBelowMinimum(metadata[id], config))
-                    .Select(id => new ScoredRecommendation(
-                        id,
-                        profile != null
-                            ? (float)RatingQuality.Apply(VectorMath.CosineSimilarity(profile.TasteVector, embeddings[id].Vector), metadata[id], config)
-                            : (metadata[id].CommunityRating ?? 0) / 10f))
+                    .Select(id => new ScoredRecommendation(id, WorldScore(id)))
                     .OrderByDescending(r => r.Score)
                     .ToList();
 

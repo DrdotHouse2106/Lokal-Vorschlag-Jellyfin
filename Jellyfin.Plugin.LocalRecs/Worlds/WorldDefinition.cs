@@ -56,6 +56,11 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         /// <summary>Gets the first logo source, or null.</summary>
         public string? Logo => Logos.Count > 0 ? Logos[0] : null;
 
+        /// <summary>
+        /// Gets or sets the title whose local trailer represents the world (field "trailer": TMDB ID or object with tmdb/imdb/tvdb/typ), or null for automatic choice.
+        /// </summary>
+        public WorldTitleRef? Trailer { get; set; }
+
         /// <summary>Gets or sets former IDs of the world (e.g. after a rename), still accepted in URLs.</summary>
         public IReadOnlyList<string> Aliases { get; set; } = Array.Empty<string>();
 
@@ -94,6 +99,7 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                     Includes = GetTitles(element, "titel"),
                     Excludes = GetTitles(element, "ausschluss"),
                     Logos = GetLogos(element),
+                    Trailer = GetTrailer(element),
                     Aliases = GetStrings(element, "aliase").Select(ToId).Where(a => a.Length > 0 && a != id).Distinct().ToList()
                 };
                 if (world.Studios.Count > 0 || world.Collections.Count > 0 || world.Includes.Count > 0)
@@ -241,6 +247,35 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
             }
 
             return GetStrings(element, "logo");
+        }
+
+        private static WorldTitleRef? GetTrailer(JsonElement element)
+        {
+            if (!element.TryGetProperty("trailer", out var trailer))
+            {
+                return null;
+            }
+
+            if (trailer.ValueKind == JsonValueKind.String || trailer.ValueKind == JsonValueKind.Number)
+            {
+                var tmdb = GetString(element, "trailer")?.Trim();
+                return string.IsNullOrEmpty(tmdb) ? null : new WorldTitleRef { Tmdb = tmdb };
+            }
+
+            if (trailer.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            var reference = new WorldTitleRef
+            {
+                Tmdb = GetString(trailer, "tmdb")?.Trim(),
+                Imdb = GetString(trailer, "imdb")?.Trim(),
+                Tvdb = GetString(trailer, "tvdb")?.Trim(),
+                Type = GetString(trailer, "typ")?.Trim().ToLowerInvariant(),
+                Name = GetString(trailer, "name")?.Trim()
+            };
+            return string.IsNullOrEmpty(reference.Tmdb) && string.IsNullOrEmpty(reference.Imdb) && string.IsNullOrEmpty(reference.Tvdb) ? null : reference;
         }
 
         private static List<string> GetStrings(JsonElement element, string name)

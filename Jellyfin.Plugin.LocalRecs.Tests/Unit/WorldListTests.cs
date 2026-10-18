@@ -48,6 +48,34 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
         }
 
         [Fact]
+        public void ParseJson_ReadsTrailer_AsIdOrObject()
+        {
+            var worlds = WorldDefinition.ParseJson(@"{ ""welten"": [
+  { ""name"": ""A"", ""studios"": [""A""], ""trailer"": 920 },
+  { ""name"": ""B"", ""studios"": [""B""], ""trailer"": { ""imdb"": ""tt0000001"", ""typ"": ""serie"" } },
+  { ""name"": ""C"", ""studios"": [""C""], ""trailer"": { ""name"": ""ohne ID"" } },
+  { ""name"": ""D"", ""studios"": [""D""] } ] }");
+
+            worlds[0].Trailer!.Tmdb.Should().Be("920");
+            worlds[1].Trailer!.Imdb.Should().Be("tt0000001");
+            worlds[1].Trailer!.Type.Should().Be("serie");
+            worlds[2].Trailer.Should().BeNull("ein Eintrag ohne ID kann nicht zugeordnet werden");
+            worlds[3].Trailer.Should().BeNull();
+        }
+
+        [Fact]
+        public void Membership_ResolvesPinnedTrailerTitle()
+        {
+            var worlds = WorldDefinition.ParseJson(@"{ ""welten"": [
+  { ""name"": ""Pixar"", ""studios"": [""Pixar""], ""trailer"": ""920"" },
+  { ""name"": ""Star Wars"", ""studios"": [""Lucasfilm""], ""trailer"": ""999999"" } ] }");
+            var membership = WorldMembership.Compute(worlds, new[] { Cars, Mandalorian }, Array.Empty<Collection>());
+
+            membership.PinnedTrailers["pixar"].Should().Be(Cars.Id);
+            membership.PinnedTrailers.Should().NotContainKey("star-wars", "der Titel ist nicht in der Bibliothek");
+        }
+
+        [Fact]
         public void ParseJson_WithoutWorlds_Throws()
         {
             var act = () => WorldDefinition.ParseJson("{ \"x\": 1 }");

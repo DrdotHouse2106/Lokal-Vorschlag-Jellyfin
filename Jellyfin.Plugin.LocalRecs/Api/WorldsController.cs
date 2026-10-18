@@ -362,6 +362,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 }
 
                 var watched = visible.Where(lastWatched.ContainsKey).Select(id => (DateTime?)lastWatched[id]).Max();
+                var trailer = _worlds.GetTrailer(user, world.Id, visible);
                 result.Add((new WorldInfo
                 {
                     Id = world.Id,
@@ -371,7 +372,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                     Studios = world.Studios.ToList(),
                     Collections = world.Collections.ToList(),
                     TmdbCollectionIds = _worlds.GetTmdbCollectionIds(world.Id).ToList(),
-                    LogoUrl = WorldLogoService.ResolveAll(world.Logos, WorldListSource.ConfiguredSource(), !string.IsNullOrWhiteSpace(Config.FanartApiKey)).Count > 0 ? "/LocalRecs/Worlds/" + world.Id + "/Logo" : null
+                    LogoUrl = WorldLogoService.ResolveAll(world.Logos, WorldListSource.ConfiguredSource(), !string.IsNullOrWhiteSpace(Config.FanartApiKey)).Count > 0 ? "/LocalRecs/Worlds/" + world.Id + "/Logo" : null,
+                    TrailerItemId = trailer?.Item.Id.ToString("N"),
+                    TrailerItemName = trailer?.Item.Name,
+                    TrailerId = trailer?.Trailer.Id.ToString("N")
                 }, watched));
             }
 
@@ -458,6 +462,15 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets the logo path on this server ("/LocalRecs/Worlds/{id}/Logo"), or null without logo.</summary>
             public string? LogoUrl { get; set; }
+
+            /// <summary>Gets or sets the ID of a title with a local trailer (set in the list, otherwise most recently added), or null.</summary>
+            public string? TrailerItemId { get; set; }
+
+            /// <summary>Gets or sets the name of that title.</summary>
+            public string? TrailerItemName { get; set; }
+
+            /// <summary>Gets or sets the ID of its first local trailer (playable like any video, e.g. /Videos/{id}/stream), or null.</summary>
+            public string? TrailerId { get; set; }
         }
 
         /// <summary>

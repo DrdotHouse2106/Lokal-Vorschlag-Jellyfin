@@ -180,6 +180,46 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                 .FirstOrDefault();
         }
 
+        /// <summary>
+        /// Picks the title whose local trailer plays behind the world (like Disney+): the title set in the list
+        /// (field "trailer") if it has a local trailer, otherwise the most recently added visible title with one.
+        /// </summary>
+        /// <param name="user">The user.</param>
+        /// <param name="worldId">World ID.</param>
+        /// <param name="members">Members of the world visible to the user.</param>
+        /// <returns>The title and its first local trailer, or null.</returns>
+        public (BaseItem Item, BaseItem Trailer)? GetTrailer(User user, string worldId, IEnumerable<Guid> members)
+        {
+            ArgumentNullException.ThrowIfNull(user);
+            ArgumentNullException.ThrowIfNull(members);
+            var candidates = members
+                .Select(id => _libraryManager.GetItemById(id))
+                .Where(i => i != null)
+                .OrderByDescending(i => i!.DateCreated)
+                .ThenByDescending(i => i!.CommunityRating ?? 0)
+                .Select(i => i!);
+            if (GetData().PinnedTrailers.TryGetValue(worldId, out var pinnedId) && _libraryManager.GetItemById(pinnedId) is { } pinned)
+            {
+                candidates = candidates.Prepend(pinned);
+            }
+
+            foreach (var item in candidates)
+            {
+                if (!item.IsVisible(user) || item is not IHasTrailers hasTrailers)
+                {
+                    continue;
+                }
+
+                var trailer = hasTrailers.LocalTrailers.FirstOrDefault(t => t.IsVisible(user));
+                if (trailer != null)
+                {
+                    return (item, trailer);
+                }
+            }
+
+            return null;
+        }
+
         private WorldMembership GetData()
         {
             // Gepflegte Liste (GitHub oder Datei), sonst die Regeln aus den Einstellungen

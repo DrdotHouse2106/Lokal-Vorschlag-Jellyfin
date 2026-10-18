@@ -22,6 +22,9 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         /// <summary>Gets the TMDB collection IDs per world.</summary>
         public Dictionary<string, SortedSet<string>> TmdbCollections { get; } = new Dictionary<string, SortedSet<string>>();
 
+        /// <summary>Gets the library items chosen in the list as trailer title per world ID (field "trailer").</summary>
+        public Dictionary<string, Guid> PinnedTrailers { get; } = new Dictionary<string, Guid>();
+
         /// <summary>Gets the collections of the library (for suggestions).</summary>
         public IReadOnlyList<CollectionEntry> Collections { get; private set; } = Array.Empty<CollectionEntry>();
 
@@ -87,6 +90,12 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                             sources.Remove(child);
                         }
                     }
+                }
+
+                // Festgelegter Trailer-Titel (darf auch außerhalb der Welt liegen – die Liste entscheidet)
+                if (world.Trailer != null && items.FirstOrDefault(i => Matches(world.Trailer, i)) is { } trailerItem)
+                {
+                    result.PinnedTrailers[world.Id] = trailerItem.Id;
                 }
 
                 result.Sources[world.Id] = sources;
