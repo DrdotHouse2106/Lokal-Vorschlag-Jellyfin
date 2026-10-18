@@ -28,7 +28,7 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         private readonly ILibraryManager _libraryManager;
         private readonly IUserDataManager _userDataManager;
         private readonly object _lock = new object();
-        private (DateTime Created, string Definitions, IReadOnlyList<WorldDefinition> Worlds, IReadOnlyDictionary<string, HashSet<Guid>> Members)? _cache;
+        private (DateTime Created, string Definitions, IReadOnlyList<WorldDefinition> Worlds, IReadOnlyDictionary<string, HashSet<Guid>> Members, IReadOnlyDictionary<string, SortedSet<string>> TmdbCollections)? _cache;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WorldService"/> class.
@@ -51,68 +51,19 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         /// <returns>Worlds and members by world ID.</returns>
         public (IReadOnlyList<WorldDefinition> Worlds, IReadOnlyDictionary<string, HashSet<Guid>> Members) GetWorlds()
         {
-            var definitions = Config.WorldDefinitions ?? string.Empty;
-            lock (_lock)
-            {
-                if (_cache is { } cache && cache.Definitions == definitions && DateTime.UtcNow - cache.Created < CacheDuration)
-                {
-                    return (cache.Worlds, cache.Members);
-                }
-            }
+            var data = GetData();
+            return (data.Worlds, data.Members);
+        }
 
-            var worlds = WorldDefinition.Parse(definitions);
-            var members = worlds.ToDictionary(w => w.Id, _ => new HashSet<Guid>());
-            if (worlds.Count > 0)
-            {
-                try
-                {
-                    // Studios
-                    var items = _libraryManager.GetItemList(new InternalItemsQuery
-                    {
-                        IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Series },
-                        Recursive = true
-                    });
-                    foreach (var item in items)
-                    {
-                        foreach (var world in worlds.Where(w => w.MatchesStudio(item.Studios)))
-                        {
-                            members[world.Id].Add(item.Id);
-                        }
-                    }
-
-                    // Sammlungen (liegen außerhalb der Bibliotheken – daher ohne Benutzer abfragen)
-                    var boxSets = _libraryManager.GetItemList(new InternalItemsQuery
-                    {
-                        IncludeItemTypes = new[] { BaseItemKind.BoxSet }
-                    }).OfType<BoxSet>();
-                    foreach (var boxSet in boxSets)
-                    {
-                        var matching = worlds.Where(w => w.MatchesCollection(boxSet.Name)).ToList();
-                        if (matching.Count == 0)
-                        {
-                            continue;
-                        }
-
-                        var children = boxSet.GetLinkedChildren().Where(c => c is Movie || c is Series).Select(c => c.Id).ToList();
-                        foreach (var world in matching)
-                        {
-                            members[world.Id].UnionWith(children);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Welten konnten nicht zugeordnet werden");
-                }
-            }
-
-            _logger.LogDebug("Welten: {Worlds}", string.Join(", ", worlds.Select(w => w.Name + " (" + members[w.Id].Count + ")")));
-            lock (_lock)
-            {
-                _cache = (DateTime.UtcNow, definitions, worlds, members);
-            }
-
-            return (worlds, members);
+        /// <summary>
+        /// Gets the TMDB IDs of the collections (BoxSets) belonging to a world: collections matched by name and
+        /// collections containing at least one title of the world. Apps can use them to show missing parts (e.g. via Jellyseerr).
+        /// </summary>
+        /// <param name="worldId">World ID.</param>
+        /// <returns>The TMDB collection IDs.</returns>
+        public IReadOnlyList<string> GetTmdbCollectionIds(string worldId)
+        {
+            return GetData().TmdbCollections.TryGetValue(worldId, out var ids) ? ids.ToList() : new List<string>();
         }
 
         /// <summary>
@@ -207,6 +158,82 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                 .OrderByDescending(i => i!.CommunityRating ?? 0)
                 .Select(i => (Guid?)i!.Id)
                 .FirstOrDefault();
+        }
+
+        private (IReadOnlyList<WorldDefinition> Worlds, IReadOnlyDictionary<string, HashSet<Guid>> Members, IReadOnlyDictionary<string, SortedSet<string>> TmdbCollections) GetData()
+        {
+            var definitions = Config.WorldDefinitions ?? string.Empty;
+            lock (_lock)
+            {
+                if (_cache is { } cache && cache.Definitions == definitions && DateTime.UtcNow - cache.Created < CacheDuration)
+                {
+                    return (cache.Worlds, cache.Members, cache.TmdbCollections);
+                }
+            }
+
+            var worlds = WorldDefinition.Parse(definitions);
+            var members = worlds.ToDictionary(w => w.Id, _ => new HashSet<Guid>());
+            var tmdbCollections = worlds.ToDictionary(w => w.Id, _ => new SortedSet<string>(StringComparer.Ordinal));
+            if (worlds.Count > 0)
+            {
+                try
+                {
+                    // Studios
+                    var items = _libraryManager.GetItemList(new InternalItemsQuery
+                    {
+                        IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Series },
+                        Recursive = true
+                    });
+                    foreach (var item in items)
+                    {
+                        foreach (var world in worlds.Where(w => w.MatchesStudio(item.Studios)))
+                        {
+                            members[world.Id].Add(item.Id);
+                        }
+                    }
+
+                    // Sammlungen (liegen außerhalb der Bibliotheken – daher ohne Benutzer abfragen)
+                    var boxSets = _libraryManager.GetItemList(new InternalItemsQuery
+                    {
+                        IncludeItemTypes = new[] { BaseItemKind.BoxSet }
+                    }).OfType<BoxSet>().ToList();
+                    var children = boxSets.ToDictionary(b => b.Id, b => b.GetLinkedChildren().Where(c => c is Movie || c is Series).Select(c => c.Id).ToList());
+                    foreach (var boxSet in boxSets)
+                    {
+                        foreach (var world in worlds.Where(w => w.MatchesCollection(boxSet.Name)))
+                        {
+                            members[world.Id].UnionWith(children[boxSet.Id]);
+                        }
+                    }
+
+                    // TMDB-Sammlungen je Welt: per Name zugeordnet oder mit mindestens einem Titel der Welt
+                    foreach (var boxSet in boxSets)
+                    {
+                        var tmdbId = boxSet.GetProviderId(MetadataProvider.Tmdb);
+                        if (string.IsNullOrEmpty(tmdbId))
+                        {
+                            continue;
+                        }
+
+                        foreach (var world in worlds.Where(w => w.MatchesCollection(boxSet.Name) || children[boxSet.Id].Any(members[w.Id].Contains)))
+                        {
+                            tmdbCollections[world.Id].Add(tmdbId);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Welten konnten nicht zugeordnet werden");
+                }
+            }
+
+            _logger.LogDebug("Welten: {Worlds}", string.Join(", ", worlds.Select(w => w.Name + " (" + members[w.Id].Count + ")")));
+            lock (_lock)
+            {
+                _cache = (DateTime.UtcNow, definitions, worlds, members, tmdbCollections);
+            }
+
+            return (worlds, members, tmdbCollections);
         }
     }
 }

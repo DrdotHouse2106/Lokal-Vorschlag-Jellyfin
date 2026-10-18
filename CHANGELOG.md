@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.10.1] - 2026-10-18
+
+### Added
+
+- `TmdbCollectionIds` in `GET /LocalRecs/Worlds`: TMDB IDs of the collections belonging to a world (matched by name or containing at least one title of the world), so apps can show missing parts, e.g. via Jellyseerr.
+
 ## [12.10.0] - 2026-10-18
 
 ### Added

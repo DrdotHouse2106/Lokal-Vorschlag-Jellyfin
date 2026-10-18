@@ -177,7 +177,8 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                     ItemCount = visible.Count,
                     ImageItemId = _worlds.GetImageItem(user, visible)?.ToString("N"),
                     Studios = world.Studios.ToList(),
-                    Collections = world.Collections.ToList()
+                    Collections = world.Collections.ToList(),
+                    TmdbCollectionIds = _worlds.GetTmdbCollectionIds(world.Id).ToList()
                 }, watched));
             }
 
@@ -258,6 +259,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets the collections of the world definition.</summary>
             public List<string> Collections { get; set; } = new List<string>();
+
+            /// <summary>Gets or sets the TMDB IDs of the collections in this world (e.g. to show missing parts via Jellyseerr).</summary>
+            public List<string> TmdbCollectionIds { get; set; } = new List<string>();
         }
 
         /// <summary>

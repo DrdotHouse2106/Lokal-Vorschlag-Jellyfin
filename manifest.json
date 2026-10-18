@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.10.1.0",
+        "changelog": "Welten: TMDB-Sammlungs-IDs / Worlds: TMDB collection IDs\n- /LocalRecs/Worlds liefert je Welt TmdbCollectionIds (für fehlende Teile über Jellyseerr in der TV-App)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.10.1.zip",
+        "checksum": "0a3beea94a57608f5e879c02a6709bc5",
+        "timestamp": "2026-10-18T09:00:00Z"
+      },
+      {
         "version": "12.10.0.0",
         "changelog": "Welten wie bei Disney+ / Worlds\n- Marvel, Star Wars, Pixar, Disney … über Studios und Sammlungen (in den Einstellungen änderbar)\n- Neue Endpunkte /LocalRecs/Worlds, /Worlds/{id}/Recommendations, /Worlds/Recent für die TV-App\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

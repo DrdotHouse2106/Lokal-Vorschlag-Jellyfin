@@ -53,11 +53,11 @@ Hast du früher das Repository `https://raw.githubusercontent.com/DrdotHouse2106
 
 ### Variante B: Manuell
 
-1. [`release/jellyfin-plugin-localrecs-v12.10.0.zip`](release/jellyfin-plugin-localrecs-v12.10.0.zip) herunterladen und entpacken.
+1. [`release/jellyfin-plugin-localrecs-v12.10.1.zip`](release/jellyfin-plugin-localrecs-v12.10.1.zip) herunterladen und entpacken.
 2. Die Datei `Jellyfin.Plugin.LocalRecs.dll` in einen neuen Ordner im Plugin-Verzeichnis legen, z. B.
-   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.10.0.0/`
-   - Docker: `/config/plugins/LocalRecs_12.10.0.0/`
-   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.10.0.0\`
+   - Linux: `/var/lib/jellyfin/plugins/LocalRecs_12.10.1.0/`
+   - Docker: `/config/plugins/LocalRecs_12.10.1.0/`
+   - Windows: `%LOCALAPPDATA%\jellyfin\plugins\LocalRecs_12.10.1.0\`
 3. Jellyfin-Server neu starten.
 
 ## Einrichtung
@@ -142,6 +142,7 @@ GET /LocalRecs/Worlds/Recent?limit=20              → zuletzt geschaute Welt mi
 
 - Sortiert nach dem Geschmack des Benutzers (ohne Verlauf nach Bewertung). Der nächste ungesehene Teil einer begonnenen Filmreihe steht vorne. Gesehene, angefangene und mit „Gefällt mir nicht“ bewertete Titel fehlen, Serien bleiben bis zur letzten Folge.
 - Die Begründungen der Welt-Titel stehen ebenfalls in `/LocalRecs/Recommendations/Reasons`.
+- `TmdbCollectionIds` (ab 12.10.1) nennt die TMDB-Sammlungen einer Welt (per Name zugeordnet oder mit mindestens einem Titel der Welt). Darüber kann eine App fehlende Teile z. B. bei Jellyseerr nachschlagen und zum Anfragen anbieten.
 
 **Daumen hoch/runter (ab 12.6.0):** „Gefällt mir“ zählt wie ein Favorit, auch wenn der Titel noch nicht geschaut wurde. „Gefällt mir nicht“ wird nie empfohlen und macht ähnliche Titel seltener. Bewerten lässt sich in der TV-App auf der Detailseite (gespeichert wird in Jellyfin selbst).
 
