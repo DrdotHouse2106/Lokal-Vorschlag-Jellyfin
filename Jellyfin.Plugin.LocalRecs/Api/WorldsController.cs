@@ -112,7 +112,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             }
 
             var (worlds, members) = _worlds.GetWorlds();
-            var world = worlds.FirstOrDefault(w => string.Equals(w.Id, worldId, StringComparison.OrdinalIgnoreCase));
+            var world = worlds.FirstOrDefault(w => w.HasId(worldId));
             if (world == null)
             {
                 return NotFound();
@@ -133,14 +133,15 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async System.Threading.Tasks.Task<ActionResult> GetLogo([FromRoute] string worldId, System.Threading.CancellationToken cancellationToken)
         {
-            var world = _worlds.GetMembership().Worlds.FirstOrDefault(w => string.Equals(w.Id, worldId, StringComparison.OrdinalIgnoreCase));
-            var source = WorldLogoService.Resolve(world?.Logo, WorldListSource.ConfiguredSource());
-            if (world == null || source == null)
+            var world = _worlds.GetMembership().Worlds.FirstOrDefault(w => w.HasId(worldId));
+            var fanartKey = Config.FanartApiKey?.Trim();
+            var sources = WorldLogoService.ResolveAll(world?.Logos, WorldListSource.ConfiguredSource(), !string.IsNullOrEmpty(fanartKey));
+            if (world == null || sources.Count == 0)
             {
                 return NotFound();
             }
 
-            var logo = await _logos.GetAsync(world.Id, source, cancellationToken).ConfigureAwait(false);
+            var logo = await _logos.GetFirstAsync(world.Id, sources, fanartKey, cancellationToken).ConfigureAwait(false);
             if (logo == null)
             {
                 return NotFound();
@@ -229,7 +230,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         public ActionResult<AdminWorldDetails> GetAdminWorld([FromRoute] string worldId)
         {
             var membership = _worlds.GetMembership();
-            var world = membership.Worlds.FirstOrDefault(w => string.Equals(w.Id, worldId, StringComparison.OrdinalIgnoreCase));
+            var world = membership.Worlds.FirstOrDefault(w => w.HasId(worldId));
             if (world == null)
             {
                 return NotFound();
@@ -311,7 +312,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                     Studios = world.Studios.ToList(),
                     Collections = world.Collections.ToList(),
                     TmdbCollectionIds = _worlds.GetTmdbCollectionIds(world.Id).ToList(),
-                    LogoUrl = WorldLogoService.Resolve(world.Logo, WorldListSource.ConfiguredSource()) != null ? "/LocalRecs/Worlds/" + world.Id + "/Logo" : null
+                    LogoUrl = WorldLogoService.ResolveAll(world.Logos, WorldListSource.ConfiguredSource(), !string.IsNullOrWhiteSpace(Config.FanartApiKey)).Count > 0 ? "/LocalRecs/Worlds/" + world.Id + "/Logo" : null
                 }, watched));
             }
 

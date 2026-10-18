@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -22,12 +23,16 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         public const int MaxBytes = 2 * 1024 * 1024;
 
         private static readonly TimeSpan RefreshAfter = TimeSpan.FromDays(7);
+        private static readonly TimeSpan RetryFailedAfter = TimeSpan.FromHours(1);
+        private static readonly System.Text.RegularExpressions.Regex FanartPattern =
+            new System.Text.RegularExpressions.Regex("^fanart:(collection|movie|tv)/([0-9]+)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         private static readonly string[] ImageExtensions = { ".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif" };
 
         private readonly ILogger<WorldLogoService> _logger;
         private readonly IHttpClientFactory? _httpClientFactory;
         private readonly string _cacheDirectory;
         private readonly ConcurrentDictionary<string, Logo> _memory = new ConcurrentDictionary<string, Logo>(StringComparer.Ordinal);
+        private readonly ConcurrentDictionary<string, DateTime> _failed = new ConcurrentDictionary<string, DateTime>(StringComparer.Ordinal);
         private readonly SemaphoreSlim _fetchLock = new SemaphoreSlim(1, 1);
 
         /// <summary>
@@ -48,8 +53,9 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         /// </summary>
         /// <param name="logo">Logo entry of the world list.</param>
         /// <param name="listSource">The world list (URL or file path).</param>
+        /// <param name="fanartAvailable">Whether a fanart.tv API key is configured.</param>
         /// <returns>The resolved source, or null if it is not allowed.</returns>
-        public static string? Resolve(string? logo, string? listSource)
+        public static string? Resolve(string? logo, string? listSource, bool fanartAvailable = false)
         {
             if (string.IsNullOrWhiteSpace(logo))
             {
@@ -57,6 +63,11 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
             }
 
             logo = logo.Trim();
+            if (logo.StartsWith("fanart:", StringComparison.OrdinalIgnoreCase))
+            {
+                return fanartAvailable && FanartPattern.IsMatch(logo) ? logo.ToLowerInvariant() : null;
+            }
+
             if (Uri.TryCreate(logo, UriKind.Absolute, out var absolute) && (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps || absolute.IsFile))
             {
                 return absolute.Scheme == Uri.UriSchemeHttps ? absolute.ToString() : null;
@@ -86,45 +97,137 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         }
 
         /// <summary>
+        /// Resolves all logo sources of a world, in order of preference.
+        /// </summary>
+        /// <param name="logos">Logo entries of the world list.</param>
+        /// <param name="listSource">The world list (URL or file path).</param>
+        /// <param name="fanartAvailable">Whether a fanart.tv API key is configured.</param>
+        /// <returns>The usable sources.</returns>
+        public static IReadOnlyList<string> ResolveAll(IEnumerable<string>? logos, string? listSource, bool fanartAvailable)
+        {
+            return (logos ?? Enumerable.Empty<string>())
+                .Select(l => Resolve(l, listSource, fanartAvailable))
+                .Where(l => l != null)
+                .Select(l => l!)
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+        }
+
+        /// <summary>
+        /// Picks the best logo from a fanart.tv answer: HD before normal, German before English before
+        /// language-neutral, then by likes.
+        /// </summary>
+        /// <param name="json">Answer of the fanart.tv v3 API.</param>
+        /// <returns>The image URL, or null.</returns>
+        public static string? PickFanartLogo(string json)
+        {
+            using var document = JsonDocument.Parse(json);
+            var candidates = new List<(int Quality, int Language, int Likes, string Url)>();
+            var fields = new[] { ("hdmovielogo", 0), ("hdtvlogo", 0), ("movielogo", 1), ("clearlogo", 1) };
+            foreach (var (field, quality) in fields)
+            {
+                if (!document.RootElement.TryGetProperty(field, out var array) || array.ValueKind != JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                foreach (var entry in array.EnumerateArray())
+                {
+                    var url = entry.TryGetProperty("url", out var u) ? u.GetString() : null;
+                    if (string.IsNullOrEmpty(url) || !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var lang = entry.TryGetProperty("lang", out var l) ? l.GetString() ?? string.Empty : string.Empty;
+                    var language = lang switch { "de" => 0, "en" => 1, "00" or "" => 2, _ => 3 };
+                    var likes = entry.TryGetProperty("likes", out var k) && int.TryParse(k.ValueKind == JsonValueKind.String ? k.GetString() : k.GetRawText(), out var n) ? n : 0;
+                    candidates.Add((quality, language, likes, url));
+                }
+            }
+
+            return candidates
+                .OrderBy(c => c.Language)
+                .ThenBy(c => c.Quality)
+                .ThenByDescending(c => c.Likes)
+                .Select(c => c.Url)
+                .FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Gets the first available logo of a world from its sources (memory, disk cache or source).
+        /// </summary>
+        /// <param name="worldId">World ID.</param>
+        /// <param name="sources">Resolved sources in order of preference (see <see cref="ResolveAll"/>).</param>
+        /// <param name="fanartKey">fanart.tv API key, if any.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The logo, or null.</returns>
+        public async Task<Logo?> GetFirstAsync(string worldId, IReadOnlyList<string> sources, string? fanartKey, CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(sources);
+            foreach (var source in sources)
+            {
+                var logo = await GetAsync(worldId, source, cancellationToken, fanartKey).ConfigureAwait(false);
+                if (logo != null)
+                {
+                    return logo;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Gets the logo of a world (from memory, disk cache or source).
         /// </summary>
         /// <param name="worldId">World ID.</param>
         /// <param name="source">Resolved source (see <see cref="Resolve"/>).</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="fanartKey">fanart.tv API key for "fanart:" sources.</param>
         /// <returns>The logo, or null.</returns>
-        public async Task<Logo?> GetAsync(string worldId, string source, CancellationToken cancellationToken)
+        public async Task<Logo?> GetAsync(string worldId, string source, CancellationToken cancellationToken, string? fanartKey = null)
         {
             ArgumentNullException.ThrowIfNull(worldId);
             ArgumentNullException.ThrowIfNull(source);
-            if (_memory.TryGetValue(worldId, out var cached) && cached.Source == source && DateTime.UtcNow - cached.Fetched < RefreshAfter)
+
+            // Je Welt und Quelle getrennt zwischenspeichern
+            var key = worldId + "-" + StableHash(source);
+            if (_memory.TryGetValue(key, out var cached) && cached.Source == source && DateTime.UtcNow - cached.Fetched < RefreshAfter)
             {
                 return cached;
+            }
+
+            if (cached == null && _failed.TryGetValue(key, out var failedAt) && DateTime.UtcNow - failedAt < RetryFailedAfter && LoadFromDisk(key, source) == null)
+            {
+                return null;
             }
 
             await _fetchLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                var stale = cached?.Source == source ? cached : LoadFromDisk(worldId, source);
+                var stale = cached?.Source == source ? cached : LoadFromDisk(key, source);
                 if (stale != null && DateTime.UtcNow - stale.Fetched < RefreshAfter)
                 {
-                    _memory[worldId] = stale;
+                    _memory[key] = stale;
                     return stale;
                 }
 
-                var fresh = await FetchAsync(source, cancellationToken).ConfigureAwait(false);
+                var fresh = await FetchAsync(source, fanartKey, cancellationToken).ConfigureAwait(false);
                 if (fresh == null)
                 {
-                    // Quelle nicht erreichbar: alten Stand weiter ausliefern
+                    // Quelle nicht erreichbar: alten Stand weiter ausliefern, sonst eine Stunde nicht erneut versuchen
+                    _failed[key] = DateTime.UtcNow;
                     if (stale != null)
                     {
-                        _memory[worldId] = stale;
+                        _memory[key] = stale;
                     }
 
                     return stale;
                 }
 
-                _memory[worldId] = fresh;
-                SaveToDisk(worldId, fresh);
+                _failed.TryRemove(key, out _);
+                _memory[key] = fresh;
+                SaveToDisk(key, fresh);
                 return fresh;
             }
             finally
@@ -142,10 +245,46 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
             _ => "image/png"
         };
 
-        private async Task<Logo?> FetchAsync(string source, CancellationToken cancellationToken)
+        private static string StableHash(string text)
+        {
+            var hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text));
+            return Convert.ToHexString(hash, 0, 6).ToLowerInvariant();
+        }
+
+        private async Task<Logo?> FetchAsync(string source, string? fanartKey, CancellationToken cancellationToken)
         {
             try
             {
+                var match = FanartPattern.Match(source);
+                if (match.Success)
+                {
+                    if (string.IsNullOrWhiteSpace(fanartKey))
+                    {
+                        return null;
+                    }
+
+                    var kind = match.Groups[1].Value.ToLowerInvariant() == "tv" ? "tv" : "movies";
+                    var api = "https://webservice.fanart.tv/v3/" + kind + "/" + match.Groups[2].Value + "?api_key=" + Uri.EscapeDataString(fanartKey.Trim());
+                    var jsonClient = _httpClientFactory?.CreateClient() ?? new HttpClient();
+                    jsonClient.Timeout = TimeSpan.FromSeconds(20);
+                    using var answer = await jsonClient.GetAsync(new Uri(api), cancellationToken).ConfigureAwait(false);
+                    if (!answer.IsSuccessStatusCode)
+                    {
+                        _logger.LogWarning("fanart.tv: kein Logo für {Source} (HTTP {Status})", source, (int)answer.StatusCode);
+                        return null;
+                    }
+
+                    var url = PickFanartLogo(await answer.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
+                    if (url == null)
+                    {
+                        _logger.LogInformation("fanart.tv: kein Logo für {Source}", source);
+                        return null;
+                    }
+
+                    var image = await FetchAsync(url, null, cancellationToken).ConfigureAwait(false);
+                    return image == null ? null : image with { Source = source };
+                }
+
                 if (!source.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
                 {
                     var info = new FileInfo(source);
@@ -184,7 +323,7 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
 
                 return new Logo(source, memory.ToArray(), contentType, DateTime.UtcNow);
             }
-            catch (Exception ex) when (ex is HttpRequestException || ex is IOException || ex is TaskCanceledException || ex is UnauthorizedAccessException || ex is UriFormatException)
+            catch (Exception ex) when (ex is HttpRequestException || ex is IOException || ex is TaskCanceledException || ex is UnauthorizedAccessException || ex is UriFormatException || ex is JsonException)
             {
                 _logger.LogWarning("Logo konnte nicht geladen werden ({Source}): {Message}", source, ex.Message);
                 return null;

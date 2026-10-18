@@ -36,6 +36,56 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             WorldLogoService.Resolve("logos/marvel.png", null).Should().BeNull();
         }
 
+        [Theory]
+        [InlineData("fanart:collection/1241", true, "fanart:collection/1241")]
+        [InlineData("Fanart:Movie/671", true, "fanart:movie/671")]
+        [InlineData("fanart:tv/81189", true, "fanart:tv/81189")]
+        [InlineData("fanart:collection/1241", false, null)]
+        [InlineData("fanart:collection/abc", true, null)]
+        [InlineData("fanart:../../etc", true, null)]
+        public void Resolve_Fanart_OnlyWithKeyAndValidId(string logo, bool hasKey, string? expected)
+        {
+            WorldLogoService.Resolve(logo, ListUrl, hasKey).Should().Be(expected);
+        }
+
+        [Fact]
+        public void ResolveAll_KeepsOrder_SkipsUnusable()
+        {
+            var sources = WorldLogoService.ResolveAll(new[] { "fanart:collection/10", "http://intern/x.png", "https://image.tmdb.org/t/p/w500/a.png" }, ListUrl, false);
+            sources.Should().Equal("https://image.tmdb.org/t/p/w500/a.png");
+            WorldLogoService.ResolveAll(new[] { "fanart:collection/10", "https://image.tmdb.org/t/p/w500/a.png" }, ListUrl, true)
+                .Should().Equal("fanart:collection/10", "https://image.tmdb.org/t/p/w500/a.png");
+        }
+
+        [Fact]
+        public void PickFanartLogo_PrefersGermanThenEnglish_HdFirst_ThenLikes()
+        {
+            const string Json = @"{
+  ""hdmovielogo"": [
+    { ""url"": ""https://assets.fanart.tv/en-hd-few.png"", ""lang"": ""en"", ""likes"": ""2"" },
+    { ""url"": ""https://assets.fanart.tv/en-hd-many.png"", ""lang"": ""en"", ""likes"": ""9"" },
+    { ""url"": ""http://unsicher/de.png"", ""lang"": ""de"", ""likes"": ""50"" } ],
+  ""movielogo"": [ { ""url"": ""https://assets.fanart.tv/de-sd.png"", ""lang"": ""de"", ""likes"": ""1"" } ] }";
+
+            WorldLogoService.PickFanartLogo(Json).Should().Be("https://assets.fanart.tv/de-sd.png", "Deutsch zuerst, unsichere http-Adressen nie");
+            WorldLogoService.PickFanartLogo(Json.Replace("\"de\"", "\"fr\"")).Should().Be("https://assets.fanart.tv/en-hd-many.png");
+            WorldLogoService.PickFanartLogo("{}").Should().BeNull();
+        }
+
+        [Fact]
+        public void ParseJson_ReadsLogoListAndAliases()
+        {
+            var world = WorldDefinition.ParseJson("{ \"welten\": [ { \"name\": \"Wizarding World\", \"aliase\": [\"harry-potter\", \"Harry Potter\"], \"sammlungen\": [\"Harry Potter\"], \"logo\": [\"fanart:collection/1241\", \"https://image.tmdb.org/x.png\"] } ] }")[0];
+
+            world.Id.Should().Be("wizarding-world");
+            world.Aliases.Should().Equal("harry-potter");
+            world.HasId("harry-potter").Should().BeTrue();
+            world.HasId("WIZARDING-WORLD").Should().BeTrue();
+            world.HasId("marvel").Should().BeFalse();
+            world.Logos.Should().Equal("fanart:collection/1241", "https://image.tmdb.org/x.png");
+            world.Logo.Should().Be("fanart:collection/1241");
+        }
+
         [Fact]
         public void ParseJson_ReadsLogo()
         {

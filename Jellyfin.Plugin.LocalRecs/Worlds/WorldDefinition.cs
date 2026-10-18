@@ -47,8 +47,17 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         /// <summary>Gets or sets titles that never belong to the world, even if a rule matches.</summary>
         public IReadOnlyList<WorldTitleRef> Excludes { get; set; } = Array.Empty<WorldTitleRef>();
 
-        /// <summary>Gets or sets the logo: https URL or path relative to the world list (e.g. "logos/marvel.png"), or null.</summary>
-        public string? Logo { get; set; }
+        /// <summary>
+        /// Gets or sets the logo sources in order of preference: "fanart:collection/{tmdbCollectionId}",
+        /// "fanart:movie/{tmdbId}", "fanart:tv/{tvdbId}", https URL or path relative to the world list.
+        /// </summary>
+        public IReadOnlyList<string> Logos { get; set; } = Array.Empty<string>();
+
+        /// <summary>Gets the first logo source, or null.</summary>
+        public string? Logo => Logos.Count > 0 ? Logos[0] : null;
+
+        /// <summary>Gets or sets former IDs of the world (e.g. after a rename), still accepted in URLs.</summary>
+        public IReadOnlyList<string> Aliases { get; set; } = Array.Empty<string>();
 
         /// <summary>
         /// Parses a world list in JSON (file <c>welten.json</c>):
@@ -84,7 +93,8 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                     Collections = GetStrings(element, "sammlungen"),
                     Includes = GetTitles(element, "titel"),
                     Excludes = GetTitles(element, "ausschluss"),
-                    Logo = string.IsNullOrWhiteSpace(GetString(element, "logo")) ? null : GetString(element, "logo")!.Trim()
+                    Logos = GetLogos(element),
+                    Aliases = GetStrings(element, "aliase").Select(ToId).Where(a => a.Length > 0 && a != id).Distinct().ToList()
                 };
                 if (world.Studios.Count > 0 || world.Collections.Count > 0 || world.Includes.Count > 0)
                 {
@@ -170,6 +180,17 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         }
 
         /// <summary>
+        /// Checks whether the ID or a former ID of the world matches.
+        /// </summary>
+        /// <param name="id">ID from a request.</param>
+        /// <returns>True if it is this world.</returns>
+        public bool HasId(string? id)
+        {
+            return !string.IsNullOrEmpty(id)
+                && (string.Equals(Id, id, StringComparison.OrdinalIgnoreCase) || Aliases.Any(a => string.Equals(a, id, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        /// <summary>
         /// Checks whether one of the studios belongs to this world.
         /// </summary>
         /// <param name="studios">Studios of an item.</param>
@@ -204,6 +225,22 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                 JsonValueKind.Number => value.GetRawText(),
                 _ => null
             };
+        }
+
+        private static List<string> GetLogos(JsonElement element)
+        {
+            if (!element.TryGetProperty("logo", out var logo))
+            {
+                return new List<string>();
+            }
+
+            if (logo.ValueKind == JsonValueKind.String)
+            {
+                var value = logo.GetString()?.Trim();
+                return string.IsNullOrEmpty(value) ? new List<string>() : new List<string> { value };
+            }
+
+            return GetStrings(element, "logo");
         }
 
         private static List<string> GetStrings(JsonElement element, string name)

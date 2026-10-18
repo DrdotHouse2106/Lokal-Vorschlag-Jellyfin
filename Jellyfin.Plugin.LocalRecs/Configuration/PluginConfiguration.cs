@@ -32,6 +32,7 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             WorldDefinitions = Worlds.WorldDefinition.DefaultDefinitions;
             MinWorldItems = 5;
             WorldListSource = Worlds.WorldListSource.DefaultUrl;
+            FanartApiKey = string.Empty;
             MovieSectionTitle = "Empfohlene Filme für dich";
             TvSectionTitle = "Empfohlene Serien für dich";
             EnableLiveTvTracking = true;
@@ -224,6 +225,12 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// repository on GitHub. Empty = only the rules from <see cref="WorldDefinitions"/>.
         /// </summary>
         public string WorldListSource { get; set; }
+
+        /// <summary>
+        /// Gets or sets the personal fanart.tv API key. Used for world logos of the form "fanart:collection/{id}".
+        /// Empty = only other logo sources (e.g. TMDB company logos).
+        /// </summary>
+        public string FanartApiKey { get; set; }
 
         /// <summary>
         /// Validates the configuration and returns validation errors.
