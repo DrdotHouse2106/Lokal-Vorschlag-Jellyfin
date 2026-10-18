@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.13.0] - 2026-10-18
+
+### Added
+
+- **World logos**: field `logo` in the world list (https URL, e.g. a TMDB company logo, or a path relative to the list). `GET /LocalRecs/Worlds` returns `LogoUrl` (`/LocalRecs/Worlds/{id}/Logo`) for worlds with a logo; the endpoint serves the image without sign-in, cached on the server (`welten-logos/`, refreshed weekly, last good image kept on errors) with `Cache-Control: public, max-age=86400`. Only https sources and image files up to 2 MB; local logos must lie inside the folder of a local list.
+
 ## [12.12.0] - 2026-10-18
 
 ### Changed

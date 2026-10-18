@@ -36,6 +36,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         private readonly ILibraryManager _libraryManager;
         private readonly IDtoService _dtoService;
         private readonly WorldListSource _listSource;
+        private readonly WorldLogoService _logos;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WorldsController"/> class.
@@ -46,9 +47,11 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// <param name="libraryManager">Library manager.</param>
         /// <param name="dtoService">DTO service.</param>
         /// <param name="listSource">Maintained world list.</param>
+        /// <param name="logos">World logos.</param>
         /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
-        public WorldsController(WorldService worlds, RecommendationStore store, IUserManager userManager, ILibraryManager libraryManager, IDtoService dtoService, WorldListSource listSource)
+        public WorldsController(WorldService worlds, RecommendationStore store, IUserManager userManager, ILibraryManager libraryManager, IDtoService dtoService, WorldListSource listSource, WorldLogoService logos)
         {
+            _logos = logos ?? throw new ArgumentNullException(nameof(logos));
             _listSource = listSource ?? throw new ArgumentNullException(nameof(listSource));
             _worlds = worlds ?? throw new ArgumentNullException(nameof(worlds));
             _store = store ?? throw new ArgumentNullException(nameof(store));
@@ -116,6 +119,35 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             }
 
             return Ok(ToResult(user, GetItems(user, world.Id, members[world.Id], limit)));
+        }
+
+        /// <summary>
+        /// Gets the logo of a world (no sign-in needed, so image loaders can fetch it directly).
+        /// </summary>
+        /// <param name="worldId">World ID.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The image, or 404 if the world has no logo.</returns>
+        [HttpGet("{worldId}/Logo")]
+        [AllowAnonymous]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async System.Threading.Tasks.Task<ActionResult> GetLogo([FromRoute] string worldId, System.Threading.CancellationToken cancellationToken)
+        {
+            var world = _worlds.GetMembership().Worlds.FirstOrDefault(w => string.Equals(w.Id, worldId, StringComparison.OrdinalIgnoreCase));
+            var source = WorldLogoService.Resolve(world?.Logo, WorldListSource.ConfiguredSource());
+            if (world == null || source == null)
+            {
+                return NotFound();
+            }
+
+            var logo = await _logos.GetAsync(world.Id, source, cancellationToken).ConfigureAwait(false);
+            if (logo == null)
+            {
+                return NotFound();
+            }
+
+            Response.Headers.CacheControl = "public, max-age=86400";
+            return File(logo.Data, logo.ContentType);
         }
 
         /// <summary>
@@ -278,7 +310,8 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                     ImageItemId = _worlds.GetImageItem(user, visible)?.ToString("N"),
                     Studios = world.Studios.ToList(),
                     Collections = world.Collections.ToList(),
-                    TmdbCollectionIds = _worlds.GetTmdbCollectionIds(world.Id).ToList()
+                    TmdbCollectionIds = _worlds.GetTmdbCollectionIds(world.Id).ToList(),
+                    LogoUrl = WorldLogoService.Resolve(world.Logo, WorldListSource.ConfiguredSource()) != null ? "/LocalRecs/Worlds/" + world.Id + "/Logo" : null
                 }, watched));
             }
 
@@ -362,6 +395,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets the TMDB IDs of the collections in this world (e.g. to show missing parts via Jellyseerr).</summary>
             public List<string> TmdbCollectionIds { get; set; } = new List<string>();
+
+            /// <summary>Gets or sets the logo path on this server ("/LocalRecs/Worlds/{id}/Logo"), or null without logo.</summary>
+            public string? LogoUrl { get; set; }
         }
 
         /// <summary>

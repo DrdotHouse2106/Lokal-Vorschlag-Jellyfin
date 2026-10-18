@@ -38,6 +38,11 @@ namespace Jellyfin.Plugin.LocalRecs
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Worlds.WorldListSource>>(),
                     Path.Combine(GetPluginDataPath(sp), "welten-cache.json"),
                     sp.GetService<System.Net.Http.IHttpClientFactory>()));
+            serviceCollection.AddSingleton(sp =>
+                new Worlds.WorldLogoService(
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Worlds.WorldLogoService>>(),
+                    Path.Combine(GetPluginDataPath(sp), "welten-logos"),
+                    sp.GetService<System.Net.Http.IHttpClientFactory>()));
             serviceCollection.AddSingleton<Worlds.WorldService>();
             serviceCollection.AddSingleton<RecommendationRefreshService>();
 

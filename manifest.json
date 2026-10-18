@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.13.0.0",
+        "changelog": "Logos für die Welten / World logos\n- /LocalRecs/Worlds liefert LogoUrl, das Bild kommt über den Jellyfin-Server (zwischengespeichert)\n- Logos sind in der Welten-Liste als Link hinterlegt (TMDB-Firmenlogos)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.13.0.zip",
+        "checksum": "f9ccbcdba05bf14e57647a81cb6ec920",
+        "timestamp": "2026-10-18T12:00:00Z"
+      },
+      {
         "version": "12.12.0.0",
         "changelog": "Welten-Liste im eigenen Repository / World list moved\n- Liste jetzt aus github.com/DrdotHouse2106/Jellyfin-Welten, wöchentlich vollständig aus TMDB aktualisiert (auch angekündigte Titel)\n- Von Hand ergänzte Titel bleiben dort dauerhaft erhalten; alte Adresse wird automatisch umgestellt\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

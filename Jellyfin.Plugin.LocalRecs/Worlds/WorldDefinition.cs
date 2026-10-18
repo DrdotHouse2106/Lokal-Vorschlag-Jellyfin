@@ -47,6 +47,9 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         /// <summary>Gets or sets titles that never belong to the world, even if a rule matches.</summary>
         public IReadOnlyList<WorldTitleRef> Excludes { get; set; } = Array.Empty<WorldTitleRef>();
 
+        /// <summary>Gets or sets the logo: https URL or path relative to the world list (e.g. "logos/marvel.png"), or null.</summary>
+        public string? Logo { get; set; }
+
         /// <summary>
         /// Parses a world list in JSON (file <c>welten.json</c>):
         /// <c>{ "welten": [ { "name", "id"?, "studios": [], "sammlungen": [], "titel": [ { "tmdb", "imdb", "tvdb", "typ", "name" } ], "ausschluss": [ … ] } ] }</c>.
@@ -80,7 +83,8 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                     Studios = GetStrings(element, "studios"),
                     Collections = GetStrings(element, "sammlungen"),
                     Includes = GetTitles(element, "titel"),
-                    Excludes = GetTitles(element, "ausschluss")
+                    Excludes = GetTitles(element, "ausschluss"),
+                    Logo = string.IsNullOrWhiteSpace(GetString(element, "logo")) ? null : GetString(element, "logo")!.Trim()
                 };
                 if (world.Studios.Count > 0 || world.Collections.Count > 0 || world.Includes.Count > 0)
                 {
