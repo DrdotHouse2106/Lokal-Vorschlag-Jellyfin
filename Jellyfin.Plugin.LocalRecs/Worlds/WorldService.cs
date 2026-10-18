@@ -28,7 +28,8 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         private readonly ILibraryManager _libraryManager;
         private readonly IUserDataManager _userDataManager;
         private readonly object _lock = new object();
-        private (DateTime Created, string Definitions, IReadOnlyList<WorldDefinition> Worlds, IReadOnlyDictionary<string, HashSet<Guid>> Members, IReadOnlyDictionary<string, SortedSet<string>> TmdbCollections)? _cache;
+        private readonly WorldListSource? _listSource;
+        private (DateTime Created, string Key, WorldMembership Data)? _cache;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WorldService"/> class.
@@ -36,8 +37,10 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         /// <param name="logger">Logger instance.</param>
         /// <param name="libraryManager">Library manager.</param>
         /// <param name="userDataManager">User data manager.</param>
-        public WorldService(ILogger<WorldService> logger, ILibraryManager libraryManager, IUserDataManager userDataManager)
+        /// <param name="listSource">Maintained world list (GitHub or file), optional.</param>
+        public WorldService(ILogger<WorldService> logger, ILibraryManager libraryManager, IUserDataManager userDataManager, WorldListSource? listSource = null)
         {
+            _listSource = listSource;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _libraryManager = libraryManager ?? throw new ArgumentNullException(nameof(libraryManager));
             _userDataManager = userDataManager ?? throw new ArgumentNullException(nameof(userDataManager));
@@ -53,6 +56,23 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         {
             var data = GetData();
             return (data.Worlds, data.Members);
+        }
+
+        /// <summary>
+        /// Gets the full membership (with reasons and suggestions), e.g. for the admin view.
+        /// </summary>
+        /// <returns>The membership.</returns>
+        public WorldMembership GetMembership() => GetData();
+
+        /// <summary>
+        /// Clears the cache so that the next request reads the library and the world list again.
+        /// </summary>
+        public void Invalidate()
+        {
+            lock (_lock)
+            {
+                _cache = null;
+            }
         }
 
         /// <summary>
@@ -160,80 +180,63 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                 .FirstOrDefault();
         }
 
-        private (IReadOnlyList<WorldDefinition> Worlds, IReadOnlyDictionary<string, HashSet<Guid>> Members, IReadOnlyDictionary<string, SortedSet<string>> TmdbCollections) GetData()
+        private WorldMembership GetData()
         {
-            var definitions = Config.WorldDefinitions ?? string.Empty;
+            // Gepflegte Liste (GitHub oder Datei), sonst die Regeln aus den Einstellungen
+            var listWorlds = _listSource?.GetWorlds();
+            var key = listWorlds != null ? "list:" + _listSource!.Version : "text:" + (Config.WorldDefinitions ?? string.Empty);
             lock (_lock)
             {
-                if (_cache is { } cache && cache.Definitions == definitions && DateTime.UtcNow - cache.Created < CacheDuration)
+                if (_cache is { } cache && cache.Key == key && DateTime.UtcNow - cache.Created < CacheDuration)
                 {
-                    return (cache.Worlds, cache.Members, cache.TmdbCollections);
+                    return cache.Data;
                 }
             }
 
-            var worlds = WorldDefinition.Parse(definitions);
-            var members = worlds.ToDictionary(w => w.Id, _ => new HashSet<Guid>());
-            var tmdbCollections = worlds.ToDictionary(w => w.Id, _ => new SortedSet<string>(StringComparer.Ordinal));
-            if (worlds.Count > 0)
+            var worlds = listWorlds ?? WorldDefinition.Parse(Config.WorldDefinitions);
+            WorldMembership data;
+            try
             {
-                try
+                var items = _libraryManager.GetItemList(new InternalItemsQuery
                 {
-                    // Studios
-                    var items = _libraryManager.GetItemList(new InternalItemsQuery
-                    {
-                        IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Series },
-                        Recursive = true
-                    });
-                    foreach (var item in items)
-                    {
-                        foreach (var world in worlds.Where(w => w.MatchesStudio(item.Studios)))
-                        {
-                            members[world.Id].Add(item.Id);
-                        }
-                    }
-
-                    // Sammlungen (liegen außerhalb der Bibliotheken – daher ohne Benutzer abfragen)
-                    var boxSets = _libraryManager.GetItemList(new InternalItemsQuery
-                    {
-                        IncludeItemTypes = new[] { BaseItemKind.BoxSet }
-                    }).OfType<BoxSet>().ToList();
-                    var children = boxSets.ToDictionary(b => b.Id, b => b.GetLinkedChildren().Where(c => c is Movie || c is Series).Select(c => c.Id).ToList());
-                    foreach (var boxSet in boxSets)
-                    {
-                        foreach (var world in worlds.Where(w => w.MatchesCollection(boxSet.Name)))
-                        {
-                            members[world.Id].UnionWith(children[boxSet.Id]);
-                        }
-                    }
-
-                    // TMDB-Sammlungen je Welt: per Name zugeordnet oder mit mindestens einem Titel der Welt
-                    foreach (var boxSet in boxSets)
-                    {
-                        var tmdbId = boxSet.GetProviderId(MetadataProvider.Tmdb);
-                        if (string.IsNullOrEmpty(tmdbId))
-                        {
-                            continue;
-                        }
-
-                        foreach (var world in worlds.Where(w => w.MatchesCollection(boxSet.Name) || children[boxSet.Id].Any(members[w.Id].Contains)))
-                        {
-                            tmdbCollections[world.Id].Add(tmdbId);
-                        }
-                    }
-                }
-                catch (Exception ex)
+                    IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Series },
+                    Recursive = true
+                }).Select(i => new WorldMembership.LibraryEntry
                 {
-                    _logger.LogWarning(ex, "Welten konnten nicht zugeordnet werden");
-                }
+                    Id = i.Id,
+                    IsSeries = i is Series,
+                    Studios = i.Studios ?? Array.Empty<string>(),
+                    Tmdb = i.GetProviderId(MetadataProvider.Tmdb),
+                    Imdb = i.GetProviderId(MetadataProvider.Imdb),
+                    Tvdb = i.GetProviderId(MetadataProvider.Tvdb)
+                }).ToList();
+
+                // Sammlungen liegen außerhalb der Bibliotheken – daher ohne Benutzer abfragen
+                var collections = _libraryManager.GetItemList(new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { BaseItemKind.BoxSet }
+                }).OfType<BoxSet>().Select(b => new WorldMembership.CollectionEntry
+                {
+                    Name = b.Name ?? string.Empty,
+                    TmdbId = b.GetProviderId(MetadataProvider.Tmdb),
+                    ChildIds = b.GetLinkedChildren().Where(c => c is Movie || c is Series).Select(c => c.Id).Distinct().ToList()
+                }).ToList();
+
+                data = WorldMembership.Compute(worlds, items, collections);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Welten konnten nicht zugeordnet werden");
+                data = WorldMembership.Compute(worlds, Array.Empty<WorldMembership.LibraryEntry>(), Array.Empty<WorldMembership.CollectionEntry>());
             }
 
-            _logger.LogDebug("Welten: {Worlds}", string.Join(", ", worlds.Select(w => w.Name + " (" + members[w.Id].Count + ")")));
+            _logger.LogDebug("Welten: {Worlds}", string.Join(", ", worlds.Select(w => w.Name + " (" + data.Members[w.Id].Count + ")")));
             lock (_lock)
             {
-                _cache = (DateTime.UtcNow, definitions, worlds, members, tmdbCollections);
+                _cache = (DateTime.UtcNow, key, data);
             }
 
-            return (worlds, members, tmdbCollections);
+            return data;
         }
     }
 }

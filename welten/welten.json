@@ -1,0 +1,177 @@
+{
+  "beschreibung": "Welten für das Jellyfin-Plugin Local Recommendations (LocalRecs). Ein Titel gehört zu einer Welt, wenn ein Studio oder der Name einer Jellyfin-Sammlung passt (Teil des Namens genügt, Groß/Klein egal) oder wenn er unter \"titel\" steht. Titel unter \"ausschluss\" gehören nie dazu. Titel werden über \"tmdb\", \"imdb\" oder \"tvdb\" erkannt; \"typ\" (film/serie) ist bei TMDB-IDs wichtig, weil sich Film- und Serien-IDs überschneiden. \"name\" dient nur der Lesbarkeit. Unter \"ausschluss\" kann statt einer ID auch \"sammlung\" stehen: dann gehören alle Titel dieser Sammlung nicht dazu.",
+  "version": 1,
+  "welten": [
+    {
+      "name": "Marvel",
+      "studios": [
+        "Marvel"
+      ],
+      "sammlungen": [
+        "Marvel",
+        "Avengers",
+        "Iron Man",
+        "Thor",
+        "Captain America",
+        "Guardians of the Galaxy",
+        "Spider-Man",
+        "X-Men",
+        "Deadpool",
+        "Ant-Man",
+        "Black Panther",
+        "Doctor Strange"
+      ],
+      "titel": [],
+      "ausschluss": []
+    },
+    {
+      "name": "Star Wars",
+      "studios": [
+        "Lucasfilm"
+      ],
+      "sammlungen": [
+        "Star Wars"
+      ],
+      "titel": [],
+      "ausschluss": [
+        {
+          "sammlung": "Indiana Jones",
+          "name": "Indiana Jones ist auch von Lucasfilm, gehört aber nicht zu Star Wars"
+        }
+      ]
+    },
+    {
+      "name": "DC",
+      "studios": [
+        "DC Comics",
+        "DC Entertainment",
+        "DC Films",
+        "DC Studios"
+      ],
+      "sammlungen": [
+        "Batman",
+        "Superman",
+        "Justice League",
+        "Wonder Woman",
+        "Aquaman",
+        "The Dark Knight"
+      ],
+      "titel": [],
+      "ausschluss": []
+    },
+    {
+      "name": "Pixar",
+      "studios": [
+        "Pixar"
+      ],
+      "sammlungen": [
+        "Toy Story",
+        "Cars",
+        "Findet Nemo",
+        "Finding Nemo",
+        "Die Unglaublichen",
+        "The Incredibles",
+        "Monster AG",
+        "Alles steht Kopf",
+        "Inside Out"
+      ],
+      "titel": [],
+      "ausschluss": []
+    },
+    {
+      "name": "Disney",
+      "studios": [
+        "Walt Disney Pictures",
+        "Walt Disney Animation",
+        "Walt Disney Productions",
+        "Disney"
+      ],
+      "sammlungen": [
+        "Disney"
+      ],
+      "titel": [],
+      "ausschluss": []
+    },
+    {
+      "name": "DreamWorks",
+      "studios": [
+        "DreamWorks"
+      ],
+      "sammlungen": [
+        "Shrek",
+        "Madagascar",
+        "Drachenzähmen",
+        "How to Train Your Dragon",
+        "Kung Fu Panda"
+      ],
+      "titel": [],
+      "ausschluss": []
+    },
+    {
+      "name": "Illumination",
+      "studios": [
+        "Illumination"
+      ],
+      "sammlungen": [
+        "Ich – Einfach unverbesserlich",
+        "Despicable Me",
+        "Minions",
+        "Pets"
+      ],
+      "titel": [],
+      "ausschluss": []
+    },
+    {
+      "name": "Harry Potter",
+      "studios": [],
+      "sammlungen": [
+        "Harry Potter",
+        "Phantastische Tierwesen",
+        "Fantastic Beasts"
+      ],
+      "titel": [],
+      "ausschluss": []
+    },
+    {
+      "name": "Mittelerde",
+      "studios": [],
+      "sammlungen": [
+        "Der Herr der Ringe",
+        "Lord of the Rings",
+        "Der Hobbit",
+        "The Hobbit"
+      ],
+      "titel": [],
+      "ausschluss": []
+    },
+    {
+      "name": "James Bond",
+      "studios": [
+        "Eon Productions"
+      ],
+      "sammlungen": [
+        "James Bond"
+      ],
+      "titel": [],
+      "ausschluss": []
+    },
+    {
+      "name": "Jurassic Park",
+      "studios": [],
+      "sammlungen": [
+        "Jurassic"
+      ],
+      "titel": [],
+      "ausschluss": []
+    },
+    {
+      "name": "Studio Ghibli",
+      "studios": [
+        "Ghibli"
+      ],
+      "sammlungen": [],
+      "titel": [],
+      "ausschluss": []
+    }
+  ]
+}

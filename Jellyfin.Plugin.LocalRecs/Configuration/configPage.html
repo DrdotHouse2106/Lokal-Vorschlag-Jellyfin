@@ -19,6 +19,7 @@
                         <button is="emby-button" type="button" class="raised ui-btn-active tab-button-setup" data-tab="setup">Startseite</button>
                         <button is="emby-button" type="button" class="raised tab-button-settings" data-tab="settings">Settings</button>
                         <button is="emby-button" type="button" class="raised tab-button-evaluation" data-tab="evaluation">Auswertung</button>
+                        <button is="emby-button" type="button" class="raised tab-button-worlds" data-tab="worlds">Welten</button>
                         <button is="emby-button" type="button" class="raised tab-button-actions" data-tab="actions">Actions</button>
                     </div>
                     
@@ -171,7 +172,13 @@
                         <h2 class="sectionTitle">Welten (für Apps)</h2>
 
                         <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="worldDefinitions">Welten (eine pro Zeile: Name | Studios | Sammlungen):</label>
+                            <label class="inputLabel inputLabelUnfocused" for="worldListSource">Welten-Liste (Link oder Pfad zu einer welten.json):</label>
+                            <input is="emby-input" type="text" id="worldListSource" name="worldListSource" />
+                            <div class="fieldDescription">Gepflegte Liste, welche Titel zu welcher Welt gehören. Standard ist die Liste aus dem Plugin-Repository auf GitHub; eine eigene Liste geht über einen eigenen Link oder eine Datei auf dem Server. Wird täglich geladen, der letzte Stand bleibt bei Fehlern erhalten. Leer = nur die Regeln unten.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="worldDefinitions">Welten ohne Liste (eine pro Zeile: Name | Studios | Sammlungen):</label>
                             <textarea is="emby-textarea" id="worldDefinitions" name="worldDefinitions" rows="8" style="width: 100%; font-family: monospace;"></textarea>
                             <div class="fieldDescription">Wie bei Disney+: Alle Filme und Serien, deren Studio oder Sammlung (Teil des Namens genügt, durch Komma getrennt) passt, gehören zur Welt. Apps zeigen sie über <code>/LocalRecs/Worlds</code> persönlich sortiert an. Zeilen mit # werden ignoriert. Leer lassen = Standard wiederherstellen.</div>
                         </div>
@@ -277,6 +284,18 @@
                         <div id="evaluationContainer"><p>Lade Auswertung...</p></div>
                     </div>
 
+                    <!-- Welten Tab -->
+                    <div id="tab-worlds" class="tab-content" style="display:none;">
+                        <h2 class="sectionTitle">Welten</h2>
+                        <p>Welten (Marvel, Star Wars, Pixar …) zeigen Apps wie Quallenkino persönlich sortiert an. Welche Titel dazugehören, steht in der <b>Welten-Liste</b> (Einstellung im Reiter „Settings“, Standard: <a is="emby-linkbutton" class="button-link" href="https://github.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/blob/main/welten/welten.json" target="_blank">welten.json auf GitHub</a>). Hier siehst du, was bei dir zugeordnet ist, und bekommst fertige Zeilen zum Ergänzen der Liste.</p>
+                        <button is="emby-button" type="button" class="raised" id="reloadWorldList"><span>Liste neu laden</span></button>
+                        <div id="worldsOverview"><p>Lade Welten...</p></div>
+                        <div class="selectContainer">
+                            <select is="emby-select" id="worldSelect" label="Welt anzeigen"></select>
+                        </div>
+                        <div id="worldDetails"></div>
+                    </div>
+
                     <!-- Actions Tab -->
                     <div id="tab-actions" class="tab-content" style="display:none;">
                         <h2 class="sectionTitle">Plugin Actions</h2>
@@ -348,6 +367,7 @@
                         { button: page.querySelector('.tab-button-setup'), tab: 'setup' },
                         { button: page.querySelector('.tab-button-settings'), tab: 'settings' },
                         { button: page.querySelector('.tab-button-evaluation'), tab: 'evaluation' },
+                        { button: page.querySelector('.tab-button-worlds'), tab: 'worlds' },
                         { button: page.querySelector('.tab-button-actions'), tab: 'actions' }
                     ];
                     
@@ -377,6 +397,10 @@
 
                             if (item.tab === 'actions') {
                                 self.loadBenchmarkResults(page);
+                            }
+
+                            if (item.tab === 'worlds') {
+                                self.loadWorlds(page);
                             }
                         });
                     });
@@ -446,6 +470,97 @@
                 },
 
                 /**
+                 * Loads the world overview (admin).
+                 */
+                loadWorlds: function(page, data) {
+                    var self = this;
+                    var container = page.querySelector('#worldsOverview');
+                    var render = function(overview) {
+                        var html = '<p>';
+                        if (overview.UsesList) {
+                            html += '✔ Welten aus der Liste <code>' + self.escapeHtml(overview.ListSource) + '</code>';
+                            if (overview.ListLoaded) {
+                                html += ', geladen ' + self.escapeHtml(new Date(overview.ListLoaded).toLocaleString());
+                            }
+                            if (overview.ListFromCache) {
+                                html += ' (gespeicherter Stand – Quelle gerade nicht erreichbar)';
+                            }
+                        } else if (overview.ListSource) {
+                            html += '✘ Liste wird geladen oder ist nicht erreichbar – bis dahin gelten die Regeln aus den Einstellungen';
+                        } else {
+                            html += 'Keine Liste eingestellt – es gelten die Regeln aus den Einstellungen';
+                        }
+                        if (overview.ListError) {
+                            html += '<br><span style="color: #ff5252;">Fehler: ' + self.escapeHtml(overview.ListError) + '</span>';
+                        }
+                        html += '</p><table style="width: 100%; border-collapse: collapse;"><tr style="text-align: left;"><th>Welt</th><th>Titel in der Bibliothek</th><th>Einzeln gelistet</th><th>Ausschlüsse</th></tr>';
+                        var select = page.querySelector('#worldSelect');
+                        var selected = select.value;
+                        select.innerHTML = '';
+                        (overview.Worlds || []).forEach(function(w) {
+                            html += '<tr><td>' + self.escapeHtml(w.Name) + ' <span style="opacity: 0.6;">(' + self.escapeHtml(w.Id) + ')</span></td><td>' + w.ItemCount + '</td><td>' + w.Includes + '</td><td>' + w.Excludes + '</td></tr>';
+                            var option = document.createElement('option');
+                            option.value = w.Id;
+                            option.textContent = w.Name + ' (' + w.ItemCount + ')';
+                            select.appendChild(option);
+                        });
+                        html += '</table>';
+                        container.innerHTML = html;
+                        if (selected) {
+                            select.value = selected;
+                        }
+                        if (select.value) {
+                            self.loadWorldDetails(page, select.value);
+                        }
+                    };
+
+                    if (data) {
+                        render(data);
+                        return;
+                    }
+
+                    ApiClient.getJSON(ApiClient.getUrl('LocalRecs/Worlds/Admin'))
+                        .then(render)
+                        .catch(function(error) {
+                            console.error('Failed to load worlds:', error);
+                            container.innerHTML = '<p style="color: #ff5252;">Welten konnten nicht geladen werden.</p>';
+                        });
+                },
+
+                /**
+                 * Loads the titles and suggestions of one world (admin).
+                 */
+                loadWorldDetails: function(page, worldId) {
+                    var self = this;
+                    var container = page.querySelector('#worldDetails');
+                    container.innerHTML = '<p>Lade...</p>';
+                    var table = function(titles, withReason) {
+                        if (!titles.length) {
+                            return '<p>Keine.</p>';
+                        }
+                        var html = '<table style="width: 100%; border-collapse: collapse;"><tr style="text-align: left;"><th>Titel</th><th>Jahr</th><th>Typ</th><th>Grund</th><th>Zeile für welten.json</th></tr>';
+                        titles.forEach(function(t) {
+                            html += '<tr><td>' + self.escapeHtml(t.Name) + '</td><td>' + (t.Year || '') + '</td><td>' + self.escapeHtml(t.Type) + '</td><td>' + self.escapeHtml(t.Reason) + '</td><td><code style="user-select: all; font-size: 0.85em;">' + self.escapeHtml(t.ListEntry || '– keine ID –') + '</code></td></tr>';
+                        });
+                        return html + '</table>';
+                    };
+                    ApiClient.getJSON(ApiClient.getUrl('LocalRecs/Worlds/Admin/' + encodeURIComponent(worldId)))
+                        .then(function(details) {
+                            var html = '<h3>' + self.escapeHtml(details.Name) + ': ' + details.Items.length + ' Titel</h3>';
+                            html += '<div class="fieldDescription">Falsch zugeordnete Titel: Zeile kopieren und in der Liste unter <code>"ausschluss"</code> einfügen.</div>';
+                            html += table(details.Items);
+                            html += '<h3>Vorschläge: vermutlich fehlende Titel (' + details.Suggestions.length + ')</h3>';
+                            html += '<div class="fieldDescription">Titel aus denselben Sammlungen. Zum Ergänzen die Zeile kopieren und in der Liste unter <code>"titel"</code> einfügen.</div>';
+                            html += table(details.Suggestions);
+                            container.innerHTML = html;
+                        })
+                        .catch(function(error) {
+                            console.error('Failed to load world:', error);
+                            container.innerHTML = '<p style="color: #ff5252;">Welt konnte nicht geladen werden.</p>';
+                        });
+                },
+
+                /**
                  * Loads the evaluation of the recommendations.
                  */
                 loadEvaluation: function(page) {
@@ -510,6 +625,7 @@
                             page.querySelector('#maxVocabularyTags').value = config.MaxVocabularyTags !== undefined ? config.MaxVocabularyTags : 500;
                             page.querySelector('#enableRatingProximity').checked = config.EnableRatingProximity || false;
                             page.querySelector('#worldDefinitions').value = config.WorldDefinitions || '';
+                            page.querySelector('#worldListSource').value = config.WorldListSource !== undefined && config.WorldListSource !== null ? config.WorldListSource : '';
                             page.querySelector('#minWorldItems').value = config.MinWorldItems !== undefined ? config.MinWorldItems : 5;
                             page.querySelector('#enableCollectionNextParts').checked = config.EnableCollectionNextParts !== false;
                             page.querySelector('#showRecommendationReason').checked = config.ShowRecommendationReason !== false;
@@ -568,6 +684,7 @@
                             config.MaxVocabularyDirectors = parseInt(page.querySelector('#maxVocabularyDirectors').value);
                             config.MaxVocabularyTags = parseInt(page.querySelector('#maxVocabularyTags').value);
                             config.EnableRatingProximity = page.querySelector('#enableRatingProximity').checked;
+                            config.WorldListSource = page.querySelector('#worldListSource').value.trim();
                             var worldDefinitions = page.querySelector('#worldDefinitions').value.trim();
                             if (worldDefinitions) {
                                 config.WorldDefinitions = worldDefinitions;
@@ -726,6 +843,22 @@
                         .catch(function(error) {
                             console.error('Failed to download evaluation:', error);
                             Dashboard.alert('Auswertung konnte nicht heruntergeladen werden.');
+                        });
+                });
+
+                page.querySelector('#worldSelect').addEventListener('change', function() {
+                    LocalRecsConfig.loadWorldDetails(page, this.value);
+                });
+
+                page.querySelector('#reloadWorldList').addEventListener('click', function() {
+                    page.querySelector('#worldsOverview').innerHTML = '<p>Lade Liste neu...</p>';
+                    ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('LocalRecs/Worlds/Admin/Reload'), dataType: 'json' })
+                        .then(function(overview) {
+                            LocalRecsConfig.loadWorlds(page, overview);
+                        })
+                        .catch(function(error) {
+                            console.error('Failed to reload world list:', error);
+                            LocalRecsConfig.loadWorlds(page);
                         });
                 });
 

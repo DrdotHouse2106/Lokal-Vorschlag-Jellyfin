@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.11.0] - 2026-10-18
+
+### Added
+
+- **Maintained world list** `welten/welten.json` in this repository: per world studios, collection names, single titles (`titel`, by TMDB/IMDb/TVDB ID with optional `typ`) and exclusions (`ausschluss`, by ID or whole collection via `sammlung`). New setting `WorldListSource` (default: the list on GitHub; URL or file; empty = only the text rules). Loaded daily in the background, the last good state is kept in `welten-cache.json` and used when the source is unreachable or invalid. The library is not changed.
+- **"Welten" tab** in the settings and admin API (`GET /LocalRecs/Worlds/Admin`, `GET /LocalRecs/Worlds/Admin/{id}`, `POST /LocalRecs/Worlds/Admin/Reload`): titles per world with the reason (studio, collection, list), suggestions for missing titles (other parts of the same collections) and a ready-made line for the list.
+- Studio Ghibli added to the default worlds.
+
+### Changed
+
+- Star Wars no longer includes Indiana Jones (same studio Lucasfilm), via exclusion in the list.
+
 ## [12.10.1] - 2026-10-18
 
 ### Added

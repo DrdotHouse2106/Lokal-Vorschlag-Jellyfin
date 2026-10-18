@@ -31,6 +31,7 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             ShowRecommendationReason = true;
             WorldDefinitions = Worlds.WorldDefinition.DefaultDefinitions;
             MinWorldItems = 5;
+            WorldListSource = Worlds.WorldListSource.DefaultUrl;
             MovieSectionTitle = "Empfohlene Filme für dich";
             TvSectionTitle = "Empfohlene Serien für dich";
             EnableLiveTvTracking = true;
@@ -217,6 +218,12 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Gets or sets the minimum number of titles a world needs to be offered. Default: 5.
         /// </summary>
         public int MinWorldItems { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maintained world list (URL or path of a <c>welten.json</c>). Default: the list in the plugin
+        /// repository on GitHub. Empty = only the rules from <see cref="WorldDefinitions"/>.
+        /// </summary>
+        public string WorldListSource { get; set; }
 
         /// <summary>
         /// Validates the configuration and returns validation errors.

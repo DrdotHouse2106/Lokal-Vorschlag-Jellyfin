@@ -35,6 +35,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         private readonly IUserManager _userManager;
         private readonly ILibraryManager _libraryManager;
         private readonly IDtoService _dtoService;
+        private readonly WorldListSource _listSource;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WorldsController"/> class.
@@ -44,9 +45,11 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// <param name="userManager">User manager.</param>
         /// <param name="libraryManager">Library manager.</param>
         /// <param name="dtoService">DTO service.</param>
+        /// <param name="listSource">Maintained world list.</param>
         /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
-        public WorldsController(WorldService worlds, RecommendationStore store, IUserManager userManager, ILibraryManager libraryManager, IDtoService dtoService)
+        public WorldsController(WorldService worlds, RecommendationStore store, IUserManager userManager, ILibraryManager libraryManager, IDtoService dtoService, WorldListSource listSource)
         {
+            _listSource = listSource ?? throw new ArgumentNullException(nameof(listSource));
             _worlds = worlds ?? throw new ArgumentNullException(nameof(worlds));
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
@@ -150,6 +153,103 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             }
 
             return Ok(new RecentWorld { World = recent.Info, Items = ToResult(user, items).Items });
+        }
+
+        /// <summary>
+        /// Admin: state of the world list and number of titles per world.
+        /// </summary>
+        /// <returns>The overview.</returns>
+        [HttpGet("Admin")]
+        [Authorize(Policy = "RequiresElevation")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public ActionResult<AdminOverview> GetAdminOverview()
+        {
+            var membership = _worlds.GetMembership();
+            var source = Config.WorldListSource?.Trim();
+            return Ok(new AdminOverview
+            {
+                ListSource = string.IsNullOrEmpty(source) ? null : source,
+                ListLoaded = _listSource.LastLoaded,
+                ListError = _listSource.LastError,
+                ListFromCache = _listSource.FromCache,
+                UsesList = !string.IsNullOrEmpty(source) && _listSource.GetWorlds() != null,
+                Worlds = membership.Worlds.Select(w => new AdminWorld
+                {
+                    Id = w.Id,
+                    Name = w.Name,
+                    ItemCount = membership.Members[w.Id].Count,
+                    Includes = w.Includes.Count,
+                    Excludes = w.Excludes.Count
+                }).ToList()
+            });
+        }
+
+        /// <summary>
+        /// Admin: titles of a world with the reason they belong to it, and suggestions for missing titles
+        /// (with a ready-made line for the list).
+        /// </summary>
+        /// <param name="worldId">World ID.</param>
+        /// <returns>The details.</returns>
+        [HttpGet("Admin/{worldId}")]
+        [Authorize(Policy = "RequiresElevation")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public ActionResult<AdminWorldDetails> GetAdminWorld([FromRoute] string worldId)
+        {
+            var membership = _worlds.GetMembership();
+            var world = membership.Worlds.FirstOrDefault(w => string.Equals(w.Id, worldId, StringComparison.OrdinalIgnoreCase));
+            if (world == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(new AdminWorldDetails
+            {
+                Id = world.Id,
+                Name = world.Name,
+                Items = membership.Sources[world.Id].Select(kv => ToAdminTitle(membership, kv.Key, kv.Value)).Where(t => t != null).Select(t => t!).OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase).ToList(),
+                Suggestions = membership.Suggest(world.Id).Select(s => ToAdminTitle(membership, s.ItemId, s.Reason)).Where(t => t != null).Select(t => t!).OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase).ToList()
+            });
+        }
+
+        /// <summary>
+        /// Admin: loads the world list again (e.g. after editing it on GitHub).
+        /// </summary>
+        /// <returns>The overview after loading.</returns>
+        [HttpPost("Admin/Reload")]
+        [Authorize(Policy = "RequiresElevation")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async System.Threading.Tasks.Task<ActionResult<AdminOverview>> ReloadList()
+        {
+            await _listSource.ReloadAsync().ConfigureAwait(false);
+            _worlds.Invalidate();
+            return GetAdminOverview();
+        }
+
+        private AdminTitle? ToAdminTitle(WorldMembership membership, Guid itemId, string reason)
+        {
+            var item = _libraryManager.GetItemById(itemId);
+            if (item == null || !membership.Items.TryGetValue(itemId, out var entry))
+            {
+                return null;
+            }
+
+            var type = entry.IsSeries ? "serie" : "film";
+            var reference = !string.IsNullOrEmpty(entry.Tmdb) ? "\"tmdb\": \"" + entry.Tmdb + "\""
+                : !string.IsNullOrEmpty(entry.Imdb) ? "\"imdb\": \"" + entry.Imdb + "\""
+                : !string.IsNullOrEmpty(entry.Tvdb) ? "\"tvdb\": \"" + entry.Tvdb + "\""
+                : null;
+            return new AdminTitle
+            {
+                Id = itemId.ToString("N"),
+                Name = item.Name ?? string.Empty,
+                Year = item.ProductionYear,
+                Type = type,
+                Tmdb = entry.Tmdb,
+                Imdb = entry.Imdb,
+                Reason = reason,
+                ListEntry = reference == null ? null : "{ " + reference + ", \"typ\": \"" + type + "\", \"name\": " + System.Text.Json.JsonSerializer.Serialize(item.Name ?? string.Empty) + " }"
+            };
         }
 
         private User? CurrentUser() => _userManager.GetUserById(RecommendationsController.GetUserId(User));
@@ -262,6 +362,99 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets the TMDB IDs of the collections in this world (e.g. to show missing parts via Jellyseerr).</summary>
             public List<string> TmdbCollectionIds { get; set; } = new List<string>();
+        }
+
+        /// <summary>
+        /// Admin overview of the worlds.
+        /// </summary>
+        public class AdminOverview
+        {
+            /// <summary>Gets or sets the configured list (URL or path), null if none.</summary>
+            public string? ListSource { get; set; }
+
+            /// <summary>Gets or sets when the list was loaded (UTC).</summary>
+            public DateTime? ListLoaded { get; set; }
+
+            /// <summary>Gets or sets the last load error.</summary>
+            public string? ListError { get; set; }
+
+            /// <summary>Gets or sets a value indicating whether the local copy is used.</summary>
+            public bool ListFromCache { get; set; }
+
+            /// <summary>Gets or sets a value indicating whether the worlds come from the list (otherwise from the text rules).</summary>
+            public bool UsesList { get; set; }
+
+            /// <summary>Gets or sets the worlds.</summary>
+            public List<AdminWorld> Worlds { get; set; } = new List<AdminWorld>();
+        }
+
+        /// <summary>
+        /// A world in the admin overview.
+        /// </summary>
+        public class AdminWorld
+        {
+            /// <summary>Gets or sets the ID.</summary>
+            public string Id { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the name.</summary>
+            public string Name { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the number of titles in the library (all users).</summary>
+            public int ItemCount { get; set; }
+
+            /// <summary>Gets or sets the number of explicitly listed titles.</summary>
+            public int Includes { get; set; }
+
+            /// <summary>Gets or sets the number of excluded titles.</summary>
+            public int Excludes { get; set; }
+        }
+
+        /// <summary>
+        /// Titles of a world for the admin view.
+        /// </summary>
+        public class AdminWorldDetails
+        {
+            /// <summary>Gets or sets the ID.</summary>
+            public string Id { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the name.</summary>
+            public string Name { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the titles of the world.</summary>
+            public List<AdminTitle> Items { get; set; } = new List<AdminTitle>();
+
+            /// <summary>Gets or sets titles that probably belong to the world.</summary>
+            public List<AdminTitle> Suggestions { get; set; } = new List<AdminTitle>();
+        }
+
+        /// <summary>
+        /// A title in the admin view.
+        /// </summary>
+        public class AdminTitle
+        {
+            /// <summary>Gets or sets the item ID.</summary>
+            public string Id { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the name.</summary>
+            public string Name { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the production year.</summary>
+            public int? Year { get; set; }
+
+            /// <summary>Gets or sets the type ("film" or "serie").</summary>
+            public string Type { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the TMDB ID.</summary>
+            public string? Tmdb { get; set; }
+
+            /// <summary>Gets or sets the IMDb ID.</summary>
+            public string? Imdb { get; set; }
+
+            /// <summary>Gets or sets why the title belongs (or probably belongs) to the world.</summary>
+            public string Reason { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets a ready-made entry for "titel" or "ausschluss" in welten.json.</summary>
+            public string? ListEntry { get; set; }
         }
 
         /// <summary>
