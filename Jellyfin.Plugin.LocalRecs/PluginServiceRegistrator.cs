@@ -81,6 +81,13 @@ namespace Jellyfin.Plugin.LocalRecs
                     Path.Combine(GetPluginDataPath(sp), "feedback.json")));
             serviceCollection.AddHostedService<LiveTvTrackingService>();
 
+            // Erinnerungen an Live-TV-Sendungen (Kalender-Abo)
+            serviceCollection.AddSingleton(sp =>
+                new Reminders.ReminderStore(
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Reminders.ReminderStore>>(),
+                    Path.Combine(GetPluginDataPath(sp), "reminders.json")));
+            serviceCollection.AddSingleton<Reminders.ReminderService>();
+
             // Phase 8: Scheduled Tasks
             serviceCollection.AddTransient<IScheduledTask, RecommendationRefreshTask>();
             serviceCollection.AddTransient<IScheduledTask, BenchmarkTask>();

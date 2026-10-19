@@ -36,6 +36,8 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             WebHomeEnabled = false;
             WebThemeEnabled = false;
             WebPlayerUserIds = System.Array.Empty<string>();
+            CalendarPublicUrl = string.Empty;
+            CalendarAlarmMinutes = 10;
             MovieSectionTitle = "Empfohlene Filme für dich";
             TvSectionTitle = "Empfohlene Serien für dich";
             EnableLiveTvTracking = true;
@@ -250,6 +252,17 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Gets or sets the users (IDs without dashes) who get the Netflix-style player in Jellyfin Web (test, opt-in).
         /// </summary>
         public string[] WebPlayerUserIds { get; set; }
+
+        /// <summary>
+        /// Gets or sets the public address of the server for calendar links (e.g. https://jellyfin.example.org).
+        /// Empty = taken from the request.
+        /// </summary>
+        public string CalendarPublicUrl { get; set; }
+
+        /// <summary>
+        /// Gets or sets the reminder before a remembered programme in minutes (0 = no alarm).
+        /// </summary>
+        public int CalendarAlarmMinutes { get; set; }
 
         /// <summary>
         /// Validates the configuration and returns validation errors.

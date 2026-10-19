@@ -132,6 +132,12 @@ In the browser and the Jellyfin apps for iOS and Android the start page can look
 - Netflix-style player (test, since 12.19.0) for selected users: own controls (back/title, big play/pause and ±10 s, progress bar with trickplay preview, audio & subtitles in one menu, episode list, speed, fullscreen, ⋮), Jellyfin keeps playing. „Klassischer Player“ under ⋮ per device.
 - "Play" starts playback in the same browser/app. Every user can switch back to the classic start page at the bottom of the page. Files are loaded with the plugin version as query (`?v=…`), so apps with a web cache get updates right away.
 
+### Live TV reminders and calendar (since 12.20.0)
+
+Remember single programmes or whole series (all future broadcasts with the same title, episodes once). Remembered programmes appear in a per-user **iCal subscription** with an alarm before the start (default 10 min) – phones remind through their own calendar. Jellyfin Web: bell on live TV tiles and on the programme page („Merken“, „Serie merken“), profile menu „Erinnerungen im Kalender“ (subscribe, copy link, QR code, renew link).
+
+`GET /LocalRecs/Reminders`, `POST|DELETE /LocalRecs/Reminders/{programId}` (204 / 404 / 409 when over), `GET /LocalRecs/Reminders/Series`, `POST /LocalRecs/Reminders/Series/{programId}` (200 with the series), `DELETE /LocalRecs/Reminders/Series/{key}`, `GET /LocalRecs/Calendar` → `{ Url, WebcalUrl, QrUrl }`, `POST /LocalRecs/Calendar/Renew`, `GET /LocalRecs/Calendar/Qr?target=webcal|https` (SVG), `GET /LocalRecs/Calendar/{token}.ics` (no sign-in, secret token). IDs with or without dashes; `/LocalRecs/Web/Config` reports `"Reminders": true`.
+
 ### API for TV apps
 
 `GET /LocalRecs/Recommendations?type=movies|series|livetv&limit=20` returns the same items as the home screen rows for the **signed-in user** (regular token, no admin) as `{ "Items": [...], "TotalRecordCount": n }`. Works without Home Screen Sections.

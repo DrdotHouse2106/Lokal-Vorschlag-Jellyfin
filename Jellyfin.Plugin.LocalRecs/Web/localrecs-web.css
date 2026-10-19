@@ -1854,7 +1854,7 @@ html.lr-theme .cardText-secondary {
     color: #a9b1c2;
 }
 
-html.lr-theme a:not(.MuiButtonBase-root):not(.MuiMenuItem-root):not(.MuiListItemButton-root),
+html.lr-theme a:not(.MuiButtonBase-root):not(.MuiMenuItem-root):not(.MuiListItemButton-root):not(.lr-btn),
 html.lr-theme .button-link {
     color: #7fb4ff;
 }
@@ -2323,5 +2323,140 @@ html.lr-player .lr-skip {
     .lr-nf-panel:not(.lr-nf-side) {
         left: 4%;
         right: 4% !important;
+    }
+}
+
+/* ------------------------------------------------------------------ Live-TV-Erinnerungen und Kalender */
+
+.lr-svg-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lr-svg-icon svg {
+    display: block;
+}
+
+.lr-reminder.lr-on,
+.lr-btn-link.lr-on {
+    color: #fff;
+}
+
+.lr-reminder.lr-on {
+    background: linear-gradient(90deg, #7f76d6, #2e96e0);
+    border-color: transparent;
+}
+
+.lr-reminder-label {
+    width: auto;
+    padding: 0 1em 0 0.7em;
+    border-radius: 999px;
+    gap: 0.35em;
+}
+
+.lr-card-bell {
+    position: absolute;
+    top: 6%;
+    right: 4%;
+    width: 2.1em;
+    height: 2.1em;
+    font-size: 0.85em;
+    background: rgba(11, 14, 20, 0.7);
+}
+
+.lr-calendar .lr-dialog {
+    width: min(720px, 94vw);
+}
+
+.lr-cal-body {
+    padding: 2em 2.2em 0.5em;
+}
+
+.lr-cal-title {
+    margin: 0 0 0.4em;
+}
+
+.lr-cal-text,
+.lr-cal-hint {
+    color: #c9cedb;
+    line-height: 1.5;
+}
+
+.lr-cal-hint {
+    font-size: 0.85em;
+    margin: 0;
+}
+
+.lr-cal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.8em;
+    margin: 1em 0;
+}
+
+.lr-cal-actions a.lr-btn {
+    text-decoration: none;
+}
+
+.lr-cal-copied {
+    color: #7fd6a0;
+}
+
+.lr-cal-qrbox {
+    display: flex;
+    align-items: center;
+    gap: 1.2em;
+    margin: 0.5em 0 1em;
+}
+
+.lr-cal-qr {
+    width: 150px;
+    height: 150px;
+    border-radius: 8px;
+    background: #fff;
+    flex: 0 0 auto;
+}
+
+.lr-cal-list {
+    margin-top: 1em;
+}
+
+.lr-cal-row {
+    display: flex;
+    align-items: center;
+    gap: 0.9em;
+    padding: 0.55em 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lr-cal-when {
+    flex: 0 0 auto;
+    min-width: 7.5em;
+    color: #c9cedb;
+    font-variant-numeric: tabular-nums;
+}
+
+.lr-cal-row-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.lr-cal-badge {
+    padding: 0.1em 0.6em;
+    border-radius: 999px;
+    font-size: 0.8em;
+    background: rgba(127, 118, 214, 0.35);
+}
+
+@media (max-width: 700px) {
+    .lr-cal-body {
+        padding: 1.4em 1.1em 0.5em;
+    }
+
+    .lr-cal-qrbox {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }

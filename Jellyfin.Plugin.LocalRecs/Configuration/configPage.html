@@ -193,6 +193,19 @@
                             <div class="fieldDescription">Eigene Steuerleiste im Netflix-Stil für Jellyfin Web und die Handy-Apps: Zurück und Titel oben, große Play/Pause- und ±10-Sekunden-Knöpfe, Zeitleiste mit Vorschaubildern, Ton &amp; Untertitel in einem Menü, Folgenliste, Geschwindigkeit, Überspringen mit Countdown. Abgespielt wird weiter von Jellyfin. Im Player gibt es unter ⋮ „Klassischer Player“ (pro Gerät).</div>
                         </div>
 
+                        <h2 class="sectionTitle">Live-TV-Erinnerungen (Kalender)</h2>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="calendarPublicUrl">Öffentliche Adresse für Kalender-Links (optional):</label>
+                            <input is="emby-input" type="text" id="calendarPublicUrl" name="calendarPublicUrl" placeholder="https://jellyfin.example.org" />
+                            <div class="fieldDescription">Unter dieser Adresse holen Kalender-Apps die gemerkten Sendungen ab (iCal-Abo mit geheimem Link pro Benutzer). Leer = die Adresse, über die Jellyfin gerade aufgerufen wird.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="calendarAlarmMinutes">Erinnerung vor Beginn (Minuten, 0 = keine):</label>
+                            <input is="emby-input" type="number" id="calendarAlarmMinutes" name="calendarAlarmMinutes" min="0" max="1440" />
+                        </div>
+
                         <h2 class="sectionTitle">Welten (für Apps)</h2>
 
                         <div class="inputContainer">
@@ -663,6 +676,8 @@
                             page.querySelector('#fanartApiKey').value = config.FanartApiKey || '';
                             page.querySelector('#webHomeEnabled').checked = config.WebHomeEnabled === true;
                             page.querySelector('#webThemeEnabled').checked = config.WebThemeEnabled === true;
+                            page.querySelector('#calendarPublicUrl').value = config.CalendarPublicUrl || '';
+                            page.querySelector('#calendarAlarmMinutes').value = config.CalendarAlarmMinutes !== undefined ? config.CalendarAlarmMinutes : 10;
                             var playerUsers = (config.WebPlayerUserIds || []).map(function (id) { return String(id).replace(/-/g, '').toLowerCase(); });
                             ApiClient.getUsers().then(function (users) {
                                 var list = page.querySelector('#webPlayerUsers');
@@ -744,6 +759,9 @@
                             config.FanartApiKey = page.querySelector('#fanartApiKey').value.trim();
                             config.WebHomeEnabled = page.querySelector('#webHomeEnabled').checked;
                             config.WebThemeEnabled = page.querySelector('#webThemeEnabled').checked;
+                            config.CalendarPublicUrl = page.querySelector('#calendarPublicUrl').value.trim();
+                            var alarm = parseInt(page.querySelector('#calendarAlarmMinutes').value, 10);
+                            config.CalendarAlarmMinutes = isNaN(alarm) ? 10 : Math.min(1440, Math.max(0, alarm));
                             var userBoxes = page.querySelectorAll('#webPlayerUsers .webPlayerUser');
                             if (userBoxes.length) {
                                 config.WebPlayerUserIds = Array.prototype.filter.call(userBoxes, function (box) { return box.checked; }).map(function (box) { return box.value; });

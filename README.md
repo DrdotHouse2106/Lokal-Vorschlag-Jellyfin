@@ -117,6 +117,29 @@ Im Browser und in den Jellyfin-Apps für iOS und Android kann die Startseite wie
 - „Abspielen“ startet die Wiedergabe im selben Browser bzw. in derselben App. Ganz unten auf der Startseite kann jeder Benutzer zur klassischen Ansicht zurückwechseln.
 - Skript und Stylesheet werden mit der Plugin-Version im Link geladen (`?v=…`). So kommen Updates auch in Apps mit Web-Zwischenspeicher (z. B. der iOS-App) sofort an.
 
+### Live-TV-Erinnerungen und Kalender (ab 12.20.0)
+
+Sendungen aus dem Programmführer lassen sich merken – einzeln oder als ganze Serie (alle künftigen Ausstrahlungen mit gleichem Titel, gleiche Folgen nur einmal). Gemerktes erscheint in einem **Kalender-Abo (iCal)** pro Benutzer, mit Erinnerung vor Beginn (Standard 10 Minuten). So erinnert das Handy über den eigenen Kalender, ganz ohne zusätzliche App. In Jellyfin Web: Glocke an Live-TV-Kacheln und auf der Sendungsseite („Merken“, „Serie merken“), im Profilmenü „Erinnerungen im Kalender“ (Abonnieren, Link kopieren, QR-Code, Link erneuern).
+
+```
+GET    /LocalRecs/Reminders                    → [{ ProgramId, ChannelId, ChannelName, SeriesKey, Name, EpisodeTitle, Overview, StartDate, EndDate, IsSeries }]
+                                                 (gemerkte Sendungen + künftige Ausstrahlungen gemerkter Serien, nach Beginn sortiert, bis 2 Tage nach Ende)
+POST   /LocalRecs/Reminders/{programId}        → 204 gemerkt (auch wenn schon gemerkt) · 404 unbekannte Sendung · 409 schon vorbei · 403 kein Live-TV
+DELETE /LocalRecs/Reminders/{programId}        → 204 entfernt · 404 war nicht gemerkt
+GET    /LocalRecs/Reminders/Series             → [{ Key, Name, Added }]
+POST   /LocalRecs/Reminders/Series/{programId} → 200 { Key, Name, Added } – Serie dieser Sendung merken · 404 unbekannte Sendung
+DELETE /LocalRecs/Reminders/Series/{key}       → 204 · 404 (statt Key geht auch die Id einer Sendung der Serie)
+GET    /LocalRecs/Calendar                     → { Url, WebcalUrl, QrUrl } – Abo-Links (Schlüssel wird beim ersten Aufruf erzeugt)
+POST   /LocalRecs/Calendar/Renew               → wie oben, mit neuem Schlüssel (alter Link wird ungültig)
+GET    /LocalRecs/Calendar/Qr?target=webcal|https → QR-Code als SVG (skalierbar, mit Ruhezone; Standard webcal)
+GET    /LocalRecs/Calendar/{token}.ics         → iCal-Feed ohne Anmeldung (der geheime Schlüssel schützt ihn)
+```
+
+- Ids (`programId`) mit oder ohne Bindestriche. Alle Endpunkte außer dem `.ics`-Feed brauchen die normale Anmeldung (`Authorization: MediaBrowser Token="…"`, bei Bild-Links `?ApiKey=…`).
+- `/LocalRecs/Web/Config` meldet `"Reminders": true`, Apps können die Funktion darüber erkennen.
+- Die Abo-Adresse ergibt sich aus der Anfrage (beachtet `X-Forwarded-Proto`/`X-Forwarded-Host`) oder aus der Einstellung „Öffentliche Adresse für Kalender-Links“.
+- iPhone: `webcal://`-Link bzw. QR-Code → Abo bestätigen. Google Kalender: https-Link am PC unter „Weitere Kalender → Per URL“ einfügen.
+
 ### Schnittstelle für TV-Apps
 
 Apps, die „Home Screen Sections“ nicht anzeigen (z. B. [Jellyfin-TV-Client](https://github.com/DrdotHouse2106/Jellyfin-TV-Client) für Android TV / Fire TV), holen die Empfehlungen direkt:

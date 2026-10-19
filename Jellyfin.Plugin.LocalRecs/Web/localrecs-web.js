@@ -314,6 +314,165 @@
         return item.StartDate && item.EndDate && Date.parse(item.StartDate) <= now && Date.parse(item.EndDate) > now;
     }
 
+    // ---------------------------------------------------------------- Live-TV-Erinnerungen (Kalender)
+
+    var reminders = { ids: {}, series: {}, loaded: false };
+
+    function loadReminders() {
+        return Promise.all([getJson('LocalRecs/Reminders'), getJson('LocalRecs/Reminders/Series')]).then(function (results) {
+            reminders.ids = {};
+            reminders.series = {};
+            (results[0] || []).forEach(function (entry) {
+                reminders.ids[entry.ProgramId] = entry;
+            });
+            (results[1] || []).forEach(function (series) {
+                reminders.series[series.Key] = series;
+            });
+            reminders.loaded = true;
+            return results;
+        }).catch(function () {
+            return null;
+        });
+    }
+
+    function programKey(id) {
+        return String(id || '').replace(/-/g, '');
+    }
+
+    function isRemembered(item) {
+        return !!reminders.ids[programKey(item.Id)];
+    }
+
+    function toggleReminder(item, onDone) {
+        var id = programKey(item.Id);
+        var on = !isRemembered(item);
+        (on ? post('LocalRecs/Reminders/' + id) : del('LocalRecs/Reminders/' + id)).then(function () {
+            if (on) {
+                reminders.ids[id] = { ProgramId: id };
+            } else {
+                delete reminders.ids[id];
+            }
+            if (onDone) {
+                onDone(on);
+            }
+        }).catch(function () {
+            if (onDone) {
+                onDone(!on);
+            }
+        });
+    }
+
+    function reminderButton(item, withLabel) {
+        var b = button('lr-round lr-reminder' + (withLabel ? ' lr-reminder-label' : ''), isRemembered(item) ? 'notifications_active' : 'notifications_none',
+            withLabel ? (isRemembered(item) ? 'Gemerkt' : 'Merken') : null, function () {
+                toggleReminder(item, function (on) {
+                    b.querySelector('.lr-icon').textContent = on ? 'notifications_active' : 'notifications_none';
+                    b.classList.toggle('lr-on', on);
+                    var text = b.querySelector('span:not(.lr-icon)');
+                    if (text) {
+                        text.textContent = on ? 'Gemerkt' : 'Merken';
+                    }
+                });
+            });
+        b.classList.toggle('lr-on', isRemembered(item));
+        b.title = 'An diese Sendung erinnern (Kalender)';
+        return b;
+    }
+
+    function openCalendarDialog() {
+        var dialog = overlayShell('lr-calendar');
+        var body = el('div', 'lr-cal-body');
+        body.appendChild(el('h2', 'lr-cal-title', 'Erinnerungen im Kalender'));
+        body.appendChild(el('p', 'lr-cal-text', 'Gemerkte Sendungen erscheinen in deinem Kalender – mit Erinnerung kurz vor Beginn. '
+            + 'Einmal abonnieren, dann aktualisiert sich der Kalender von selbst.'));
+        var links = el('div', 'lr-cal-links');
+        body.appendChild(links);
+        var listBox = el('div', 'lr-cal-list');
+        body.appendChild(listBox);
+        dialog.appendChild(body);
+
+        var renderLinks = function (link) {
+            links.innerHTML = '';
+            var actions = el('div', 'lr-cal-actions');
+            var subscribe = el('a', 'lr-btn lr-btn-play', null);
+            subscribe.href = link.WebcalUrl;
+            subscribe.appendChild(icon('event'));
+            subscribe.appendChild(el('span', null, 'Im Kalender abonnieren'));
+            actions.appendChild(subscribe);
+            actions.appendChild(button('lr-btn-info', 'content_copy', 'Link kopieren', function () {
+                var done = function () {
+                    copyText.textContent = 'Kopiert';
+                };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(link.Url).then(done, function () {
+                        window.prompt('Link kopieren:', link.Url);
+                    });
+                } else {
+                    window.prompt('Link kopieren:', link.Url);
+                }
+            }));
+            var copyText = el('span', 'lr-cal-copied');
+            actions.appendChild(copyText);
+            links.appendChild(actions);
+            var qr = el('img', 'lr-cal-qr');
+            qr.alt = 'QR-Code zum Abonnieren';
+            qr.src = url('LocalRecs/Calendar/Qr?ApiKey=' + api().accessToken() + '&v=' + Date.now());
+            var qrBox = el('div', 'lr-cal-qrbox');
+            qrBox.appendChild(qr);
+            qrBox.appendChild(el('p', 'lr-cal-hint', 'Mit der Handy-Kamera scannen. iPhone: Abo bestätigen. Android/Google Kalender: Link kopieren und am PC unter '
+                + '„Weitere Kalender → Per URL“ einfügen.'));
+            links.appendChild(qrBox);
+            links.appendChild(button('lr-btn-link', 'autorenew', 'Link erneuern (alter Link wird ungültig)', function () {
+                if (window.confirm('Neuen Link erzeugen? Bestehende Kalender-Abos hören dann auf, sich zu aktualisieren.')) {
+                    post('LocalRecs/Calendar/Renew').then(function () {
+                        return getJson('LocalRecs/Calendar');
+                    }).then(renderLinks);
+                }
+            }));
+        };
+
+        var renderList = function () {
+            listBox.innerHTML = '';
+            loadReminders().then(function (results) {
+                listBox.innerHTML = '';
+                var entries = results ? results[0] || [] : [];
+                var series = results ? results[1] || [] : [];
+                listBox.appendChild(el('h3', 'lr-info-heading', 'Gemerkt'));
+                if (!entries.length && !series.length) {
+                    listBox.appendChild(el('p', 'lr-cal-text', 'Noch nichts gemerkt. Tippe bei einer Sendung auf die Glocke.'));
+                }
+                series.forEach(function (s) {
+                    var row = el('div', 'lr-cal-row');
+                    row.appendChild(icon('repeat'));
+                    row.appendChild(el('div', 'lr-cal-row-text', 'Serie: ' + s.Name));
+                    row.appendChild(button('lr-round', 'close', null, function () {
+                        del('LocalRecs/Reminders/Series/' + encodeURIComponent(s.Key)).then(renderList);
+                    }));
+                    listBox.appendChild(row);
+                });
+                entries.forEach(function (entry) {
+                    var row = el('div', 'lr-cal-row');
+                    var start = new Date(entry.StartDate);
+                    row.appendChild(el('div', 'lr-cal-when', start.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) + ' ' + timeText(entry.StartDate)));
+                    row.appendChild(el('div', 'lr-cal-row-text', (entry.ChannelName ? entry.ChannelName + ': ' : '') + entry.Name + (entry.EpisodeTitle ? ' – ' + entry.EpisodeTitle : '')));
+                    if (!entry.IsSeries) {
+                        row.appendChild(button('lr-round', 'close', null, function () {
+                            del('LocalRecs/Reminders/' + entry.ProgramId).then(renderList);
+                        }));
+                    } else {
+                        row.appendChild(el('span', 'lr-cal-badge', 'Serie'));
+                    }
+                    listBox.appendChild(row);
+                });
+            });
+        };
+
+        getJson('LocalRecs/Calendar').then(renderLinks).catch(function () {
+            links.appendChild(el('p', 'lr-cal-text', 'Der Kalender ist gerade nicht erreichbar.'));
+        });
+        renderList();
+    }
+
     // ---------------------------------------------------------------- Navigation und Wiedergabe
 
     function navigate(route) {
@@ -495,6 +654,11 @@
         }
         if (item.Type === 'Program' && isAiring(item)) {
             frame.appendChild(el('div', 'lr-live', 'LIVE'));
+        }
+        if (item.Type === 'Program' && !isAiring(item) && item.StartDate && Date.parse(item.StartDate) > Date.now()) {
+            var bell = reminderButton(item, false);
+            bell.classList.add('lr-card-bell');
+            frame.appendChild(bell);
         }
         card.appendChild(frame);
         var sub = subtitle(item, showReason);
@@ -834,7 +998,7 @@
             video.setAttribute('webkit-playsinline', '');
             video.autoplay = true;
             video.preload = 'auto';
-            video.src = url('Videos/' + trailerId + '/stream?static=true&api_key=' + api().accessToken());
+            video.src = url('Videos/' + trailerId + '/stream?static=true&ApiKey=' + api().accessToken());
             video.addEventListener('playing', function () {
                 hero.classList.add('lr-playing');
                 var muteButton = hero.querySelector('.lr-mute');
@@ -916,9 +1080,12 @@
         if (options.actions !== false) {
             var actions = el('div', 'lr-hero-actions');
             var resume = item.UserData && item.UserData.PlaybackPositionTicks > 0;
-            actions.appendChild(button('lr-btn-play', 'play_arrow', resume ? 'Fortsetzen' : 'Abspielen', function () {
-                play(item);
-            }));
+            var future = item.Type === 'Program' && !isAiring(item);
+            if (!future) {
+                actions.appendChild(button('lr-btn-play', 'play_arrow', item.Type === 'Program' ? 'Einschalten' : (resume ? 'Fortsetzen' : 'Abspielen'), function () {
+                    play(item);
+                }));
+            }
             if (card) {
                 var listButton = button('lr-btn-info', item.UserData && item.UserData.IsFavorite ? 'check' : 'add', 'Meine Liste', function () {
                     var data = item.UserData || (item.UserData = {});
@@ -1013,7 +1180,7 @@
     function openInfo(summary) {
         var dialog = overlayShell('lr-info');
         dialog.appendChild(el('div', 'lr-spinner'));
-        getJson(itemsQuery('Items/' + summary.Id).replace('&Fields=' + FIELDS, '&Fields=' + FIELDS + ',People,Studios,Taglines'))
+        getJson(itemsQuery('Items/' + summary.Id).replace('&Fields=' + FIELDS, '&Fields=' + FIELDS + ',People,Studios,Taglines,ChannelInfo'))
             .then(function (item) {
                 dialog.querySelector('.lr-spinner').remove();
                 renderInfo(dialog, item);
@@ -1034,6 +1201,11 @@
         if (isEpisode) {
             left.appendChild(el('h2', 'lr-info-episode', subtitle(item)));
         }
+        if (item.Type === 'Program') {
+            var when = item.StartDate ? new Date(item.StartDate).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit' })
+                + ', ' + timeText(item.StartDate) + (item.EndDate ? '–' + timeText(item.EndDate) : '') : '';
+            left.appendChild(el('h2', 'lr-info-episode', [when, item.ChannelName, item.EpisodeTitle].filter(Boolean).join(' · ')));
+        }
         var meta = metaLine(item);
         if (meta) {
             left.appendChild(el('div', 'lr-info-meta', meta));
@@ -1043,6 +1215,22 @@
         actions.appendChild(likeButton(item));
         if (onNative) {
             actions.appendChild(el('span', 'lr-native-actions'));
+        }
+        if (item.Type === 'Program' && !(item.EndDate && Date.parse(item.EndDate) < Date.now())) {
+            if (!isAiring(item)) {
+                actions.appendChild(reminderButton(item, true));
+            }
+            var seriesButton = button('lr-btn-link', 'repeat', 'Serie merken', function () {
+                post('LocalRecs/Reminders/Series/' + programKey(item.Id)).then(function () {
+                    seriesButton.querySelector('span:not(.lr-icon)').textContent = 'Serie gemerkt';
+                    seriesButton.classList.add('lr-on');
+                });
+            });
+            seriesButton.title = 'An alle künftigen Ausstrahlungen erinnern';
+            actions.appendChild(seriesButton);
+            if (!reminders.loaded) {
+                loadReminders();
+            }
         }
         if (isEpisode && item.SeriesId) {
             actions.appendChild(button('lr-btn-link', 'tv', 'Zur Serie', function () {
@@ -1227,7 +1415,7 @@
 
     // ---------------------------------------------------------------- Detailseite im Netflix-Stil
 
-    var DETAIL_TYPES = ['Movie', 'Series', 'Episode', 'Season'];
+    var DETAIL_TYPES = ['Movie', 'Series', 'Episode', 'Season', 'Program'];
 
     function detailIdFromHash() {
         var match = /[?&]id=([0-9a-fA-F-]{32,36})/.exec(window.location.hash || '');
@@ -1329,14 +1517,14 @@
             return;
         }
         showNativeDetail(view);
-        getJson(itemsQuery('Items/' + id).replace('&Fields=' + FIELDS, '&Fields=' + FIELDS + ',People,Studios,Taglines'))
+        getJson(itemsQuery('Items/' + id).replace('&Fields=' + FIELDS, '&Fields=' + FIELDS + ',People,Studios,Taglines,ChannelInfo'))
             .then(function (item) {
                 if (DETAIL_TYPES.indexOf(item.Type) < 0 || detailIdFromHash() !== id) {
                     return null;
                 }
                 // Staffel: Serie zeigen, mit dieser Staffel ausgewählt
                 if (item.Type === 'Season' && item.SeriesId) {
-                    return getJson(itemsQuery('Items/' + item.SeriesId).replace('&Fields=' + FIELDS, '&Fields=' + FIELDS + ',People,Studios,Taglines'))
+                    return getJson(itemsQuery('Items/' + item.SeriesId).replace('&Fields=' + FIELDS, '&Fields=' + FIELDS + ',People,Studios,Taglines,ChannelInfo'))
                         .then(function (series) {
                             return { item: series, seasonId: item.Id };
                         });
@@ -1496,6 +1684,9 @@
         tasks.push(safe(getJson('LocalRecs/Recommendations/Reasons')).then(function (reasons) {
             state.reasons = reasons || {};
         }));
+        if (liveTv) {
+            tasks.push(loadReminders());
+        }
         tasks.push(add('resume', 'Weiterschauen für ' + user.Name, 'landscape', getJson(itemsQuery('UserItems/Resume?MediaTypes=Video&Limit=' + ROW_LIMIT))));
         tasks.push(add('nextup', 'Als Nächstes', 'landscape', getJson(itemsQuery('Shows/NextUp?Limit=' + ROW_LIMIT + '&EnableResumable=false'))));
         tasks.push(add('movies', 'Empfohlene Filme für dich', 'landscape', getJson('LocalRecs/Recommendations?type=movies&limit=' + ROW_LIMIT)));
@@ -2144,6 +2335,23 @@
             });
             list.insertBefore(li, list.firstChild);
         });
+        if (state.liveTv && state.config && state.config.Reminders) {
+            var calendarItem = el('li', 'lr-menu-item MuiButtonBase-root MuiMenuItem-root');
+            calendarItem.setAttribute('role', 'menuitem');
+            var calendarIcon = el('span', 'lr-menu-icon');
+            calendarIcon.appendChild(icon('event'));
+            calendarItem.appendChild(calendarIcon);
+            calendarItem.appendChild(el('span', null, 'Erinnerungen im Kalender'));
+            onActivate(calendarItem, function () {
+                var backdrop = document.querySelector('#app-user-menu .MuiBackdrop-root');
+                if (backdrop) {
+                    backdrop.click();
+                }
+                window.setTimeout(openCalendarDialog, 150);
+            });
+            list.insertBefore(calendarItem, list.firstChild);
+            tucked.push(calendarItem);
+        }
         if (state.config && state.config.PlayerEnabled && storageGet('lrWeb.classicPlayer') === '1') {
             var playerItem = el('li', 'lr-menu-item MuiButtonBase-root MuiMenuItem-root');
             playerItem.setAttribute('role', 'menuitem');
@@ -3025,9 +3233,16 @@
             nfEpisodesMenu();
         });
         right.appendChild(episodes);
-        var tracks = nfButton('lr-nf-tracks-btn', 'subtitles', 'Ton & Untertitel', function () {
+        var tracks = nfButton('lr-nf-tracks-btn', null, 'Ton & Untertitel', function () {
             nfAudioSubtitleMenu(tracks);
         });
+        // Sprechblase mit Zeilen (wie bei Netflix) statt „CC“
+        var bubble = el('span', 'lr-icon lr-svg-icon');
+        bubble.setAttribute('aria-hidden', 'true');
+        bubble.innerHTML = '<svg viewBox="0 0 24 24" width="1em" height="1em"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" '
+            + 'd="M4 4.5h16a1.5 1.5 0 0 1 1.5 1.5v10a1.5 1.5 0 0 1-1.5 1.5H10.5l-4.5 3.5v-3.5H4A1.5 1.5 0 0 1 2.5 16V6A1.5 1.5 0 0 1 4 4.5z"/>'
+            + '<path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M6.5 9.5h6.5M15.5 9.5h2M6.5 13h3M12 13h5.5"/></svg>';
+        tracks.insertBefore(bubble, tracks.firstChild);
         right.appendChild(tracks);
         var speed = nfButton('lr-nf-speed-btn', 'speed', 'Geschwindigkeit', function () {
             nfSpeedMenu(speed);

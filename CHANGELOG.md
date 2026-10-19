@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.20.0] - 2026-10-20
+
+### Added
+
+- **Live TV reminders with calendar subscription**: remember single programmes or whole series (all future broadcasts with the same title within 14 days, episodes with the same title only once). Per-user iCal feed with a secret token (`/LocalRecs/Calendar/{token}.ics`, no sign-in needed for calendar apps), alarm before the start (setting, default 10 min), events from 2 days ago onwards; link can be renewed (old link stops working). API for apps: `/LocalRecs/Reminders`, `/LocalRecs/Reminders/Series`, `/LocalRecs/Calendar`, `/LocalRecs/Calendar/Renew`, `/LocalRecs/Calendar/Qr` (QR code as SVG, own encoder without extra package). `/LocalRecs/Web/Config` reports `"Reminders": true`.
+- Jellyfin Web: bell on upcoming live TV tiles, programme page in the Netflix style with „Merken“ / „Serie merken“ (and „Einschalten“ while airing), profile menu „Erinnerungen im Kalender“ with subscribe (webcal), copy link, QR code, renew link and the list of reminders.
+- Settings: public address for calendar links, reminder minutes.
+
+### Changed
+
+- Netflix player: the audio & subtitles button shows a speech bubble with lines instead of „CC“.
+
+### Fixed
+
+- Jellyfin 12 expects `ApiKey` instead of `api_key` in links: hero trailers and the QR code use `ApiKey` now.
+
 ## [12.19.0] - 2026-10-20
 
 ### Added
