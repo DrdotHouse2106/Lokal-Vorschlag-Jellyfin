@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.18.4.0",
+        "changelog": "Fix: schwarzes Bild bei der Wiedergabe / Fix: black picture during playback\n- Quallenkino-Farben überdecken das Video nicht mehr\n- Überspringen wie in Quallenkino: „Intro überspringen“ mit 5-Sekunden-Countdown\n- Player im Netflix-Look\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.18.4.zip",
+        "checksum": "0e10d3ef4d135e6177bf631a61978d7d",
+        "timestamp": "2026-10-19T21:00:00Z"
+      },
+      {
         "version": "12.18.3.0",
         "changelog": "Netflix-Startseite: Profilmenü und Seitenmenü / Profile and side menu\n- Würfel (Jellyfin Enhanced) und andere Plugin-Knöpfe zuverlässig im Profilmenü, auch auf dem iPhone\n- Profilmenü einheitlich hell, Suchsymbol weiß\n- Seitenmenü in Quallenkino-Farben (auch iOS-App)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

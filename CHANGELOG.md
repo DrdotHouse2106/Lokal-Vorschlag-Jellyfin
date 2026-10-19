@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.18.4] - 2026-10-19
+
+### Fixed
+
+- **Black picture during playback** with the Quallenkino colors: the page backgrounds covered the video. They are no longer applied while Jellyfin makes the document transparent for video (`html.transparentDocument`).
+
+### Added
+
+- Skip like in Quallenkino: during an intro, outro, recap or preview segment (media segments, e.g. from Intro Skipper) a button „Intro überspringen“ / „Abspann überspringen“ … appears with a 5-second progress fill and then skips automatically. Cancel with × , Esc or Back. Uses Jellyfin's own skip (correct with transcoding) when available, otherwise seeks the video. Active when the start page or the colors are on; also on phones.
+- Player in Netflix look (with the Quallenkino colors): dark gradients at the top and bottom, bigger title, white controls, slim position slider with the gradient, Jellyfin's skip button in the same style.
+
 ## [12.18.3] - 2026-10-19
 
 ### Fixed

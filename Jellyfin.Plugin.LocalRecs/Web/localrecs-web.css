@@ -1453,23 +1453,181 @@ html.lr-theme {
     --jf-palette-FilledInput-bg: #1f2633;
 }
 
-html.lr-theme body,
-html.lr-theme .backgroundContainer,
-html.lr-theme .page,
-html.lr-theme .layout-mobile .page,
+/* Nicht während der Video-Wiedergabe: Jellyfin macht dann Dokument und Seiten durchsichtig (html.transparentDocument),
+   sonst läge der Hintergrund über dem Bild */
+html.lr-theme:not(.transparentDocument) body,
+html.lr-theme:not(.transparentDocument) .backgroundContainer:not(.backgroundContainer-transparent),
+html.lr-theme:not(.transparentDocument) .page,
+html.lr-theme:not(.transparentDocument) .layout-mobile .page,
 html.lr-theme .dialog,
 html.lr-theme .formDialogContent {
     background-color: #0b0e14;
 }
 
-html.lr-theme .backgroundContainer.withBackdrop {
+html.lr-theme:not(.transparentDocument) .backgroundContainer.withBackdrop:not(.backgroundContainer-transparent) {
     background-color: rgba(11, 14, 20, 0.86);
+}
+
+html.lr-theme.transparentDocument,
+html.lr-theme.transparentDocument body,
+html.lr-theme.transparentDocument .page,
+html.lr-theme.transparentDocument #videoOsdPage,
+html.lr-theme.transparentDocument .backgroundContainer,
+html.lr-theme.transparentDocument .layout-mobile .page {
+    background: transparent !important;
 }
 
 html.lr-theme .skinHeader-withBackground,
 html.lr-theme .skinHeader.semiTransparent,
 html.lr-theme header.MuiAppBar-root {
     background-color: rgba(11, 14, 20, 0.94);
+}
+
+/* ------------------------------------------------------------------ Player im Netflix-Look */
+
+html.lr-theme #videoOsdPage .videoOsdBottom {
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.55) 55%, rgba(0, 0, 0, 0) 100%) !important;
+    padding-top: 3em;
+}
+
+html.lr-theme .osdHeader,
+html.lr-theme.transparentDocument .skinHeader {
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+html.lr-theme #videoOsdPage .osdTitle {
+    font-size: 1.35em;
+    font-weight: 700;
+    color: #fff;
+}
+
+html.lr-theme #videoOsdPage .osdSecondaryMediaInfo,
+html.lr-theme #videoOsdPage .osdTimeText,
+html.lr-theme #videoOsdPage .endsAtText {
+    color: #c9cedb;
+}
+
+html.lr-theme #videoOsdPage .videoOsdBottom .paper-icon-button-light,
+html.lr-theme #videoOsdPage .videoOsdBottom button {
+    color: #fff;
+    transition: transform 0.15s ease;
+}
+
+html.lr-theme #videoOsdPage .videoOsdBottom .paper-icon-button-light:hover,
+html.lr-theme #videoOsdPage .videoOsdBottom button:hover {
+    transform: scale(1.15);
+    background: transparent;
+}
+
+html.lr-theme #videoOsdPage .btnPause .xlargePaperIconButton {
+    font-size: 3.4em;
+}
+
+html.lr-theme #videoOsdPage .mdl-slider-background-flex {
+    height: 0.3em;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.25);
+}
+
+html.lr-theme #videoOsdPage .mdl-slider-background-upper {
+    background: rgba(255, 255, 255, 0.35) !important;
+}
+
+html.lr-theme #videoOsdPage .mdl-slider::-webkit-slider-thumb {
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(127, 118, 214, 0.35);
+}
+
+html.lr-theme #videoOsdPage .mdl-slider::-moz-range-thumb {
+    background: #fff;
+}
+
+html.lr-theme .upNextContainer {
+    background: rgba(22, 27, 36, 0.95) !important;
+    border-radius: var(--lr-radius);
+}
+
+html.lr-theme .skip-button {
+    background: rgba(22, 27, 36, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 6px;
+}
+
+/* Eigener Überspringen-Knopf mit Countdown (wie in Quallenkino) */
+body.lr-skip-active .skip-button-container {
+    display: none !important;
+}
+
+.lr-skip {
+    position: fixed;
+    right: 4%;
+    bottom: 8.5rem;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+}
+
+.lr-skip-btn {
+    position: relative;
+    overflow: hidden;
+    padding: 0.75em 1.4em 0.75em 1.1em;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    background: rgba(11, 14, 20, 0.78);
+    color: #fff;
+    font-size: 1.1em;
+    font-weight: 700;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.lr-skip-btn:hover,
+.lr-skip-btn:focus-visible {
+    background: rgba(255, 255, 255, 0.92);
+    color: #000;
+}
+
+.lr-skip-btn > * {
+    position: relative;
+    z-index: 1;
+}
+
+.lr-skip-fill {
+    position: absolute !important;
+    z-index: 0 !important;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    background: linear-gradient(90deg, rgba(127, 118, 214, 0.75), rgba(46, 150, 224, 0.75));
+}
+
+.lr-skip-counting .lr-skip-fill {
+    width: 100%;
+    transition: width var(--lr-skip-ms, 5000ms) linear;
+}
+
+.lr-skip-cancel {
+    width: 2.2em;
+    height: 2.2em;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(11, 14, 20, 0.7);
+    color: #fff;
+}
+
+@media (max-width: 700px) {
+    .lr-skip {
+        right: 16px;
+        bottom: 7rem;
+    }
+
+    .lr-skip-btn {
+        font-size: 0.95em;
+    }
 }
 
 /* Seitenmenü (alt: .mainDrawer, Jellyfin 12: MUI-Drawer – auch in der iOS-App) */

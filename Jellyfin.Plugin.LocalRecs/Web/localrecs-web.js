@@ -1991,6 +1991,186 @@
         }, 25);
     }, true);
 
+    // ---------------------------------------------------------------- Überspringen (Intro, Abspann, Rückblick) mit Countdown
+
+    var SKIP_COUNTDOWN_MS = 5000;
+    var SKIP_LABELS = {
+        Intro: 'Intro überspringen',
+        Outro: 'Abspann überspringen',
+        Recap: 'Rückblick überspringen',
+        Preview: 'Vorschau überspringen',
+        Commercial: 'Werbung überspringen'
+    };
+    var skip = { timer: null, itemId: null, segments: [], dismissed: {}, active: null, offset: 0, lastSession: 0 };
+
+    function skipWanted() {
+        return !!(state.config && (state.config.HomeEnabled || state.config.ThemeEnabled));
+    }
+
+    function parseClock(text) {
+        var parts = (text || '').trim().split(':').map(function (p) {
+            return parseInt(p, 10);
+        });
+        if (!parts.length || parts.some(isNaN)) {
+            return null;
+        }
+        return parts.reduce(function (total, p) {
+            return total * 60 + p;
+        }, 0);
+    }
+
+    function currentVideo() {
+        return document.querySelector('video.htmlvideoplayer') || document.querySelector('.videoPlayerContainer video');
+    }
+
+    // Absolute Position in Sekunden. Beim Transkodieren kann video.currentTime versetzt sein – die
+    // Zeitanzeige des Players (.osdPositionText) ist absolut und dient zum Abgleich.
+    function playbackPosition(video) {
+        var shown = parseClock((document.querySelector('#videoOsdPage .osdPositionText') || {}).textContent);
+        if (shown !== null && Math.abs(shown - (video.currentTime + skip.offset)) > 3) {
+            skip.offset = shown - video.currentTime;
+        }
+        return video.currentTime + skip.offset;
+    }
+
+    function refreshSkipItem() {
+        if (Date.now() - skip.lastSession < 4000) {
+            return;
+        }
+        skip.lastSession = Date.now();
+        ownSession().then(function (session) {
+            var item = session && session.NowPlayingItem;
+            var id = item ? item.Id : null;
+            if (!id || id === skip.itemId) {
+                return;
+            }
+            skip.itemId = id;
+            skip.segments = [];
+            skip.dismissed = {};
+            skip.offset = 0;
+            hideSkip();
+            getJson('MediaSegments/' + id + '?includeSegmentTypes=Intro&includeSegmentTypes=Outro&includeSegmentTypes=Recap&includeSegmentTypes=Preview')
+                .then(function (result) {
+                    if (skip.itemId === id) {
+                        skip.segments = itemsOf(result).filter(function (seg) {
+                            return SKIP_LABELS[seg.Type] && seg.EndTicks > seg.StartTicks;
+                        });
+                    }
+                }).catch(function () {
+                    // ohne Segmente kein Knopf
+                });
+        });
+    }
+
+    function hideSkip() {
+        var box = document.querySelector('.lr-skip');
+        if (box) {
+            box.remove();
+        }
+        if (skip.active) {
+            window.clearTimeout(skip.active.timer);
+        }
+        skip.active = null;
+        document.body.classList.remove('lr-skip-active');
+    }
+
+    function doSkip(segment) {
+        hideSkip();
+        skip.dismissed[segment.Id || segment.StartTicks] = true;
+        // Bevorzugt den Knopf von Jellyfin (springt über den Player, auch beim Transkodieren)
+        var native = document.querySelector('.skip-button:not(.hide)');
+        if (native) {
+            native.click();
+            return;
+        }
+        var video = currentVideo();
+        if (video) {
+            video.currentTime = Math.max(0, segment.EndTicks / 10000000 - skip.offset);
+        }
+    }
+
+    function showSkip(segment) {
+        var key = segment.Id || segment.StartTicks;
+        if (skip.active && skip.active.key === key) {
+            return;
+        }
+        hideSkip();
+        var box = el('div', 'lr-skip');
+        var btn = button('lr-skip-btn', 'skip_next', SKIP_LABELS[segment.Type], function () {
+            doSkip(segment);
+        });
+        btn.insertBefore(el('span', 'lr-skip-fill'), btn.firstChild);
+        btn.style.setProperty('--lr-skip-ms', SKIP_COUNTDOWN_MS + 'ms');
+        var cancel = button('lr-skip-cancel', 'close', null, function () {
+            skip.dismissed[key] = true;
+            hideSkip();
+        });
+        cancel.title = 'Nicht überspringen';
+        box.appendChild(btn);
+        box.appendChild(cancel);
+        document.body.appendChild(box);
+        document.body.classList.add('lr-skip-active');
+        window.requestAnimationFrame(function () {
+            window.requestAnimationFrame(function () {
+                btn.classList.add('lr-skip-counting');
+            });
+        });
+        skip.active = {
+            key: key,
+            timer: window.setTimeout(function () {
+                doSkip(segment);
+            }, SKIP_COUNTDOWN_MS)
+        };
+    }
+
+    function skipTick() {
+        var video = currentVideo();
+        if (!video || !document.querySelector('#videoOsdPage:not(.hide)')) {
+            hideSkip();
+            return;
+        }
+        refreshSkipItem();
+        var pos = playbackPosition(video);
+        var segment = skip.segments.filter(function (seg) {
+            var start = seg.StartTicks / 10000000;
+            var end = seg.EndTicks / 10000000;
+            return pos >= start && pos < end - 1 && !skip.dismissed[seg.Id || seg.StartTicks];
+        })[0];
+        if (segment) {
+            showSkip(segment);
+        } else if (skip.active) {
+            hideSkip();
+        }
+    }
+
+    function startSkipWatcher() {
+        if (!skipWanted() || skip.timer) {
+            return;
+        }
+        skip.itemId = null;
+        skip.lastSession = 0;
+        skip.timer = window.setInterval(skipTick, 500);
+    }
+
+    function stopSkipWatcher() {
+        window.clearInterval(skip.timer);
+        skip.timer = null;
+        skip.itemId = null;
+        hideSkip();
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (skip.active && (e.key === 'Escape' || e.key === 'Backspace')) {
+            var box = document.querySelector('.lr-skip');
+            if (box) {
+                skip.dismissed[skip.active.key] = true;
+                hideSkip();
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        }
+    }, true);
+
     var tabs = [
         { id: 'home', icon: 'home', label: 'Startseite', route: '/home', match: /^#\/home(\?(?!.*tab=1)|$)|^#?$/ },
         { id: 'search', icon: 'search', label: 'Suche', route: '/search', match: /^#\/search/ },
@@ -2037,6 +2217,11 @@
         window.setTimeout(updateTabBar, 0);
         window.setTimeout(tidyHeader, 0);
         var view = e && e.target;
+        if (view && view.id === 'videoOsdPage') {
+            startSkipWatcher();
+        } else {
+            stopSkipWatcher();
+        }
         if (view && view.id === 'indexPage') {
             window.setTimeout(activate, 0);
         } else {
