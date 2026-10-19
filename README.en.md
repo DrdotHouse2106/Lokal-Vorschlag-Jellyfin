@@ -213,6 +213,13 @@ Development costs time and money (servers, test devices, AI tools). If you like 
 
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-0070ba?logo=paypal&logoColor=white)](https://paypal.me/DrdotHouse)
 
+### 🎮 Got a gamer streak too?
+
+Then my other project might be just right for you: **[ZockerDB](https://zockerdb.de)** – your game
+collection in one place. Track games, consoles and accessories (including barcode scanning with your
+phone), rate and manage them, with price history, editions and PAL/USK details. Use it directly at
+[zockerdb.de](https://zockerdb.de) or self-host ZockerDB Basis on your own server.
+
 ## License
 
 GNU General Public License v3.0 - see [LICENSE.txt](LICENSE.txt)
