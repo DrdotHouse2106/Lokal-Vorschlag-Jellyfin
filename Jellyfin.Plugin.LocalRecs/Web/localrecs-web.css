@@ -518,29 +518,31 @@ body.lr-home.lr-scrolled header.MuiAppBar-root {
     width: var(--lr-poster-w);
 }
 
+/* Top 10 wie bei Netflix: große Ziffer liegt unten links über dem Poster */
 .lr-card-top10 {
-    display: flex;
-    align-items: flex-end;
-    width: calc(var(--lr-poster-w) * 1.8);
+    position: relative;
+    width: calc(var(--lr-poster-w) * 1.28);
+    padding-left: calc(var(--lr-poster-w) * 0.28);
 }
 
-/* Ziffer steht neben dem Poster, das Poster überlappt nur den Rand */
 .lr-card-top10 .lr-card-frame {
     width: var(--lr-poster-w);
-    flex: 0 0 auto;
-    margin-left: calc(var(--lr-poster-w) * -0.08);
 }
 
 .lr-rank {
-    flex: 1 1 auto;
-    font-size: calc(var(--lr-poster-w) * 1.05);
-    line-height: 0.82;
+    position: absolute;
+    left: 0;
+    bottom: -0.06em;
+    z-index: 2;
+    pointer-events: none;
+    font-size: calc(var(--lr-poster-w) * 0.9);
+    line-height: 0.8;
     font-weight: 900;
-    letter-spacing: -0.06em;
-    text-align: right;
+    letter-spacing: -0.08em;
     color: var(--lr-bg);
-    -webkit-text-stroke: 3px #8e95a6;
+    -webkit-text-stroke: 3px #c9cedb;
     paint-order: stroke fill;
+    text-shadow: 4px 0 18px rgba(0, 0, 0, 0.75);
     font-family: "Arial Black", "Helvetica Neue", Arial, sans-serif;
     user-select: none;
 }
@@ -1050,6 +1052,25 @@ html.lr-noscroll body {
     .lr-rank {
         -webkit-text-stroke-width: 2px;
     }
+
+    /* Hero-Karte: Trailer füllt die Karte, schwarze Balken im Video werden weggeschnitten */
+    .lr-hero-card .lr-hero-video {
+        object-fit: cover;
+        transform: scale(1.35);
+    }
+
+    .lr-btn-icon {
+        flex: 0 0 auto;
+        flex-direction: column;
+        gap: 0.1em;
+        font-size: 0.75em;
+        color: #fff;
+        padding: 0 0.3em;
+    }
+
+    .lr-btn-icon .lr-icon {
+        font-size: 2em;
+    }
 }
 
 /* ------------------------------------------------------------------ Handy wie die Netflix-App */
@@ -1164,15 +1185,7 @@ html.lr-noscroll body {
     }
 
     .lr-card-top10 {
-        width: calc((100vw - 2 * var(--lr-gutter)) / 1.85);
-    }
-
-    .lr-card-top10 .lr-card-frame {
-        width: calc((100vw - 2 * var(--lr-gutter)) / 3.3);
-    }
-
-    .lr-rank {
-        font-size: calc((100vw - 2 * var(--lr-gutter)) / 3.3 * 1.05);
+        --lr-poster-w: calc((100vw - 2 * var(--lr-gutter)) / 3.6);
     }
 
     /* Welten als Kreise mit Logo (wie die Vorschau-Kreise) */
@@ -1204,6 +1217,146 @@ html.lr-noscroll body {
     .lr-row-libraries .lr-card-landscape {
         width: 62vw;
     }
+}
+
+/* Info-Knopf nur auf der Hero-Karte (Handy) */
+.lr-btn-icon {
+    display: none;
+}
+
+@media (max-width: 700px) {
+    .lr-hero-card .lr-btn-icon {
+        display: inline-flex;
+    }
+}
+
+/* ------------------------------------------------------------------ Kopfleiste aufgeräumt */
+
+body.lr-tidy-header header.MuiAppBar-root .MuiToolbar-root > .MuiStack-root > :not(:first-child) {
+    display: none !important;
+}
+
+/* Weggeräumte Symbole: unsichtbar oben rechts (dort öffnen sich ihre Menüs), erreichbar über das Profilmenü */
+body.lr-tidy-header .lr-tucked {
+    position: fixed !important;
+    top: 6px !important;
+    right: 64px !important;
+    width: 40px !important;
+    height: 40px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+}
+
+body.lr-tidy-header .lr-tucked + .lr-tucked {
+    margin: 0 !important;
+}
+
+.lr-topnav {
+    position: fixed;
+    z-index: 1101;
+    display: flex;
+    align-items: center;
+    gap: 0.2em;
+    font-size: 0.95em;
+}
+
+.lr-topnav-link {
+    padding: 0.4em 0.75em;
+    border-radius: 999px;
+    color: #d6d9e0;
+    white-space: nowrap;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.lr-topnav-link:hover,
+.lr-topnav-link:focus-visible {
+    color: #fff;
+}
+
+.lr-topnav-link.lr-on {
+    color: #fff;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.lr-topnav-dropdown {
+    flex-direction: row-reverse;
+    gap: 0.1em;
+}
+
+.lr-topnav-more {
+    position: relative;
+}
+
+.lr-topnav-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 0.4em);
+    left: 0;
+    min-width: 13em;
+    padding: 0.4em 0;
+    border-radius: var(--lr-radius);
+    background: rgba(17, 21, 29, 0.97);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+}
+
+.lr-topnav-more.lr-open .lr-topnav-menu {
+    display: block;
+}
+
+.lr-topnav-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.55em 1.1em;
+    color: #d6d9e0;
+}
+
+.lr-topnav-item:hover,
+.lr-topnav-item:focus-visible {
+    background: rgba(127, 118, 214, 0.2);
+    color: #fff;
+}
+
+.lr-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.9em;
+    padding: 6px 16px;
+    min-height: 40px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.lr-menu-item:hover,
+.lr-menu-item:focus-visible {
+    background: rgba(255, 255, 255, 0.08);
+    outline: none;
+}
+
+.lr-menu-icon {
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+}
+
+.lr-menu-icon svg,
+.lr-menu-icon img {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+}
+
+.lr-menu-divider {
+    height: 1px;
+    margin: 6px 0;
+    background: rgba(255, 255, 255, 0.12);
+    list-style: none;
 }
 
 /* Tab-Leiste unten (Handy) */

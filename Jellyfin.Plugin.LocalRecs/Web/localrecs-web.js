@@ -28,6 +28,7 @@
     var isTouch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
     var isPhone = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || isTouch;
     var phoneQuery = window.matchMedia('(max-width: 700px)');
+    var isNativeIos = !!window.NativeShell && /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
     // Handy-Ansicht wie in der Netflix-App: Hochformat-Poster, Hero als Karte, Tab-Leiste unten
     function phoneLayout() {
@@ -545,7 +546,6 @@
 
     function top10Card(item, rank) {
         var card = el('div', 'lr-card lr-card-top10');
-        card.appendChild(el('div', 'lr-rank', String(rank)));
         var frame = el('div', 'lr-card-frame lr-poster');
         var poster = posterImage(item);
         if (poster) {
@@ -558,6 +558,7 @@
             frame.appendChild(el('div', 'lr-card-title', displayTitle(item)));
         }
         card.appendChild(frame);
+        card.appendChild(el('div', 'lr-rank', String(rank)));
         onActivate(card, function () {
             openInfo(item);
         });
@@ -929,6 +930,10 @@
                         });
                 });
                 actions.appendChild(listButton);
+                var infoButton = button('lr-btn-icon', 'info_outline', 'Info', function () {
+                    openInfo(item);
+                });
+                actions.appendChild(infoButton);
                 media.addEventListener('click', function () {
                     openInfo(item);
                 });
@@ -1543,6 +1548,8 @@
                 storageSet('lrWeb.classic.' + uid, '1');
                 deactivate();
                 addClassicSwitch();
+                tidyHeader();
+                updateTabBar();
             }));
             root.appendChild(footer);
         }
@@ -1686,6 +1693,8 @@
             storageSet('lrWeb.classic.' + userId(), null);
             bar.remove();
             activate();
+            tidyHeader();
+            updateTabBar();
         }));
         tab.appendChild(bar);
     }
@@ -1733,6 +1742,212 @@
         refresh(false);
     }
 
+    // ---------------------------------------------------------------- Kopfleiste aufräumen (Netflix-Stil)
+    // Links: Logo + Startseite, Serien, Filme, Live-TV, Meine Liste, Bibliotheken ▾. Rechts: Suche, Cast (nur PC), Profil.
+    // Alle anderen Symbole (SyncPlay, Symbole anderer Plugins) wandern ins Profilmenü.
+
+    var navState = { views: [], observer: null };
+
+    function tidyWanted() {
+        var hash = window.location.hash || '';
+        return !!(state.config && state.config.HomeEnabled && userId()
+            && storageGet('lrWeb.classic.' + userId()) !== '1'
+            && !/^#\/(dashboard|video|configurationpage)/.test(hash));
+    }
+
+    function headerToolbar() {
+        return document.querySelector('header.MuiAppBar-root .MuiToolbar-root');
+    }
+
+    function isKeptButton(node) {
+        if (node.querySelector('.MuiAvatar-root') || node.closest('.lr-topnav')) {
+            return true;
+        }
+        if (node.querySelector('svg[data-testid="SearchIcon"]')) {
+            return true;
+        }
+        if (node.querySelector('svg[data-testid="MenuIcon"], svg[data-testid="ArrowBackIcon"]')) {
+            return true;
+        }
+        return !phoneLayout() && !!node.querySelector('svg[data-testid^="Cast"]');
+    }
+
+    function tuckedButtons() {
+        var toolbar = headerToolbar();
+        if (!toolbar) {
+            return [];
+        }
+        var nav = toolbar.querySelector(':scope > .MuiStack-root');
+        return Array.prototype.filter.call(toolbar.querySelectorAll('button, a'), function (node) {
+            return !(nav && nav.contains(node)) && !isKeptButton(node) && !node.parentElement.closest('button, a');
+        });
+    }
+
+    function tidyHeader() {
+        var wanted = tidyWanted() && !!headerToolbar();
+        document.body.classList.toggle('lr-tidy-header', wanted);
+        document.querySelectorAll('.lr-tucked').forEach(function (node) {
+            if (!wanted || isKeptButton(node)) {
+                node.classList.remove('lr-tucked');
+            }
+        });
+        var topnav = document.querySelector('.lr-topnav');
+        if (!wanted) {
+            if (topnav) {
+                topnav.remove();
+            }
+            return;
+        }
+        tuckedButtons().forEach(function (node) {
+            node.classList.add('lr-tucked');
+        });
+        var toolbar = headerToolbar();
+        var logo = toolbar.querySelector(':scope > .MuiStack-root > a:first-child');
+        if (phoneLayout() || !logo) {
+            if (topnav) {
+                topnav.remove();
+            }
+            return;
+        }
+        if (!topnav) {
+            topnav = buildTopNav();
+            document.body.appendChild(topnav);
+        }
+        var rect = logo.getBoundingClientRect();
+        var bar = toolbar.getBoundingClientRect();
+        topnav.style.left = Math.round(rect.right + 12) + 'px';
+        topnav.style.top = Math.round(bar.top) + 'px';
+        topnav.style.height = Math.round(bar.height) + 'px';
+        markTopNav(topnav);
+        var header = document.querySelector('header.MuiAppBar-root');
+        if (window.MutationObserver && navState.header !== header) {
+            if (navState.observer) {
+                navState.observer.disconnect();
+            }
+            navState.header = header;
+            navState.observer = new MutationObserver(function () {
+                window.clearTimeout(navState.timer);
+                navState.timer = window.setTimeout(tidyHeader, 50);
+            });
+            navState.observer.observe(header, { childList: true, subtree: true });
+        }
+    }
+
+    function firstView(type) {
+        return navState.views.filter(function (v) {
+            return v.CollectionType === type;
+        })[0];
+    }
+
+    function buildTopNav() {
+        var nav = el('nav', 'lr-topnav');
+        var add = function (id, label, onClick) {
+            var b = button('lr-topnav-link', null, label, onClick);
+            b.dataset.nav = id;
+            nav.appendChild(b);
+        };
+        add('home', 'Startseite', function () {
+            navigate('/home');
+        });
+        if (firstView('tvshows')) {
+            add('series', 'Serien', function () {
+                openLibrary(firstView('tvshows'));
+            });
+        }
+        if (firstView('movies')) {
+            add('movies', 'Filme', function () {
+                openLibrary(firstView('movies'));
+            });
+        }
+        if (state.liveTv) {
+            add('livetv', 'Live-TV', function () {
+                navigate('/livetv');
+            });
+        }
+        add('list', 'Meine Liste', function () {
+            navigate('/home?tab=1');
+        });
+        var moreWrap = el('div', 'lr-topnav-more');
+        var more = button('lr-topnav-link', 'arrow_drop_down', 'Bibliotheken', function () {
+            moreWrap.classList.toggle('lr-open');
+        });
+        more.classList.add('lr-topnav-dropdown');
+        moreWrap.appendChild(more);
+        var menu = el('div', 'lr-topnav-menu');
+        navState.views.forEach(function (view) {
+            menu.appendChild(button('lr-topnav-item', null, view.Name, function () {
+                moreWrap.classList.remove('lr-open');
+                openLibrary(view);
+            }));
+        });
+        moreWrap.appendChild(menu);
+        nav.appendChild(moreWrap);
+        document.addEventListener('click', function (e) {
+            if (!moreWrap.contains(e.target)) {
+                moreWrap.classList.remove('lr-open');
+            }
+        });
+        return nav;
+    }
+
+    function markTopNav(nav) {
+        var hash = window.location.hash || '';
+        var active = /tab=1/.test(hash) ? 'list'
+            : /^#\/home/.test(hash) ? 'home'
+                : /^#\/livetv/.test(hash) ? 'livetv'
+                    : /collectionType=tvshows|^#\/tv\b/.test(hash) ? 'series'
+                        : /collectionType=movies|^#\/movies/.test(hash) ? 'movies' : '';
+        nav.querySelectorAll('.lr-topnav-link').forEach(function (b) {
+            b.classList.toggle('lr-on', b.dataset.nav === active);
+        });
+    }
+
+    // Weggeräumte Symbole oben im Profilmenü anbieten
+    function extendUserMenu(list) {
+        if (!list || list.querySelector('.lr-menu-item')) {
+            return;
+        }
+        var tucked = Array.prototype.filter.call(document.querySelectorAll('.lr-tucked'), function (node) {
+            return document.body.contains(node);
+        });
+        tucked.slice().reverse().forEach(function (node) {
+            var label = node.getAttribute('aria-label') || node.getAttribute('title') || (node.textContent || '').trim() || 'Funktion';
+            var li = el('li', 'lr-menu-item MuiButtonBase-root MuiMenuItem-root');
+            li.setAttribute('role', 'menuitem');
+            li.tabIndex = 0;
+            var iconBox = el('span', 'lr-menu-icon');
+            var svg = node.querySelector('svg, img, .material-icons, i');
+            if (svg) {
+                iconBox.appendChild(svg.cloneNode(true));
+            }
+            li.appendChild(iconBox);
+            li.appendChild(el('span', null, label));
+            onActivate(li, function () {
+                var backdrop = document.querySelector('#app-user-menu .MuiBackdrop-root');
+                if (backdrop) {
+                    backdrop.click();
+                }
+                window.setTimeout(function () {
+                    node.click();
+                }, 150);
+            });
+            list.insertBefore(li, list.firstChild);
+        });
+        if (tucked.length) {
+            var divider = el('li', 'lr-menu-divider');
+            divider.setAttribute('role', 'separator');
+            list.insertBefore(divider, list.children[tucked.length]);
+        }
+    }
+
+    if (window.MutationObserver) {
+        new MutationObserver(function () {
+            if (document.body.classList.contains('lr-tidy-header')) {
+                extendUserMenu(document.querySelector('#app-user-menu ul'));
+            }
+        }).observe(document.body, { childList: true });
+    }
+
     var tabs = [
         { id: 'home', icon: 'home', label: 'Startseite', route: '/home', match: /^#\/home(\?(?!.*tab=1)|$)|^#?$/ },
         { id: 'search', icon: 'search', label: 'Suche', route: '/search', match: /^#\/search/ },
@@ -1743,7 +1958,7 @@
 
     function updateTabBar() {
         var bar = document.querySelector('.lr-tabbar');
-        var wanted = !!(state.config && state.config.HomeEnabled && phoneLayout() && userId()
+        var wanted = !!(state.config && state.config.HomeEnabled && phoneLayout() && userId() && !isNativeIos
             && storageGet('lrWeb.classic.' + userId()) !== '1' && !document.querySelector('.videoPlayerContainer:not(.hide)'));
         document.body.classList.toggle('lr-with-tabbar', wanted);
         if (!wanted) {
@@ -1777,6 +1992,7 @@
 
     function onViewShow(e) {
         window.setTimeout(updateTabBar, 0);
+        window.setTimeout(tidyHeader, 0);
         var view = e && e.target;
         if (view && view.id === 'indexPage') {
             window.setTimeout(activate, 0);
@@ -1841,7 +2057,12 @@
     window.addEventListener('resize', hidePreview, { passive: true });
     window.addEventListener('hashchange', function () {
         window.setTimeout(updateTabBar, 0);
+        window.setTimeout(tidyHeader, 0);
     });
+    window.addEventListener('resize', function () {
+        window.clearTimeout(navState.resizeTimer);
+        navState.resizeTimer = window.setTimeout(tidyHeader, 100);
+    }, { passive: true });
     var onLayoutChange = function () {
         updateTabBar();
         var cached = state.root ? readCache(userId()) : null;
@@ -1870,6 +2091,18 @@
             api().getCurrentUser().then(function (user) {
                 state.liveTv = !!(user && user.Policy && user.Policy.EnableLiveTvAccess);
                 updateTabBar();
+                return getJson('UserViews?userId=' + userId());
+            }).then(function (views) {
+                navState.views = itemsOf(views).map(function (v) {
+                    return { Id: v.Id, Name: v.Name, CollectionType: v.CollectionType };
+                });
+                var old = document.querySelector('.lr-topnav');
+                if (old) {
+                    old.remove();
+                }
+                tidyHeader();
+            }).catch(function () {
+                tidyHeader();
             });
             activate();
         });
@@ -1879,6 +2112,10 @@
             if (current && current !== lastUser) {
                 lastUser = current;
                 deactivate();
+                var oldNav = document.querySelector('.lr-topnav');
+                if (oldNav) {
+                    oldNav.remove();
+                }
                 loadConfig().catch(function () {
                     return null;
                 }).then(activate);

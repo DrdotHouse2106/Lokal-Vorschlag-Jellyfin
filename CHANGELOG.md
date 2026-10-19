@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.18.2] - 2026-10-19
+
+### Changed
+
+- Jellyfin Web: tidy header like Netflix (when the start page is on). PCs: logo with Startseite, Serien, Filme, Live-TV, Meine Liste and „Bibliotheken ▾“ (all libraries); on the right only cast, search and profile. Phones: menu, search and profile. SyncPlay and icons of other plugins move to the top of the profile menu (they still open their own menus).
+- Top 10: the big number lies over the bottom left of the poster, as on Netflix; on phones about 3 titles per screen width.
+- Phones: the hero card got an „Info“ button; the trailer fills the card (letterbox bars are cropped).
+- iOS app: no own tab bar at the bottom (the app has its own bar); Safari and Android keep it.
+
 ## [12.18.1] - 2026-10-19
 
 ### Fixed
