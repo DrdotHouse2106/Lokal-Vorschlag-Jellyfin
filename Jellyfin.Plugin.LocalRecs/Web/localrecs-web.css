@@ -746,6 +746,7 @@ html.lr-noscroll body {
 
 .lr-info-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.6em;
     align-items: center;
     margin-bottom: 1em;
@@ -955,8 +956,24 @@ html.lr-noscroll body {
 
 /* ------------------------------------------------------------------ Detailseite (Filme, Serien) im Netflix-Stil */
 
+/* Jellyfin-Inhalt unsichtbar, aber vorhanden (seine Knöpfe werden gespiegelt und dienen als Anker für Menüs) */
 #itemDetailPage.lr-detail-active > :not(.lr-detail-page) {
-    display: none !important;
+    visibility: hidden !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 0 !important;
+    pointer-events: none !important;
+}
+
+.lr-native-actions {
+    display: contents;
+}
+
+.lr-native-btn.lr-on {
+    background: var(--lr-gradient);
+    border-color: transparent;
 }
 
 /* Lade-Kreis der (im Hintergrund weiter ladenden) Jellyfin-Detailseite nicht über unserer Ansicht zeigen */

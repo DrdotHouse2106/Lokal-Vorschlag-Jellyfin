@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.18.6] - 2026-10-19
+
+### Added
+
+- Netflix-style details page: Jellyfin's detail buttons are shown in the new design – mark as watched, trailer, shuffle, instant mix, download, split versions, cancel recording and the ⋮ menu (add to collection/playlist, download, copy stream link, delete, edit metadata/images/subtitles, identify, media info, refresh). They trigger Jellyfin's own buttons, so permissions, confirmations and menus stay Jellyfin's; menus open at the new button.
+
 ## [12.18.5] - 2026-10-19
 
 ### Added

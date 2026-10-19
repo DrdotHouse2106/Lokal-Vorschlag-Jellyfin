@@ -1036,6 +1036,9 @@
         var actions = el('div', 'lr-info-actions');
         actions.appendChild(favoriteButton(item));
         actions.appendChild(likeButton(item));
+        if (onNative) {
+            actions.appendChild(el('span', 'lr-native-actions'));
+        }
         // Jellyfin-Detailseite mit allen Optionen (Versionen, Tonspur, Untertitel, Bearbeiten …)
         actions.appendChild(button('lr-btn-link', 'tune', 'Alle Optionen', function () {
             if (onNative) {
@@ -1214,6 +1217,70 @@
         stopHeroVideo();
     }
 
+    // Knöpfe der Jellyfin-Detailseite (Gesehen, Trailer, Download, ⋮ mit Löschen, Bearbeiten …) im neuen Design anbieten.
+    // Ein Klick löst den Original-Knopf aus – Rechte, Rückfragen und Menüs bleiben die von Jellyfin.
+    var MIRRORED_BUTTONS = ['btnReplay', 'btnPlayTrailer', 'btnShuffle', 'btnInstantMix', 'btnDownload', 'btnPlaystate',
+        'btnSplitVersions', 'btnCancelSeriesTimer', 'btnCancelTimer', 'btnMoreCommands'];
+
+    function clickNative(native, anchor) {
+        // Menüs (z. B. ⋮) öffnen sich am Knopf – den versteckten Original-Knopf kurz an unsere Stelle legen
+        var rect = anchor.getBoundingClientRect();
+        var previous = native.getAttribute('style') || '';
+        native.setAttribute('style', previous + ';visibility:visible!important;position:fixed!important;left:' + rect.left + 'px!important;top:'
+            + rect.top + 'px!important;width:' + rect.width + 'px!important;height:' + rect.height + 'px!important;opacity:0!important;pointer-events:none!important;z-index:-1!important');
+        native.click();
+        window.setTimeout(function () {
+            native.setAttribute('style', previous);
+        }, 600);
+    }
+
+    function syncNativeButtons(view, holder) {
+        holder.innerHTML = '';
+        MIRRORED_BUTTONS.forEach(function (cls) {
+            var native = view.querySelector('.mainDetailButtons .' + cls);
+            if (!native || native.classList.contains('hide')) {
+                return;
+            }
+            var iconNode = native.querySelector('.material-icons');
+            var iconName = iconNode ? Array.prototype.filter.call(iconNode.classList, function (c) {
+                return c !== 'material-icons' && c !== 'detailButton-icon';
+            })[0] || iconNode.textContent.trim() : 'more_vert';
+            var label = native.getAttribute('title') || (native.querySelector('.detailButton-text') || {}).textContent || '';
+            var mirror = button('lr-round lr-native-btn', iconName, null, function () {
+                clickNative(native, mirror);
+            });
+            mirror.title = label;
+            mirror.setAttribute('aria-label', label);
+            if (cls === 'btnPlaystate' && native.classList.contains('playstatebutton-played')) {
+                mirror.classList.add('lr-on');
+            }
+            holder.appendChild(mirror);
+        });
+    }
+
+    function attachNativeButtons(view, page) {
+        var holder = page.querySelector('.lr-native-actions');
+        var buttons = view.querySelector('.mainDetailButtons');
+        if (!holder || !buttons) {
+            return;
+        }
+        syncNativeButtons(view, holder);
+        if (window.MutationObserver) {
+            var timer = null;
+            var observer = new MutationObserver(function () {
+                window.clearTimeout(timer);
+                timer = window.setTimeout(function () {
+                    if (!document.body.contains(page)) {
+                        observer.disconnect();
+                        return;
+                    }
+                    syncNativeButtons(view, holder);
+                }, 100);
+            });
+            observer.observe(buttons, { attributes: true, attributeFilter: ['class', 'title'], subtree: true, childList: true });
+        }
+    }
+
     function onDetailShow(view) {
         var id = detailIdFromHash();
         var wanted = id && tidyWanted();
@@ -1247,6 +1314,7 @@
                     showNativeDetail(view);
                 });
                 view.insertBefore(page, view.firstChild);
+                attachNativeButtons(view, page);
                 view.classList.add('lr-detail-active');
                 window.scrollTo(0, 0);
             })
