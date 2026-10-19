@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.18.3] - 2026-10-19
+
+### Fixed
+
+- Profile menu: the moved header buttons are rebuilt every time the menu opens, so buttons added later by other plugins (e.g. the dice "random title" button of Jellyfin Enhanced, also when that plugin has hidden it in its own tray) are included; no duplicates.
+- Phones/iOS app: the header is watched there too, so plugin buttons added later (dice) are moved into the profile menu.
+- Profile menu entries look the same (light text, 44 px rows, light hover); Jellyfin's own entries are no longer blue.
+- Search icon in the header is white like the others.
+- Quallenkino colors for the side menu of Jellyfin 12 (MUI drawer, also in the iOS app): dark background, white entries, active entry with the gradient.
+
 ## [12.18.2] - 2026-10-19
 
 ### Changed

@@ -1232,6 +1232,11 @@ html.lr-noscroll body {
 
 /* ------------------------------------------------------------------ Kopfleiste aufgeräumt */
 
+/* Alle Symbole in der Kopfleiste weiß (Suche war blau) */
+body.lr-tidy-header header.MuiAppBar-root .MuiIconButton-root {
+    color: #fff !important;
+}
+
 body.lr-tidy-header header.MuiAppBar-root .MuiToolbar-root > .MuiStack-root > :not(:first-child) {
     display: none !important;
 }
@@ -1320,24 +1325,44 @@ body.lr-tidy-header .lr-tucked + .lr-tucked {
     color: #fff;
 }
 
+/* Profilmenü: alle Einträge gleich (hell, gleiche Zeilenhöhe, leichter Hover) */
+body.lr-tidy-header #app-user-menu .MuiMenuItem-root,
 .lr-menu-item {
     display: flex;
     align-items: center;
-    gap: 0.9em;
-    padding: 6px 16px;
-    min-height: 40px;
+    gap: 0;
+    box-sizing: border-box;
+    min-height: 44px !important;
+    padding: 8px 16px !important;
+    color: #e8eaf0 !important;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    text-decoration: none !important;
     cursor: pointer;
-    font-size: 1rem;
 }
 
+body.lr-tidy-header #app-user-menu .MuiMenuItem-root .MuiListItemIcon-root,
+body.lr-tidy-header #app-user-menu .MuiMenuItem-root .MuiTypography-root {
+    color: inherit !important;
+    font-size: inherit;
+}
+
+body.lr-tidy-header #app-user-menu .MuiListItemIcon-root {
+    min-width: 40px;
+}
+
+body.lr-tidy-header #app-user-menu .MuiMenuItem-root:hover,
+body.lr-tidy-header #app-user-menu .MuiMenuItem-root.Mui-focusVisible,
 .lr-menu-item:hover,
 .lr-menu-item:focus-visible {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.08) !important;
     outline: none;
 }
 
 .lr-menu-icon {
     display: inline-flex;
+    flex: 0 0 40px;
+    justify-content: flex-start !important;
     width: 24px;
     height: 24px;
     align-items: center;
@@ -1346,10 +1371,17 @@ body.lr-tidy-header .lr-tucked + .lr-tucked {
 }
 
 .lr-menu-icon svg,
-.lr-menu-icon img {
-    width: 24px;
-    height: 24px;
+.lr-menu-icon img,
+.lr-menu-icon .material-icons,
+.lr-menu-icon .je-dice-face {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 24px;
     fill: currentColor;
+}
+
+.lr-menu-icon > * {
+    animation: none !important;
 }
 
 .lr-menu-divider {
@@ -1440,11 +1472,43 @@ html.lr-theme header.MuiAppBar-root {
     background-color: rgba(11, 14, 20, 0.94);
 }
 
-/* Seitenmenü */
+/* Seitenmenü (alt: .mainDrawer, Jellyfin 12: MUI-Drawer – auch in der iOS-App) */
 html.lr-theme .mainDrawer,
 html.lr-theme .MuiDrawer-paper {
-    background-color: #11151d !important;
+    background: #11151d !important;
+    background-image: none !important;
     color: #fff;
+}
+
+html.lr-theme .MuiDrawer-paper .MuiListItemButton-root,
+html.lr-theme .MuiDrawer-paper .MuiListItemIcon-root,
+html.lr-theme .MuiDrawer-paper .MuiListItemText-primary,
+html.lr-theme .MuiDrawer-paper a {
+    color: #e8eaf0 !important;
+}
+
+html.lr-theme .MuiDrawer-paper .MuiListItemButton-root {
+    border-radius: 0 999px 999px 0;
+    margin-right: 0.6em;
+}
+
+html.lr-theme .MuiDrawer-paper .MuiListItemButton-root:hover {
+    background-color: rgba(127, 118, 214, 0.18) !important;
+}
+
+html.lr-theme .MuiDrawer-paper .MuiListItemButton-root.Mui-selected,
+html.lr-theme .MuiDrawer-paper .Mui-selected {
+    background: linear-gradient(90deg, rgba(127, 118, 214, 0.9), rgba(46, 150, 224, 0.9)) !important;
+    color: #fff !important;
+}
+
+html.lr-theme .MuiDrawer-paper .MuiListSubheader-root {
+    background: transparent;
+    color: #a9b1c2;
+}
+
+html.lr-theme .MuiDrawer-paper .MuiDivider-root {
+    border-color: rgba(255, 255, 255, 0.08);
 }
 
 html.lr-theme .navMenuOption {
@@ -1529,7 +1593,7 @@ html.lr-theme .cardText-secondary {
     color: #a9b1c2;
 }
 
-html.lr-theme a,
+html.lr-theme a:not(.MuiButtonBase-root):not(.MuiMenuItem-root):not(.MuiListItemButton-root),
 html.lr-theme .button-link {
     color: #7fb4ff;
 }

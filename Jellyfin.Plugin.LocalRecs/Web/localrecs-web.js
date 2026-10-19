@@ -1778,8 +1778,11 @@
             return [];
         }
         var nav = toolbar.querySelector(':scope > .MuiStack-root');
+        // Logo und Bibliotheks-Links (MUI-Buttons im linken Bereich) bleiben; Plugin-Knöpfe dort (z. B. der Würfel
+        // von Jellyfin Enhanced auf dem Handy) werden ebenfalls weggeräumt
         return Array.prototype.filter.call(toolbar.querySelectorAll('button, a'), function (node) {
-            return !(nav && nav.contains(node)) && !isKeptButton(node) && !node.parentElement.closest('button, a');
+            var navLink = nav && nav.contains(node) && node.classList.contains('MuiButton-root');
+            return !navLink && !isKeptButton(node) && !node.parentElement.closest('button, a');
         });
     }
 
@@ -1801,6 +1804,19 @@
         tuckedButtons().forEach(function (node) {
             node.classList.add('lr-tucked');
         });
+        // Kopfleiste beobachten: Plugins (z. B. Jellyfin Enhanced) fügen ihre Knöpfe später ein
+        var header = document.querySelector('header.MuiAppBar-root');
+        if (window.MutationObserver && navState.header !== header) {
+            if (navState.observer) {
+                navState.observer.disconnect();
+            }
+            navState.header = header;
+            navState.observer = new MutationObserver(function () {
+                window.clearTimeout(navState.timer);
+                navState.timer = window.setTimeout(tidyHeader, 50);
+            });
+            navState.observer.observe(header, { childList: true, subtree: true });
+        }
         var toolbar = headerToolbar();
         var logo = toolbar.querySelector(':scope > .MuiStack-root > a:first-child');
         if (phoneLayout() || !logo) {
@@ -1819,18 +1835,6 @@
         topnav.style.top = Math.round(bar.top) + 'px';
         topnav.style.height = Math.round(bar.height) + 'px';
         markTopNav(topnav);
-        var header = document.querySelector('header.MuiAppBar-root');
-        if (window.MutationObserver && navState.header !== header) {
-            if (navState.observer) {
-                navState.observer.disconnect();
-            }
-            navState.header = header;
-            navState.observer = new MutationObserver(function () {
-                window.clearTimeout(navState.timer);
-                navState.timer = window.setTimeout(tidyHeader, 50);
-            });
-            navState.observer.observe(header, { childList: true, subtree: true });
-        }
     }
 
     function firstView(type) {
@@ -1903,15 +1907,45 @@
     }
 
     // Weggeräumte Symbole oben im Profilmenü anbieten
+    // Alle weggeräumten Knöpfe – auch solche, die ein anderes Plugin gerade selbst versteckt hat
+    // (Jellyfin Enhanced blendet z. B. Knöpfe in seine eigene Leiste aus). Ohne doppelte Einträge.
+    function menuSources() {
+        var seen = {};
+        var result = [];
+        var candidates = tuckedButtons();
+        var dice = document.getElementById('randomItemButton');
+        if (dice && candidates.indexOf(dice) < 0) {
+            candidates.unshift(dice);
+        }
+        candidates.forEach(function (node) {
+            if (node.classList.contains('je-header-launcher') || node.closest('.je-launcher-panel')) {
+                return;
+            }
+            var label = (node.getAttribute('aria-label') || node.getAttribute('title') || node.dataset.headerLabel || node.textContent || '').trim() || 'Funktion';
+            if (seen[label]) {
+                return;
+            }
+            seen[label] = true;
+            result.push({ node: node, label: label });
+        });
+        return result;
+    }
+
     function extendUserMenu(list) {
-        if (!list || list.querySelector('.lr-menu-item')) {
+        if (!list) {
             return;
         }
-        var tucked = Array.prototype.filter.call(document.querySelectorAll('.lr-tucked'), function (node) {
-            return document.body.contains(node);
+        // Das Menü bleibt im DOM – bei jedem Öffnen neu aufbauen, damit später hinzugekommene Knöpfe dabei sind
+        list.querySelectorAll('.lr-menu-item, .lr-menu-divider').forEach(function (node) {
+            node.remove();
         });
-        tucked.slice().reverse().forEach(function (node) {
-            var label = node.getAttribute('aria-label') || node.getAttribute('title') || (node.textContent || '').trim() || 'Funktion';
+        var sources = menuSources();
+        var tucked = sources.map(function (entry) {
+            return entry.node;
+        });
+        sources.slice().reverse().forEach(function (entry) {
+            var node = entry.node;
+            var label = entry.label;
             var li = el('li', 'lr-menu-item MuiButtonBase-root MuiMenuItem-root');
             li.setAttribute('role', 'menuitem');
             li.tabIndex = 0;
@@ -1940,13 +1974,22 @@
         }
     }
 
-    if (window.MutationObserver) {
-        new MutationObserver(function () {
-            if (document.body.classList.contains('lr-tidy-header')) {
-                extendUserMenu(document.querySelector('#app-user-menu ul'));
+    // Beim Öffnen des Profilmenüs (Klick auf das Profilbild) die Einträge ergänzen
+    document.addEventListener('click', function (e) {
+        var target = e.target && e.target.closest ? e.target.closest('header.MuiAppBar-root button') : null;
+        if (!target || !target.querySelector('.MuiAvatar-root') || !document.body.classList.contains('lr-tidy-header')) {
+            return;
+        }
+        var tries = 0;
+        var timer = window.setInterval(function () {
+            var list = document.querySelector('#app-user-menu ul');
+            tries++;
+            if (list || tries > 20) {
+                window.clearInterval(timer);
+                extendUserMenu(list);
             }
-        }).observe(document.body, { childList: true });
-    }
+        }, 25);
+    }, true);
 
     var tabs = [
         { id: 'home', icon: 'home', label: 'Startseite', route: '/home', match: /^#\/home(\?(?!.*tab=1)|$)|^#?$/ },

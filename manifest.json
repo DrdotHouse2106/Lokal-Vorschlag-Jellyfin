@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.18.3.0",
+        "changelog": "Netflix-Startseite: Profilmenü und Seitenmenü / Profile and side menu\n- Würfel (Jellyfin Enhanced) und andere Plugin-Knöpfe zuverlässig im Profilmenü, auch auf dem iPhone\n- Profilmenü einheitlich hell, Suchsymbol weiß\n- Seitenmenü in Quallenkino-Farben (auch iOS-App)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.18.3.zip",
+        "checksum": "503b67e8801b090878744bfd407264c4",
+        "timestamp": "2026-10-19T20:00:00Z"
+      },
+      {
         "version": "12.18.2.0",
         "changelog": "Netflix-Startseite: Kopfleiste aufgeräumt, Top 10 wie Netflix / Tidy header, Netflix-style Top 10\n- Kopfleiste: Startseite, Serien, Filme, Live-TV, Meine Liste, Bibliotheken ▾; SyncPlay & Co. im Profilmenü\n- Top-10-Ziffern über dem Poster\n- Handy: Info-Knopf, Trailer füllt die Karte, keine doppelte Leiste in der iOS-App\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
