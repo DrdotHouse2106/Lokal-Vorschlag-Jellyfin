@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.18.0] - 2026-10-19
+
+### Added
+
+- **Start page in Netflix style for Jellyfin Web** (browser and the Jellyfin apps for iOS/Android), injected via the plugin "File Transformation" (setting „Startseite im Netflix-Stil“, off by default):
+  - large hero with backdrop, logo, reason, „Abspielen“/„Weitere Infos“ and the local trailer (always muted; sound button only on PCs), header transparent over the hero and dark when scrolling;
+  - all rows of the TV app Quallenkino, loaded in parallel: Weiterschauen, Als Nächstes, recommended movies/series with reason, Heute im TV für dich, Top 10 with big numbers, Welten (tile → world page with filter and sorting), Jetzt im TV, „Neu in …“ per library, random genre rows, libraries;
+  - PCs: arrows at the row edges and a preview card on hover (play, my list, like, more info); „Weitere Infos“ opens a detail overlay (episodes per season, similar titles, cast) instead of a new page;
+  - phones like the Netflix app: hero as a card with poster, logo and genres, „Abspielen“/„Meine Liste“, chips „Serien“/„Filme“/„Meine Liste“, portrait posters (about 3.3 per screen), worlds as circles, tab bar at the bottom (Startseite, Suche, Live-TV, Meine Liste, Mehr);
+  - the last start page is shown immediately from the browser storage and refreshed row by row in the background; „Abspielen“ starts playback in the same browser/app (remote command to the own session, fallback: details page);
+  - every user can switch back to the classic start page at the bottom of the page.
+- Setting „Quallenkino-Farben“: dark blue with the violet-blue gradient for all of Jellyfin Web, including side menu, playback bar and buttons.
+- Script and stylesheet are loaded with the plugin version as query (`?v=…`), so apps with a web cache (e.g. the iOS app) get updates right away.
+
+### Changed
+
+- Recommendations (`/LocalRecs/Recommendations`, Home Screen Sections) now include logos and genres.
+
 ## [12.17.0] - 2026-10-18
 
 ### Changed

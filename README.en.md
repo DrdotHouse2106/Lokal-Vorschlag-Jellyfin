@@ -121,6 +121,16 @@ Access via: **Dashboard → Plugins → Local Recommendations → Settings**
 - The plugin registers two sections with Home Screen Sections; when a user's home screen is built, the sections return the real library items for exactly that user
 - Items the user can no longer see, or has watched/started in the meantime, are filtered out at request time
 
+### Netflix-style start page for Jellyfin Web (since 12.18.0)
+
+In the browser and the Jellyfin apps for iOS and Android the start page can look like Netflix, with all rows of the TV app Quallenkino. Requires the plugin **File Transformation**. Turn it on in the settings („Startseite im Netflix-Stil“); the Quallenkino colors are a separate setting („Quallenkino-Farben“).
+
+- Large hero with backdrop, logo, reason, "Play" and "More info"; a local trailer plays in the background (always muted, sound button on PCs). The header is transparent over the hero and turns dark when scrolling.
+- Rows: continue watching, next up, recommended movies and series (with reason), today on TV for you, Top 10 (big numbers), worlds (opens the world page with filter and sorting), on now, "new in …" per library, genre rows and libraries. Loaded in parallel; the last start page is shown immediately from browser storage and refreshed row by row.
+- PCs: arrows at the row edges and a preview card on hover; "More info" opens an overlay with episodes per season, similar titles and cast.
+- Phones like the Netflix app: hero as a card with poster, logo and genres, chips, portrait posters, worlds as circles and a tab bar at the bottom.
+- "Play" starts playback in the same browser/app. Every user can switch back to the classic start page at the bottom of the page. Files are loaded with the plugin version as query (`?v=…`), so apps with a web cache get updates right away.
+
 ### API for TV apps
 
 `GET /LocalRecs/Recommendations?type=movies|series|livetv&limit=20` returns the same items as the home screen rows for the **signed-in user** (regular token, no admin) as `{ "Items": [...], "TotalRecordCount": n }`. Works without Home Screen Sections.

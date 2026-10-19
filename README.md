@@ -102,6 +102,17 @@ Filme und Serien mit einer Community-Bewertung unter **5.0** werden nicht empfoh
 
 Das Plugin merkt sich, was es wem empfohlen hat, und zählt, was davon danach geschaut wurde (Filme und Serien ab 10 Minuten oder bis zum Ende, Live-TV ab der Mindestdauer). Im Reiter **Auswertung** stehen pro Bereich Anzahl der Empfehlungen, Treffer, Trefferquote und die durchschnittliche Zeit bis zum Anschauen, dazu die zuletzt geschauten Empfehlungen. Die Daten liegen in `plugins/LocalRecs/feedback.json` und lassen sich im Reiter mit **„Auswertung herunterladen (JSON)“** speichern oder über `GET /LocalRecs/Evaluation?days=30` (Admin) abrufen – z. B. um die Empfehlungen gezielt weiterzuentwickeln.
 
+### Startseite im Netflix-Stil für Jellyfin Web (ab 12.18.0)
+
+Im Browser und in den Jellyfin-Apps für iOS und Android kann die Startseite wie bei Netflix aussehen, mit allen Reihen der TV-App Quallenkino. Voraussetzung ist das Plugin **File Transformation** (aus dem gleichen Katalog wie Home Screen Sections). Einschalten unter **Einstellungen → Jellyfin Web → „Startseite im Netflix-Stil“**, die Farben separat über **„Quallenkino-Farben“**.
+
+- **Großer Infobereich** mit Hintergrundbild, Logo, Begründung und den Knöpfen „Abspielen“ und „Weitere Infos“. Hat der Titel einen lokalen Trailer, läuft er nach kurzer Zeit im Hintergrund – immer stumm, auf dem PC mit Ton-Knopf. Die Kopfleiste ist über dem Bild durchsichtig und wird beim Scrollen dunkel.
+- **Reihen:** Weiterschauen, Als Nächstes, Empfohlene Filme und Serien (mit Begründung), Heute im TV für dich, Top 10 (große Ziffern), Welten (Kachel öffnet die Welten-Seite mit Filter und Sortierung), Jetzt im TV, „Neu in …“ je Bibliothek, Genre-Reihen und Bibliotheken. Alles wird gleichzeitig geladen; die letzte Startseite erscheint sofort aus dem Speicher des Browsers und wird im Hintergrund Reihe für Reihe aktualisiert.
+- **PC:** Pfeile am Rand jeder Reihe, beim Überfahren eine Vorschau-Karte (Abspielen, Meine Liste, Gefällt mir, Weitere Infos). „Weitere Infos“ öffnet ein Fenster mit Folgen je Staffel, ähnlichen Titeln und Besetzung statt einer neuen Seite.
+- **Handy** wie die Netflix-App: Infobereich als Karte mit Poster, Logo und Genres, „Abspielen“ und „Meine Liste“, Chips „Serien“, „Filme“, „Meine Liste“, Hochformat-Poster, Welten als Kreise und eine Tab-Leiste unten (Startseite, Suche, Live-TV, Meine Liste, Mehr).
+- „Abspielen“ startet die Wiedergabe im selben Browser bzw. in derselben App. Ganz unten auf der Startseite kann jeder Benutzer zur klassischen Ansicht zurückwechseln.
+- Skript und Stylesheet werden mit der Plugin-Version im Link geladen (`?v=…`). So kommen Updates auch in Apps mit Web-Zwischenspeicher (z. B. der iOS-App) sofort an.
+
 ### Schnittstelle für TV-Apps
 
 Apps, die „Home Screen Sections“ nicht anzeigen (z. B. [Jellyfin-TV-Client](https://github.com/DrdotHouse2106/Jellyfin-TV-Client) für Android TV / Fire TV), holen die Empfehlungen direkt:

@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.18.0.0",
+        "changelog": "Startseite im Netflix-Stil für Jellyfin Web / Netflix-style start page for Jellyfin Web\n- Großer Infobereich mit stummem Trailer, alle Reihen der TV-App (Top 10, Welten, Heute im TV …), Detail-Overlay, Handy-Ansicht wie die Netflix-App mit Tab-Leiste\n- Quallenkino-Farben für ganz Jellyfin Web\n- Einschalten in den Plugin-Einstellungen, braucht „File Transformation“\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.18.0.zip",
+        "checksum": "a15a0bd0527cb1a4f2ec78ece2dab3bd",
+        "timestamp": "2026-10-19T17:00:00Z"
+      },
+      {
         "version": "12.17.0.0",
         "changelog": "Live-TV-Besetzung toleranter, Merklisten-Likes schwächer / Tolerant XMLTV matching, weaker watchlist likes\n- XMLTV: Startzeit darf ±15 min abweichen; gleicher Sender, dann nächste Startzeit gewinnt\n- „Gefällt mir“ bei nie gespielten Titeln (z. B. Merkliste von Jellyfin Enhanced) zählt nur schwach\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

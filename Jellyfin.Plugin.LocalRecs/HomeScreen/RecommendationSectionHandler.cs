@@ -204,9 +204,9 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
                 var user = _userManager.GetUserById(request!.UserId);
                 var options = new DtoOptions
                 {
-                    Fields = new[] { ItemFields.PrimaryImageAspectRatio, ItemFields.Overview },
+                    Fields = new[] { ItemFields.PrimaryImageAspectRatio, ItemFields.Overview, ItemFields.Genres },
                     ImageTypeLimit = 1,
-                    ImageTypes = new[] { ImageType.Primary, ImageType.Backdrop, ImageType.Thumb },
+                    ImageTypes = new[] { ImageType.Primary, ImageType.Backdrop, ImageType.Thumb, ImageType.Logo },
                     EnableImages = true,
                     EnableUserData = true
                 };

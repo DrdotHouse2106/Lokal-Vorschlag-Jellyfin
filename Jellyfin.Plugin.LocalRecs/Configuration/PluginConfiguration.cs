@@ -33,6 +33,8 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             MinWorldItems = 5;
             WorldListSource = Worlds.WorldListSource.DefaultUrl;
             FanartApiKey = string.Empty;
+            WebHomeEnabled = false;
+            WebThemeEnabled = false;
             MovieSectionTitle = "Empfohlene Filme für dich";
             TvSectionTitle = "Empfohlene Serien für dich";
             EnableLiveTvTracking = true;
@@ -231,6 +233,17 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Empty = only other logo sources (e.g. TMDB company logos).
         /// </summary>
         public string FanartApiKey { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether Jellyfin Web (browser and the iOS/Android apps) shows the start page
+        /// in Netflix style with all rows of the TV app (needs the plugin "File Transformation").
+        /// </summary>
+        public bool WebHomeEnabled { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether Jellyfin Web uses the Quallenkino colors (dark blue, violet-blue gradient).
+        /// </summary>
+        public bool WebThemeEnabled { get; set; }
 
         /// <summary>
         /// Validates the configuration and returns validation errors.
