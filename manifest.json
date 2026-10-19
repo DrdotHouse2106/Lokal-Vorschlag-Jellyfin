@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.18.7.0",
+        "changelog": "Detailseite im Netflix-Stil auch für Folgen und Staffeln / Netflix-style details for episodes and seasons\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.18.7.zip",
+        "checksum": "6d24bb2c9ea63ef3124c5df1737b9c34",
+        "timestamp": "2026-10-20T00:00:00Z"
+      },
+      {
         "version": "12.18.6.0",
         "changelog": "Detailseite: Jellyfin-Knöpfe im neuen Design / Jellyfin detail buttons in the new design\n- Gesehen, Trailer, Download und ⋮-Menü (Löschen, Bearbeiten, Zur Sammlung …) direkt in der Netflix-Ansicht\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

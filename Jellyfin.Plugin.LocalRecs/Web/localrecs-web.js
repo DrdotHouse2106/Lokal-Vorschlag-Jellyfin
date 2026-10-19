@@ -1024,11 +1024,16 @@
             });
     }
 
-    function renderInfo(dialog, item, onNative) {
+    function renderInfo(dialog, item, onNative, options) {
+        options = options || {};
         var reason = state.reasons[item.Id];
+        var isEpisode = item.Type === 'Episode';
         dialog.appendChild(heroElement(item, { compact: true, noInfo: true, overview: null, meta: '', badge: reason }));
         var body = el('div', 'lr-info-body');
         var left = el('div', 'lr-info-main');
+        if (isEpisode) {
+            left.appendChild(el('h2', 'lr-info-episode', subtitle(item)));
+        }
         var meta = metaLine(item);
         if (meta) {
             left.appendChild(el('div', 'lr-info-meta', meta));
@@ -1038,6 +1043,11 @@
         actions.appendChild(likeButton(item));
         if (onNative) {
             actions.appendChild(el('span', 'lr-native-actions'));
+        }
+        if (isEpisode && item.SeriesId) {
+            actions.appendChild(button('lr-btn-link', 'tv', 'Zur Serie', function () {
+                openDetailsPage({ Id: item.SeriesId });
+            }));
         }
         // Jellyfin-Detailseite mit allen Optionen (Versionen, Tonspur, Untertitel, Bearbeiten …)
         actions.appendChild(button('lr-btn-link', 'tune', 'Alle Optionen', function () {
@@ -1089,7 +1099,9 @@
         dialog.appendChild(body);
 
         if (item.Type === 'Series') {
-            renderSeasons(dialog, item);
+            renderSeasons(dialog, item, options.seasonId);
+        } else if (isEpisode && item.SeriesId) {
+            renderSeasons(dialog, { Id: item.SeriesId }, item.SeasonId, item.Id);
         } else if (item.Type === 'Movie') {
             getJson(itemsQuery('Items/' + item.Id + '/Similar?limit=12')).then(function (result) {
                 var similar = itemsOf(result);
@@ -1116,7 +1128,7 @@
         return line;
     }
 
-    function renderSeasons(dialog, series) {
+    function renderSeasons(dialog, series, preferSeasonId, currentEpisodeId) {
         getJson(itemsQuery('Shows/' + series.Id + '/Seasons')).then(function (result) {
             var seasons = itemsOf(result);
             if (!seasons.length) {
@@ -1142,11 +1154,25 @@
                 getJson(itemsQuery('Shows/' + series.Id + '/Episodes?seasonId=' + select.value)).then(function (episodes) {
                     list.innerHTML = '';
                     itemsOf(episodes).forEach(function (episode) {
-                        list.appendChild(episodeRow(episode));
+                        var row = episodeRow(episode);
+                        if (episode.Id === currentEpisodeId) {
+                            row.classList.add('lr-current');
+                            window.setTimeout(function () {
+                                row.scrollIntoView({ block: 'nearest' });
+                            }, 50);
+                        }
+                        list.appendChild(row);
                     });
                 });
             };
             select.addEventListener('change', load);
+            if (preferSeasonId && seasons.some(function (s) {
+                return s.Id === preferSeasonId;
+            })) {
+                select.value = preferSeasonId;
+                load();
+                return;
+            }
             // Staffel mit dem nächsten ungesehenen Teil vorauswählen
             getJson(itemsQuery('Shows/NextUp?seriesId=' + series.Id + '&limit=1')).then(function (next) {
                 var episode = itemsOf(next)[0];
@@ -1201,7 +1227,7 @@
 
     // ---------------------------------------------------------------- Detailseite im Netflix-Stil
 
-    var DETAIL_TYPES = ['Movie', 'Series'];
+    var DETAIL_TYPES = ['Movie', 'Series', 'Episode', 'Season'];
 
     function detailIdFromHash() {
         var match = /[?&]id=([0-9a-fA-F-]{32,36})/.exec(window.location.hash || '');
@@ -1306,13 +1332,27 @@
         getJson(itemsQuery('Items/' + id).replace('&Fields=' + FIELDS, '&Fields=' + FIELDS + ',People,Studios,Taglines'))
             .then(function (item) {
                 if (DETAIL_TYPES.indexOf(item.Type) < 0 || detailIdFromHash() !== id) {
+                    return null;
+                }
+                // Staffel: Serie zeigen, mit dieser Staffel ausgewählt
+                if (item.Type === 'Season' && item.SeriesId) {
+                    return getJson(itemsQuery('Items/' + item.SeriesId).replace('&Fields=' + FIELDS, '&Fields=' + FIELDS + ',People,Studios,Taglines'))
+                        .then(function (series) {
+                            return { item: series, seasonId: item.Id };
+                        });
+                }
+                return { item: item };
+            })
+            .then(function (result) {
+                if (!result || detailIdFromHash() !== id) {
                     return;
                 }
+                var item = result.item;
                 var page = el('div', 'lr-detail-page lr-dialog');
                 page.dataset.id = id;
                 renderInfo(page, item, function () {
                     showNativeDetail(view);
-                });
+                }, { seasonId: result.seasonId });
                 view.insertBefore(page, view.firstChild);
                 attachNativeButtons(view, page);
                 view.classList.add('lr-detail-active');

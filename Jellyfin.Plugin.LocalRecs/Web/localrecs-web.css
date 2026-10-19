@@ -874,6 +874,16 @@ html.lr-noscroll body {
     overflow: hidden;
 }
 
+.lr-info-episode {
+    margin: 0 0 0.4em;
+    font-size: 1.3em;
+}
+
+.lr-episode.lr-current {
+    background: rgba(127, 118, 214, 0.18);
+    box-shadow: inset 3px 0 0 var(--lr-accent-1);
+}
+
 .lr-watched .lr-episode-frame {
     opacity: 0.6;
 }

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.18.7] - 2026-10-19
+
+### Added
+
+- Netflix-style details page also for episodes (series logo, „S2:F5 Title“, resume, Jellyfin buttons, „Zur Serie“, episode list of the season with the current episode highlighted) and seasons (the series page with that season selected).
+
 ## [12.18.6] - 2026-10-19
 
 ### Added
