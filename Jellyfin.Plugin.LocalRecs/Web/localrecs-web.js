@@ -15,6 +15,12 @@
     var CACHE_VERSION = 2;
     var ROW_LIMIT = 24;
     var GENRE_ROWS = 6;
+    var GENRE_MIN_ITEMS = 8;
+    // Deutsche Genre-Namen (TMDB/Jellyfin auf Deutsch). Gibt es davon nichts, werden alle Genres genommen.
+    var GERMAN_GENRES = ['Action', 'Abenteuer', 'Animation', 'Komödie', 'Krimi', 'Dokumentarfilm', 'Dokumentation', 'Drama',
+        'Familie', 'Fantasy', 'Historie', 'Horror', 'Musik', 'Mystery', 'Liebesfilm', 'Romantik', 'Science Fiction',
+        'Thriller', 'Kriegsfilm', 'Western', 'Action & Adventure', 'Sci-Fi & Fantasy', 'Krieg & Politik', 'Kinder', 'Zeichentrick',
+        'Anime', 'Biografie', 'Sport', 'Musical', 'Erotik', 'Heimatfilm', 'Katastrophenfilm', 'Martial Arts', 'Satire', 'Superhelden'];
     var TRAILER_DELAY_MS = 2500;
     var FIELDS = 'Overview,Genres,PrimaryImageAspectRatio,ProductionYear,CommunityRating,OfficialRating,RunTimeTicks';
     var IMAGE_TYPES = 'Primary,Backdrop,Thumb,Logo';
@@ -263,7 +269,7 @@
         return item.Name || '';
     }
 
-    function subtitle(item) {
+    function subtitle(item, showReason) {
         if (item.Type === 'Episode') {
             var number = item.ParentIndexNumber != null && item.IndexNumber != null
                 ? 'S' + item.ParentIndexNumber + ':F' + item.IndexNumber + ' ' : '';
@@ -282,7 +288,7 @@
             }
             return parts.join(' · ');
         }
-        return state.reasons[item.Id] || '';
+        return showReason ? state.reasons[item.Id] || '' : '';
     }
 
     function metaLine(item) {
@@ -415,19 +421,61 @@
         openInfo(item);
     }
 
-    function landscapeCard(item) {
+    // Bild für Querformat-Kacheln. "clean" = ohne eingebrannten Titel (Backdrop, Folgenbild), dann kommt Logo/Titel darüber.
+    // Thumb-Bilder enthalten meist schon den Titel – die bekommen kein zweites Logo.
+    function cardImage(item) {
+        var tags = item.ImageTags || {};
+        var backdrop = item.BackdropImageTags && item.BackdropImageTags.length;
+        var parentBackdrop = item.ParentBackdropItemId && item.ParentBackdropImageTags && item.ParentBackdropImageTags.length;
+        if (item.Type === 'Episode' && tags.Primary) {
+            return { src: imageUrl(item.Id, 'Primary', tags.Primary, 640), clean: true };
+        }
+        if (item.Type === 'Program' || item.Type === 'TvChannel') {
+            var programImage = landscapeImage(item);
+            return { src: programImage, clean: true };
+        }
+        if (backdrop) {
+            return { src: imageUrl(item.Id, 'Backdrop', item.BackdropImageTags[0], 640), clean: true };
+        }
+        if (parentBackdrop) {
+            return { src: imageUrl(item.ParentBackdropItemId, 'Backdrop', item.ParentBackdropImageTags[0], 640), clean: true };
+        }
+        if (tags.Thumb) {
+            return { src: imageUrl(item.Id, 'Thumb', tags.Thumb, 640), clean: false };
+        }
+        if (item.ParentThumbItemId && item.ParentThumbImageTag) {
+            return { src: imageUrl(item.ParentThumbItemId, 'Thumb', item.ParentThumbImageTag, 640), clean: false };
+        }
+        if (tags.Primary) {
+            return { src: imageUrl(item.Id, 'Primary', tags.Primary, 640), clean: true };
+        }
+        if (item.SeriesId && item.SeriesPrimaryImageTag) {
+            return { src: imageUrl(item.SeriesId, 'Primary', item.SeriesPrimaryImageTag, 640), clean: true };
+        }
+        return { src: null, clean: true };
+    }
+
+    function landscapeCard(item, showReason) {
         var card = el('div', 'lr-card lr-card-landscape');
-        var image = landscapeImage(item);
+        var image = cardImage(item);
         var frame = el('div', 'lr-card-frame');
-        if (image) {
+        if (image.src) {
             var img = el('img', 'lr-card-img');
             img.loading = 'lazy';
             img.alt = '';
-            img.src = image;
+            img.src = image.src;
+            img.addEventListener('error', function () {
+                img.remove();
+                frame.classList.add('lr-card-noimg');
+            });
             frame.appendChild(img);
+        } else {
+            frame.classList.add('lr-card-noimg');
         }
-        var logo = item.Type !== 'Episode' && item.Type !== 'Program' ? logoImage(item, 300) : null;
-        if (logo) {
+        var logo = image.clean && item.Type !== 'Episode' && item.Type !== 'Program' ? logoImage(item, 300) : null;
+        if (!image.clean) {
+            // Titel steht schon im Bild
+        } else if (logo) {
             var logoImg = el('img', 'lr-card-logo');
             logoImg.loading = 'lazy';
             logoImg.alt = displayTitle(item);
@@ -448,7 +496,7 @@
             frame.appendChild(el('div', 'lr-live', 'LIVE'));
         }
         card.appendChild(frame);
-        var sub = subtitle(item);
+        var sub = subtitle(item, showReason);
         if (sub) {
             card.appendChild(el('div', 'lr-card-sub', sub));
         }
@@ -546,6 +594,8 @@
             img.alt = '';
             img.src = imageUrl(world.ImageItemId, 'Backdrop', null, 640);
             frame.appendChild(img);
+        } else {
+            frame.classList.add('lr-card-noimg');
         }
         if (world.LogoUrl) {
             var logo = el('img', 'lr-world-logo');
@@ -577,6 +627,8 @@
             img.alt = '';
             img.src = imageUrl(view.Id, 'Primary', tag, 640);
             frame.appendChild(img);
+        } else {
+            frame.classList.add('lr-card-noimg');
         }
         frame.appendChild(el('div', 'lr-card-title lr-library-title', view.Name));
         card.appendChild(frame);
@@ -1304,22 +1356,36 @@
         }));
 
         tasks.push(safe(getJson('Genres?userId=' + uid + '&IncludeItemTypes=Movie,Series&Recursive=true&EnableTotalRecordCount=false')).then(function (result) {
-            var names = itemsOf(result).map(function (g) {
+            var all = itemsOf(result).map(function (g) {
                 return g.Name;
             }).filter(Boolean);
-            var picked = sessionChoice('lrWeb.genres.' + uid, function () {
-                return shuffled(names).slice(0, GENRE_ROWS);
+            var german = all.filter(function (n) {
+                return GERMAN_GENRES.some(function (g) {
+                    return g.toLowerCase() === n.toLowerCase();
+                });
+            });
+            var names = german.length >= 3 ? german : all;
+            // Mehr Kandidaten laden als nötig – Genres mit zu wenigen Titeln fallen weg
+            var picked = sessionChoice('lrWeb.genres2.' + uid, function () {
+                return shuffled(names).slice(0, GENRE_ROWS * 2);
             }).filter(function (n) {
                 return names.indexOf(n) >= 0;
             });
-            return Promise.all(picked.map(function (genre) {
-                var entry = { key: 'genre-' + genre, title: genre, kind: 'landscape', items: [] };
-                genresPlaceholder.items.push(entry);
-                return safe(getJson(itemsQuery('Items?Genres=' + encodeURIComponent(genre)
+            var entries = picked.map(function (genre) {
+                return { key: 'genre-' + genre, title: genre, kind: 'landscape', items: [] };
+            });
+            return Promise.all(entries.map(function (entry) {
+                return safe(getJson(itemsQuery('Items?Genres=' + encodeURIComponent(entry.title)
                     + '&IncludeItemTypes=Movie,Series&Recursive=true&SortBy=Random&Limit=' + ROW_LIMIT))).then(function (r) {
                     entry.items = itemsOf(r).map(slim);
                 });
-            }));
+            })).then(function () {
+                entries.filter(function (entry) {
+                    return entry.items.length >= GENRE_MIN_ITEMS;
+                }).slice(0, GENRE_ROWS).forEach(function (entry) {
+                    genresPlaceholder.items.push(entry);
+                });
+            });
         }));
 
         return Promise.all(tasks).then(function () {
@@ -1392,7 +1458,10 @@
         if (phoneLayout() && row.key !== 'livetv' && row.key !== 'onnow') {
             return rowElement(row.title, row.items.map(portraitCard), 'lr-row-portrait');
         }
-        return rowElement(row.title, row.items.map(landscapeCard));
+        var withReason = row.key === 'movies' || row.key === 'series';
+        return rowElement(row.title, row.items.map(function (item) {
+            return landscapeCard(item, withReason);
+        }));
     }
 
     function render(root, data, uid) {

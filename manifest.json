@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.18.1.0",
+        "changelog": "Netflix-Startseite: Feinschliff / Netflix start page polish\n- Keine doppelten Titel auf Kacheln, kleineres Logo und Beschreibung im Infobereich\n- Genre-Reihen nur deutsch und mit mindestens 8 Titeln, Begründung nur in Empfehlungsreihen\n- Ersatzbild für Kacheln ohne Bild, Top-10-Ziffern besser lesbar\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.18.1.zip",
+        "checksum": "6fb5bcae652ade7a0ccfcea5dbd2a1c7",
+        "timestamp": "2026-10-19T18:00:00Z"
+      },
+      {
         "version": "12.18.0.0",
         "changelog": "Startseite im Netflix-Stil für Jellyfin Web / Netflix-style start page for Jellyfin Web\n- Großer Infobereich mit stummem Trailer, alle Reihen der TV-App (Top 10, Welten, Heute im TV …), Detail-Overlay, Handy-Ansicht wie die Netflix-App mit Tab-Leiste\n- Quallenkino-Farben für ganz Jellyfin Web\n- Einschalten in den Plugin-Einstellungen, braucht „File Transformation“\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

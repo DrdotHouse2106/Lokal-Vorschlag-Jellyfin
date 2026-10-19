@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.18.1] - 2026-10-19
+
+### Fixed
+
+- Jellyfin Web start page: no more double titles on landscape tiles – tiles with logo/title overlay use the backdrop (no text in the image); thumb images, which usually contain the title already, are shown without overlay.
+- Hero: logo limited to about 38 % width and 160 px height; the description stays visible while the trailer plays (no more gap between info line and buttons).
+- Genre rows: German genre names preferred, only genres with at least 8 titles, more candidates are tried so that rows with few titles are left out.
+- The reason ("Weil du … geschaut hast") only appears in the recommendation rows, not under the same title in other rows.
+- Tiles without image (e.g. folders or libraries) get a gradient with the title.
+- Top 10: the number stands next to the poster and is only slightly overlapped.
+
 ## [12.18.0] - 2026-10-19
 
 ### Added
