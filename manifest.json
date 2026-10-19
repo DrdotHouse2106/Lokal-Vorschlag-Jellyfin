@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.18.5.0",
+        "changelog": "Detailseite im Netflix-Stil / Netflix-style details page\n- Filme und Serien zeigen überall (auch Handy, Bibliothek, Suche) die neue Ansicht mit Trailer, Staffeln und ähnlichen Titeln\n- „Alle Optionen“ öffnet die Jellyfin-Detailseite\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.18.5.zip",
+        "checksum": "7988d1717a18164172c0932609770b64",
+        "timestamp": "2026-10-19T22:00:00Z"
+      },
+      {
         "version": "12.18.4.0",
         "changelog": "Fix: schwarzes Bild bei der Wiedergabe / Fix: black picture during playback\n- Quallenkino-Farben überdecken das Video nicht mehr\n- Überspringen wie in Quallenkino: „Intro überspringen“ mit 5-Sekunden-Countdown\n- Player im Netflix-Look\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

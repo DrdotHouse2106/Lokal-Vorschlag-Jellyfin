@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.18.5] - 2026-10-19
+
+### Added
+
+- Jellyfin Web: the details page of movies and series (also when opened from a library, the search or on phones) uses the Netflix-style view like the overlay on the start page: large backdrop with trailer, logo, „Abspielen“, my list, like, cast, seasons with episodes, similar titles. „Alle Optionen“ switches to Jellyfin's own details page (versions, audio/subtitles, editing …). Other types (episodes, people, collections …) keep Jellyfin's page.
+
 ## [12.18.4] - 2026-10-19
 
 ### Fixed

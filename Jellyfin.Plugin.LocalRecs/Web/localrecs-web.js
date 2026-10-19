@@ -1024,7 +1024,7 @@
             });
     }
 
-    function renderInfo(dialog, item) {
+    function renderInfo(dialog, item, onNative) {
         var reason = state.reasons[item.Id];
         dialog.appendChild(heroElement(item, { compact: true, noInfo: true, overview: null, meta: '', badge: reason }));
         var body = el('div', 'lr-info-body');
@@ -1036,7 +1036,17 @@
         var actions = el('div', 'lr-info-actions');
         actions.appendChild(favoriteButton(item));
         actions.appendChild(likeButton(item));
-        actions.appendChild(button('lr-btn-link', 'open_in_new', 'Detailseite', function () {
+        // Jellyfin-Detailseite mit allen Optionen (Versionen, Tonspur, Untertitel, Bearbeiten …)
+        actions.appendChild(button('lr-btn-link', 'tune', 'Alle Optionen', function () {
+            if (onNative) {
+                onNative();
+                return;
+            }
+            try {
+                window.sessionStorage.setItem('lrWeb.nativeDetail', item.Id);
+            } catch (e) {
+                // egal
+            }
             openDetailsPage(item);
         }));
         left.appendChild(actions);
@@ -1184,6 +1194,65 @@
             play(episode);
         });
         return row;
+    }
+
+    // ---------------------------------------------------------------- Detailseite im Netflix-Stil
+
+    var DETAIL_TYPES = ['Movie', 'Series'];
+
+    function detailIdFromHash() {
+        var match = /[?&]id=([0-9a-fA-F-]{32,36})/.exec(window.location.hash || '');
+        return match ? match[1].replace(/-/g, '') : null;
+    }
+
+    function showNativeDetail(view) {
+        view.classList.remove('lr-detail-active');
+        var page = view.querySelector(':scope > .lr-detail-page');
+        if (page) {
+            page.remove();
+        }
+        stopHeroVideo();
+    }
+
+    function onDetailShow(view) {
+        var id = detailIdFromHash();
+        var wanted = id && tidyWanted();
+        var nativeOnce = null;
+        try {
+            nativeOnce = window.sessionStorage.getItem('lrWeb.nativeDetail');
+            if (nativeOnce === id) {
+                window.sessionStorage.removeItem('lrWeb.nativeDetail');
+            }
+        } catch (e) {
+            nativeOnce = null;
+        }
+        if (!wanted || nativeOnce === id) {
+            showNativeDetail(view);
+            return;
+        }
+        var existing = view.querySelector(':scope > .lr-detail-page');
+        if (existing && existing.dataset.id === id) {
+            view.classList.add('lr-detail-active');
+            return;
+        }
+        showNativeDetail(view);
+        getJson(itemsQuery('Items/' + id).replace('&Fields=' + FIELDS, '&Fields=' + FIELDS + ',People,Studios,Taglines'))
+            .then(function (item) {
+                if (DETAIL_TYPES.indexOf(item.Type) < 0 || detailIdFromHash() !== id) {
+                    return;
+                }
+                var page = el('div', 'lr-detail-page lr-dialog');
+                page.dataset.id = id;
+                renderInfo(page, item, function () {
+                    showNativeDetail(view);
+                });
+                view.insertBefore(page, view.firstChild);
+                view.classList.add('lr-detail-active');
+                window.scrollTo(0, 0);
+            })
+            .catch(function () {
+                showNativeDetail(view);
+            });
     }
 
     // ---------------------------------------------------------------- Welten-Seite
@@ -2221,6 +2290,9 @@
             startSkipWatcher();
         } else {
             stopSkipWatcher();
+        }
+        if (view && view.id === 'itemDetailPage') {
+            onDetailShow(view);
         }
         if (view && view.id === 'indexPage') {
             window.setTimeout(activate, 0);
