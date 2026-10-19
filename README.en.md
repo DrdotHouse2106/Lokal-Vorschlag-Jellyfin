@@ -218,7 +218,7 @@ Development costs time and money (servers, test devices, AI tools). If you like 
 Then my other project might be just right for you: **[ZockerDB](https://zockerdb.de)** – your game
 collection in one place. Track games, consoles and accessories (including barcode scanning with your
 phone), rate and manage them, with price history, editions and PAL/USK details. Use it directly at
-[zockerdb.de](https://zockerdb.de) or self-host ZockerDB Basis on your own server.
+[zockerdb.de](https://zockerdb.de) or self-host [ZockerDB Basis](https://github.com/DrdotHouse2106/ZockerDBBasis) on your own server.
 
 ## License
 
