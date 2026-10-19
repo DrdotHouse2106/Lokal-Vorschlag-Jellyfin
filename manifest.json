@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.19.0.0",
+        "changelog": "Netflix-Player (Test) für ausgewählte Benutzer / Netflix-style player (test, opt-in)\n- Eigene Steuerleiste: Titel, große Play/Pause- und ±10-s-Knöpfe, Zeitleiste mit Vorschaubildern, Ton & Untertitel in einem Menü, Folgenliste, Geschwindigkeit\n- Jellyfin spielt weiter selbst ab; „Klassischer Player“ pro Gerät\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.19.0.zip",
+        "checksum": "4e4393800a49c14057bde38c6c22e9b8",
+        "timestamp": "2026-10-20T01:00:00Z"
+      },
+      {
         "version": "12.18.7.0",
         "changelog": "Detailseite im Netflix-Stil auch für Folgen und Staffeln / Netflix-style details for episodes and seasons\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

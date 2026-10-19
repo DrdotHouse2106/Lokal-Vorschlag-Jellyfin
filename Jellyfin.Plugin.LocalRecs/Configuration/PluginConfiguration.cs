@@ -35,6 +35,7 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             FanartApiKey = string.Empty;
             WebHomeEnabled = false;
             WebThemeEnabled = false;
+            WebPlayerUserIds = System.Array.Empty<string>();
             MovieSectionTitle = "Empfohlene Filme für dich";
             TvSectionTitle = "Empfohlene Serien für dich";
             EnableLiveTvTracking = true;
@@ -244,6 +245,11 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Gets or sets a value indicating whether Jellyfin Web uses the Quallenkino colors (dark blue, violet-blue gradient).
         /// </summary>
         public bool WebThemeEnabled { get; set; }
+
+        /// <summary>
+        /// Gets or sets the users (IDs without dashes) who get the Netflix-style player in Jellyfin Web (test, opt-in).
+        /// </summary>
+        public string[] WebPlayerUserIds { get; set; }
 
         /// <summary>
         /// Validates the configuration and returns validation errors.

@@ -187,6 +187,12 @@
                             <div class="fieldDescription checkboxFieldDescription">Dunkles Blau mit violett-blauem Verlauf für ganz Jellyfin Web, auch Seitenmenü und Wiedergabeleiste. Eigenes CSS unter „Allgemein → Branding“ wird danach geladen und kann Farben überschreiben.</div>
                         </div>
 
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused">Netflix-Player (Test) für diese Benutzer:</label>
+                            <div id="webPlayerUsers" class="checkboxList paperList" style="padding: 0.5em 1em;"></div>
+                            <div class="fieldDescription">Eigene Steuerleiste im Netflix-Stil für Jellyfin Web und die Handy-Apps: Zurück und Titel oben, große Play/Pause- und ±10-Sekunden-Knöpfe, Zeitleiste mit Vorschaubildern, Ton &amp; Untertitel in einem Menü, Folgenliste, Geschwindigkeit, Überspringen mit Countdown. Abgespielt wird weiter von Jellyfin. Im Player gibt es unter ⋮ „Klassischer Player“ (pro Gerät).</div>
+                        </div>
+
                         <h2 class="sectionTitle">Welten (für Apps)</h2>
 
                         <div class="inputContainer">
@@ -657,6 +663,25 @@
                             page.querySelector('#fanartApiKey').value = config.FanartApiKey || '';
                             page.querySelector('#webHomeEnabled').checked = config.WebHomeEnabled === true;
                             page.querySelector('#webThemeEnabled').checked = config.WebThemeEnabled === true;
+                            var playerUsers = (config.WebPlayerUserIds || []).map(function (id) { return String(id).replace(/-/g, '').toLowerCase(); });
+                            ApiClient.getUsers().then(function (users) {
+                                var list = page.querySelector('#webPlayerUsers');
+                                list.innerHTML = '';
+                                users.forEach(function (user) {
+                                    var id = String(user.Id).replace(/-/g, '').toLowerCase();
+                                    var label = document.createElement('label');
+                                    label.style.display = 'block';
+                                    label.style.margin = '0.3em 0';
+                                    var input = document.createElement('input');
+                                    input.type = 'checkbox';
+                                    input.className = 'webPlayerUser';
+                                    input.value = id;
+                                    input.checked = playerUsers.indexOf(id) >= 0;
+                                    label.appendChild(input);
+                                    label.appendChild(document.createTextNode(' ' + user.Name));
+                                    list.appendChild(label);
+                                });
+                            });
                             page.querySelector('#minWorldItems').value = config.MinWorldItems !== undefined ? config.MinWorldItems : 5;
                             page.querySelector('#enableCollectionNextParts').checked = config.EnableCollectionNextParts !== false;
                             page.querySelector('#showRecommendationReason').checked = config.ShowRecommendationReason !== false;
@@ -719,6 +744,10 @@
                             config.FanartApiKey = page.querySelector('#fanartApiKey').value.trim();
                             config.WebHomeEnabled = page.querySelector('#webHomeEnabled').checked;
                             config.WebThemeEnabled = page.querySelector('#webThemeEnabled').checked;
+                            var userBoxes = page.querySelectorAll('#webPlayerUsers .webPlayerUser');
+                            if (userBoxes.length) {
+                                config.WebPlayerUserIds = Array.prototype.filter.call(userBoxes, function (box) { return box.checked; }).map(function (box) { return box.value; });
+                            }
                             var worldDefinitions = page.querySelector('#worldDefinitions').value.trim();
                             if (worldDefinitions) {
                                 config.WorldDefinitions = worldDefinitions;

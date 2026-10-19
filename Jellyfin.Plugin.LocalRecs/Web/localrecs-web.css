@@ -1862,3 +1862,466 @@ html.lr-theme .button-link {
 html.lr-theme ::selection {
     background: rgba(127, 118, 214, 0.5);
 }
+
+/* ------------------------------------------------------------------ Player im Netflix-Stil (Test) */
+
+/* Jellyfins Bedienleiste unsichtbar, aber vorhanden (ihre Knöpfe und Regler werden benutzt) */
+html.lr-player #videoOsdPage .videoOsdBottom,
+html.lr-player #videoOsdPage .osdHeader,
+html.lr-player .skinHeader,
+html.lr-player header.MuiAppBar-root {
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+html.lr-player .lr-topnav,
+html.lr-player .lr-tabbar {
+    display: none !important;
+}
+
+html.lr-player .upNextContainer {
+    position: fixed !important;
+    z-index: 1060 !important;
+}
+
+html.lr-nf-idle,
+html.lr-nf-idle body,
+html.lr-nf-idle .lr-nf-surface {
+    cursor: none !important;
+}
+
+.lr-nf {
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    color: #fff;
+    font-size: 16px;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.lr-nf-surface {
+    position: absolute;
+    inset: 0;
+}
+
+.lr-nf-top,
+.lr-nf-bottom,
+.lr-nf-center {
+    position: absolute;
+    left: 0;
+    right: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.lr-nf-visible .lr-nf-top,
+.lr-nf-visible .lr-nf-bottom,
+.lr-nf-visible .lr-nf-center {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.lr-nf-center {
+    pointer-events: none !important;
+}
+
+.lr-nf-visible .lr-nf-center > * {
+    pointer-events: auto;
+}
+
+.lr-nf-top {
+    top: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.8em;
+    padding: calc(1em + env(safe-area-inset-top, 0px)) calc(2% + env(safe-area-inset-right, 0px)) 3em calc(2% + env(safe-area-inset-left, 0px));
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.lr-nf-titlebox {
+    min-width: 0;
+}
+
+.lr-nf-title {
+    font-size: 1.35em;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lr-nf-subtitle {
+    color: #c9cedb;
+    margin-top: 0.15em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lr-nf-btn {
+    justify-content: center;
+    width: 2.8em;
+    height: 2.8em;
+    border-radius: 50%;
+    color: #fff;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.lr-nf-btn .lr-icon {
+    font-size: 1.9em;
+}
+
+.lr-nf-btn:hover,
+.lr-nf-btn:focus-visible {
+    transform: scale(1.18);
+    outline: none;
+}
+
+.lr-nf-center {
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 3.5em;
+}
+
+.lr-nf-center .lr-nf-btn {
+    width: 4.2em;
+    height: 4.2em;
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.lr-nf-center .lr-nf-btn .lr-icon {
+    font-size: 2.6em;
+}
+
+.lr-nf-center .lr-nf-bigplay {
+    width: 5.6em;
+    height: 5.6em;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.lr-nf-center .lr-nf-bigplay .lr-icon {
+    font-size: 3.8em;
+}
+
+.lr-nf-channel,
+.lr-nf-livebadge {
+    display: none !important;
+}
+
+.lr-nf-live .lr-nf-channel {
+    display: inline-flex !important;
+}
+
+.lr-nf-live .lr-nf-livebadge {
+    display: block !important;
+}
+
+.lr-nf-live .lr-nf-seek,
+.lr-nf-live .lr-nf-knob {
+    display: none !important;
+}
+
+.lr-nf-bottom {
+    bottom: 0;
+    padding: 4em calc(2% + env(safe-area-inset-right, 0px)) calc(0.8em + env(safe-area-inset-bottom, 0px)) calc(2% + env(safe-area-inset-left, 0px));
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.45) 60%, rgba(0, 0, 0, 0) 100%);
+}
+
+.lr-nf-barrow {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+}
+
+.lr-nf-bar {
+    position: relative;
+    flex: 1 1 auto;
+    height: 4px;
+    margin: 0.8em 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.28);
+    cursor: pointer;
+    transition: height 0.15s ease;
+    touch-action: none;
+}
+
+.lr-nf-bar::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -12px;
+    bottom: -12px;
+}
+
+.lr-nf-bar:hover,
+.lr-nf-dragging .lr-nf-bar {
+    height: 7px;
+}
+
+.lr-nf-buffer,
+.lr-nf-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    border-radius: 999px;
+}
+
+.lr-nf-buffer {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.lr-nf-fill {
+    background: linear-gradient(90deg, #7f76d6, #2e96e0);
+}
+
+.lr-nf-knob {
+    position: absolute;
+    top: 50%;
+    width: 15px;
+    height: 15px;
+    margin: -7.5px 0 0 -7.5px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(127, 118, 214, 0.45);
+    transform: scale(0.85);
+    transition: transform 0.15s ease;
+}
+
+.lr-nf-bar:hover .lr-nf-knob,
+.lr-nf-dragging .lr-nf-knob {
+    transform: scale(1.2);
+}
+
+.lr-nf-remaining {
+    min-width: 4em;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.lr-nf-livebadge {
+    padding: 0.15em 0.55em;
+    border-radius: 4px;
+    background: #e50914;
+    font-weight: 800;
+    font-size: 0.85em;
+}
+
+.lr-nf-preview {
+    position: absolute;
+    bottom: 1.6em;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3em;
+    pointer-events: none;
+}
+
+.lr-nf-preview-thumb {
+    border-radius: 6px;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    background-color: #000;
+    background-repeat: no-repeat;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+.lr-nf-preview-time {
+    padding: 0.15em 0.5em;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.75);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.lr-nf-row {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+}
+
+.lr-nf-left,
+.lr-nf-right {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+}
+
+.lr-nf-right {
+    margin-left: auto;
+}
+
+.lr-nf-rowtitle {
+    flex: 1 1 auto;
+}
+
+.lr-nf-volume {
+    display: flex;
+    align-items: center;
+}
+
+.lr-nf-volrange {
+    width: 0;
+    opacity: 0;
+    transition: width 0.2s ease, opacity 0.2s ease;
+    accent-color: #7f76d6;
+}
+
+.lr-nf-volume:hover .lr-nf-volrange,
+.lr-nf-volrange:focus {
+    width: 6em;
+    opacity: 1;
+}
+
+.lr-gone {
+    display: none !important;
+}
+
+/* Menüs (Ton & Untertitel, Geschwindigkeit, Folgen, Mehr) */
+.lr-nf-panel {
+    position: absolute;
+    bottom: calc(6.5em + env(safe-area-inset-bottom, 0px));
+    right: 2%;
+    z-index: 2;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 1em 1.2em;
+    border-radius: 10px;
+    background: rgba(22, 27, 36, 0.97);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+    animation: lr-fade 0.15s ease;
+}
+
+.lr-nf-tracks {
+    display: flex;
+    gap: 2em;
+}
+
+.lr-nf-col {
+    min-width: 12em;
+    display: flex;
+    flex-direction: column;
+}
+
+.lr-nf-col-title {
+    margin: 0 0 0.5em;
+    font-size: 1.1em;
+}
+
+.lr-nf-option {
+    gap: 0.6em;
+    padding: 0.45em 0.6em 0.45em 2.2em;
+    border-radius: 6px;
+    color: #c9cedb;
+    text-align: left;
+}
+
+.lr-nf-option .lr-icon {
+    margin-left: -1.6em;
+    font-size: 1.2em;
+}
+
+.lr-nf-option:hover,
+.lr-nf-option:focus-visible {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    outline: none;
+}
+
+.lr-nf-option.lr-on {
+    color: #fff;
+    font-weight: 700;
+}
+
+.lr-nf-more {
+    display: flex;
+    flex-direction: column;
+    min-width: 15em;
+}
+
+.lr-nf-more .lr-nf-option {
+    padding-left: 0.6em;
+}
+
+.lr-nf-more .lr-nf-option .lr-icon {
+    margin-left: 0;
+}
+
+.lr-nf-speeds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+}
+
+.lr-nf-chip {
+    padding: 0.45em 1em;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.lr-nf-chip.lr-on {
+    background: linear-gradient(90deg, #7f76d6, #2e96e0);
+    border-color: transparent;
+}
+
+.lr-nf-side {
+    top: 0;
+    bottom: 0 !important;
+    right: 0 !important;
+    width: min(460px, 92vw);
+    max-height: none;
+    border-radius: 0;
+    padding-top: calc(1.2em + env(safe-area-inset-top, 0px));
+}
+
+.lr-nf-episodes .lr-episode {
+    grid-template-columns: 1.6em 8em 1fr;
+    padding: 0.7em 0.4em;
+}
+
+@media (max-width: 700px) {
+    .lr-nf-episodes .lr-episode {
+        grid-template-columns: 7.5em 1fr;
+    }
+
+    .lr-nf-episodes .lr-episode-number {
+        display: none;
+    }
+}
+
+/* Überspringen- und Weiter-Knöpfe über der Zeitleiste */
+html.lr-player .lr-skip {
+    bottom: calc(8rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 700px) {
+    .lr-nf {
+        font-size: 14px;
+    }
+
+    .lr-nf-center {
+        gap: 2.2em;
+    }
+
+    .lr-nf-left .lr-nf-seek,
+    .lr-nf-left .lr-nf-play {
+        display: none;
+    }
+
+    .lr-nf-tracks {
+        flex-direction: column;
+        gap: 1em;
+    }
+
+    .lr-nf-panel:not(.lr-nf-side) {
+        left: 4%;
+        right: 4% !important;
+    }
+}

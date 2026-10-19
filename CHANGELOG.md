@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.19.0] - 2026-10-20
+
+### Added
+
+- **Netflix-style player (test, opt-in per user)** for Jellyfin Web and the phone apps – new setting „Netflix-Player (Test) für diese Benutzer“. Own controls over the playback, Jellyfin keeps playing (no own player core):
+  - top: back and title (series · S1:F5 title, live TV: channel and programme);
+  - centre: big play/pause and ±10 s; bottom: wide progress bar with gradient, trickplay preview while dragging/hovering, remaining time;
+  - right: next episode, episode list of the season, audio & subtitles in one menu, speed, fullscreen, ⋮ (quality & playback settings, chapters, picture-in-picture, AirPlay, recording, „Klassischer Player“);
+  - volume on PCs only; controls hide after 3 s; keyboard keeps Jellyfin's keys (space, arrows, F, M); phones: tap shows/hides, double tap left/right = ±10 s;
+  - seeking uses Jellyfin's position slider (correct with transcoding and live TV), audio/subtitle changes are sent to the own session like Jellyfin's remote control (fallback: Jellyfin's menus); live TV: no seeking, LIVE badge, channel up/down; music is not affected; safe areas for the iOS app;
+  - skip countdown and Jellyfin's „Up next“ stay on top;
+  - „Klassischer Player“ is stored per device; „Netflix-Player einschalten“ in the profile menu switches back.
+
 ## [12.18.7] - 2026-10-19
 
 ### Added

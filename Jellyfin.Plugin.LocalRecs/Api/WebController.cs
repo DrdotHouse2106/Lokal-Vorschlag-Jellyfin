@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Jellyfin.Plugin.LocalRecs.Configuration;
 using Jellyfin.Plugin.LocalRecs.Web;
 using Microsoft.AspNetCore.Authorization;
@@ -23,6 +24,23 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         };
 
         private static PluginConfiguration Config => Plugin.Instance?.Configuration ?? new PluginConfiguration();
+
+        /// <summary>
+        /// Checks whether a user gets the Netflix-style player (IDs compared without dashes, case-insensitive).
+        /// </summary>
+        /// <param name="userIds">Configured user IDs.</param>
+        /// <param name="userId">User ID.</param>
+        /// <returns>True if the user is in the list.</returns>
+        public static bool IsPlayerUser(IEnumerable<string>? userIds, string? userId)
+        {
+            if (userIds == null || string.IsNullOrWhiteSpace(userId))
+            {
+                return false;
+            }
+
+            var normalized = userId.Replace("-", string.Empty, StringComparison.Ordinal);
+            return userIds.Any(id => string.Equals(id?.Replace("-", string.Empty, StringComparison.Ordinal), normalized, StringComparison.OrdinalIgnoreCase));
+        }
 
         /// <summary>
         /// Gets a file of the web module. Without sign-in, because index.html loads it before the login.
@@ -61,10 +79,12 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         public ActionResult<WebConfig> GetConfig()
         {
             Response.Headers.CacheControl = "no-store";
+            var userId = RecommendationsController.GetUserId(User).ToString("N");
             return new WebConfig
             {
                 HomeEnabled = Config.WebHomeEnabled,
                 ThemeEnabled = Config.WebThemeEnabled,
+                PlayerEnabled = IsPlayerUser(Config.WebPlayerUserIds, userId),
                 Version = WebIntegration.Version
             };
         }
@@ -79,6 +99,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets a value indicating whether the Quallenkino colors are on.</summary>
             public bool ThemeEnabled { get; set; }
+
+            /// <summary>Gets or sets a value indicating whether the signed-in user gets the Netflix-style player.</summary>
+            public bool PlayerEnabled { get; set; }
 
             /// <summary>Gets or sets the plugin version.</summary>
             public string Version { get; set; } = string.Empty;

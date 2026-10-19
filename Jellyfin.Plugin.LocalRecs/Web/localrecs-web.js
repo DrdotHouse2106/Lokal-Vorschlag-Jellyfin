@@ -2144,6 +2144,23 @@
             });
             list.insertBefore(li, list.firstChild);
         });
+        if (state.config && state.config.PlayerEnabled && storageGet('lrWeb.classicPlayer') === '1') {
+            var playerItem = el('li', 'lr-menu-item MuiButtonBase-root MuiMenuItem-root');
+            playerItem.setAttribute('role', 'menuitem');
+            var playerIcon = el('span', 'lr-menu-icon');
+            playerIcon.appendChild(icon('movie'));
+            playerItem.appendChild(playerIcon);
+            playerItem.appendChild(el('span', null, 'Netflix-Player einschalten'));
+            onActivate(playerItem, function () {
+                storageSet('lrWeb.classicPlayer', null);
+                var backdrop = document.querySelector('#app-user-menu .MuiBackdrop-root');
+                if (backdrop) {
+                    backdrop.click();
+                }
+            });
+            list.insertBefore(playerItem, list.firstChild);
+            tucked.push(playerItem);
+        }
         if (tucked.length) {
             var divider = el('li', 'lr-menu-divider');
             divider.setAttribute('role', 'separator');
@@ -2396,8 +2413,10 @@
         var view = e && e.target;
         if (view && view.id === 'videoOsdPage') {
             startSkipWatcher();
+            startNetflixPlayer();
         } else {
             stopSkipWatcher();
+            stopNetflixPlayer();
         }
         if (view && view.id === 'itemDetailPage') {
             onDetailShow(view);
@@ -2410,6 +2429,715 @@
             document.body.classList.remove('lr-home', 'lr-scrolled');
         }
     }
+
+    // ---------------------------------------------------------------- Player im Netflix-Stil (Test, nur für freigeschaltete Benutzer)
+    // Eigene Steuerleiste über der Wiedergabe. Abgespielt wird weiter von Jellyfin: Spulen über Jellyfins Zeitleiste
+    // (stimmt auch beim Transkodieren und bei Live-TV), Knöpfe lösen Jellyfins eigene Knöpfe aus, Ton und Untertitel
+    // werden über die eigene Sitzung umgeschaltet (wie bei der Fernbedienung in Jellyfin).
+
+    var PLAYER_HIDE_MS = 3000;
+    var SEEK_STEP_TICKS = 10 * 10000000;
+    var SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+    var nf = { root: null, tick: null, hideTimer: null, session: null, sessionAt: 0, itemId: null, item: null, trickplay: null, mediaSourceId: null, dragging: false, lastTap: 0, panel: null };
+
+    function playerWanted() {
+        return !!(state.config && state.config.PlayerEnabled) && storageGet('lrWeb.classicPlayer') !== '1';
+    }
+
+    function osdNode(selector) {
+        return document.querySelector('#videoOsdPage ' + selector);
+    }
+
+    function nativeVisible(selector) {
+        var node = osdNode(selector);
+        return node && !node.classList.contains('hide') ? node : null;
+    }
+
+    function clock(seconds) {
+        seconds = Math.max(0, Math.floor(seconds || 0));
+        var h = Math.floor(seconds / 3600);
+        var m = Math.floor(seconds % 3600 / 60);
+        var sec = seconds % 60;
+        return (h ? h + ':' + ('0' + m).slice(-2) : m) + ':' + ('0' + sec).slice(-2);
+    }
+
+    function nfRuntime() {
+        return nf.item && nf.item.RunTimeTicks ? nf.item.RunTimeTicks : 0;
+    }
+
+    function nfLive() {
+        return !!nf.item && (nf.item.Type === 'TvChannel' || nf.item.Type === 'Program' || nf.item.MediaType === 'Video' && !nf.item.RunTimeTicks);
+    }
+
+    function nfPercent() {
+        var slider = osdNode('.osdPositionSlider');
+        return slider ? parseFloat(slider.value) || 0 : 0;
+    }
+
+    function nfPositionTicks() {
+        return nfPercent() / 100 * nfRuntime();
+    }
+
+    function nfSeekTicks(ticks) {
+        var slider = osdNode('.osdPositionSlider');
+        var runtime = nfRuntime();
+        if (!slider || !runtime || nfLive()) {
+            return;
+        }
+        slider.value = Math.max(0, Math.min(100, ticks / runtime * 100));
+        slider.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function nfIcon(node, name) {
+        var iconNode = node.querySelector('.lr-icon');
+        if (iconNode && iconNode.textContent !== name) {
+            iconNode.textContent = name;
+        }
+    }
+
+    function nfButton(cls, iconName, title, onClick) {
+        var b = button('lr-nf-btn ' + cls, iconName, null, onClick);
+        b.title = title;
+        b.setAttribute('aria-label', title);
+        return b;
+    }
+
+    function nfRefreshSession(force) {
+        if (!force && Date.now() - nf.sessionAt < 3000) {
+            return;
+        }
+        nf.sessionAt = Date.now();
+        ownSession().then(function (session) {
+            nf.session = session;
+            var item = session && session.NowPlayingItem;
+            if (!item || item.Id === nf.itemId) {
+                return;
+            }
+            nf.itemId = item.Id;
+            nf.item = item;
+            nf.mediaSourceId = session.PlayState && session.PlayState.MediaSourceId;
+            nf.trickplay = null;
+            nfTitle();
+            getJson(itemsQuery('Items/' + item.Id).replace('&Fields=' + FIELDS, '&Fields=' + FIELDS + ',Trickplay,MediaSources,MediaStreams,Chapters'))
+                .then(function (full) {
+                    if (nf.itemId !== full.Id) {
+                        return;
+                    }
+                    nf.item = full;
+                    var sourceId = nf.mediaSourceId || (full.MediaSources && full.MediaSources[0] && full.MediaSources[0].Id);
+                    var resolutions = full.Trickplay && sourceId ? full.Trickplay[sourceId] : null;
+                    if (resolutions) {
+                        var best = null;
+                        Object.keys(resolutions).forEach(function (key) {
+                            var info = resolutions[key];
+                            if (!best || (info.Width <= 320 && info.Width > best.Width) || (best.Width > 320 && info.Width < best.Width)) {
+                                best = info;
+                            }
+                        });
+                        nf.trickplay = best ? { info: best, sourceId: sourceId } : null;
+                    }
+                    nfTitle();
+                }).catch(function () {
+                    // ohne Zusatzinfos
+                });
+        });
+    }
+
+    function nfTitle() {
+        if (!nf.root || !nf.item) {
+            return;
+        }
+        var item = nf.item;
+        var main = item.Type === 'Episode' ? item.SeriesName : (item.Type === 'TvChannel' ? item.Name : item.Name);
+        var sub = '';
+        if (item.Type === 'Episode') {
+            sub = subtitle(item);
+        } else if (item.Type === 'TvChannel' && item.CurrentProgram) {
+            sub = item.CurrentProgram.Name || '';
+        }
+        nf.root.querySelector('.lr-nf-title').textContent = main || '';
+        nf.root.querySelector('.lr-nf-subtitle').textContent = sub;
+        nf.root.classList.toggle('lr-nf-live', nfLive());
+        nf.root.classList.toggle('lr-nf-episode', item.Type === 'Episode');
+    }
+
+    function nfShow() {
+        if (!nf.root) {
+            return;
+        }
+        nf.root.classList.add('lr-nf-visible');
+        document.documentElement.classList.remove('lr-nf-idle');
+        window.clearTimeout(nf.hideTimer);
+        nf.hideTimer = window.setTimeout(nfMaybeHide, PLAYER_HIDE_MS);
+    }
+
+    function nfMaybeHide() {
+        var video = currentVideo();
+        if (!nf.root || nf.panel || nf.dragging || (video && video.paused) || nf.root.matches(':hover') && !isTouch && nf.root.querySelector('.lr-nf-bottom:hover, .lr-nf-top:hover')) {
+            nf.hideTimer = window.setTimeout(nfMaybeHide, PLAYER_HIDE_MS);
+            return;
+        }
+        nf.root.classList.remove('lr-nf-visible');
+        document.documentElement.classList.add('lr-nf-idle');
+    }
+
+    function nfClosePanel() {
+        if (nf.panel) {
+            nf.panel.remove();
+            nf.panel = null;
+        }
+    }
+
+    function nfPanel(cls, anchor) {
+        nfClosePanel();
+        var panel = el('div', 'lr-nf-panel ' + cls);
+        panel.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+        if (cls.indexOf('lr-nf-side') >= 0) {
+            var closeSide = button('lr-round lr-close', 'close', null, nfClosePanel);
+            closeSide.title = 'Schließen';
+            panel.appendChild(closeSide);
+        }
+        nf.root.appendChild(panel);
+        nf.panel = panel;
+        if (anchor && !panel.classList.contains('lr-nf-side')) {
+            var rect = anchor.getBoundingClientRect();
+            panel.style.right = Math.max(8, window.innerWidth - rect.right - 8) + 'px';
+        }
+        nfShow();
+        return panel;
+    }
+
+    function nfSendCommand(name, index) {
+        var session = nf.session;
+        if (!session) {
+            return Promise.reject(new Error('keine Sitzung'));
+        }
+        return api().ajax({
+            type: 'POST',
+            url: url('Sessions/' + session.Id + '/Command'),
+            data: JSON.stringify({ Name: name, Arguments: { Index: String(index) } }),
+            contentType: 'application/json'
+        }).then(function () {
+            window.setTimeout(function () {
+                nfRefreshSession(true);
+            }, 800);
+        });
+    }
+
+    function nfStreams() {
+        var item = nf.item || {};
+        var sources = item.MediaSources || [];
+        var source = sources.filter(function (s) {
+            return s.Id === nf.mediaSourceId;
+        })[0] || sources[0];
+        return (source && source.MediaStreams) || item.MediaStreams || [];
+    }
+
+    function nfStreamName(stream) {
+        return stream.DisplayTitle || [stream.Language, stream.Codec].filter(Boolean).join(' · ') || ('Spur ' + stream.Index);
+    }
+
+    function nfAudioSubtitleMenu(anchor) {
+        var streams = nfStreams();
+        var audio = streams.filter(function (s) {
+            return s.Type === 'Audio';
+        });
+        var subs = streams.filter(function (s) {
+            return s.Type === 'Subtitle';
+        });
+        if (!nf.session || (!audio.length && !subs.length)) {
+            // Ohne Sitzung: Jellyfins eigene Menüs
+            var nativeButton = nativeVisible('.btnSubtitles') || nativeVisible('.btnAudio');
+            if (nativeButton) {
+                clickNative(nativeButton, anchor);
+            }
+            return;
+        }
+        var playState = nf.session.PlayState || {};
+        var panel = nfPanel('lr-nf-tracks', anchor);
+        var column = function (title, list, current, command, offLabel) {
+            var col = el('div', 'lr-nf-col');
+            col.appendChild(el('h3', 'lr-nf-col-title', title));
+            var entries = list.map(function (s) {
+                return { index: s.Index, name: nfStreamName(s) };
+            });
+            if (offLabel) {
+                entries.unshift({ index: -1, name: offLabel });
+            }
+            entries.forEach(function (entry) {
+                var selected = entry.index === current || (entry.index === -1 && (current === null || current === undefined || current < 0));
+                var row = button('lr-nf-option' + (selected ? ' lr-on' : ''), selected ? 'check' : null, entry.name, function () {
+                    nfSendCommand(command, entry.index).catch(function () {
+                        var fallback = nativeVisible(command === 'SetAudioStreamIndex' ? '.btnAudio' : '.btnSubtitles');
+                        if (fallback) {
+                            clickNative(fallback, anchor);
+                        }
+                    });
+                    nfClosePanel();
+                });
+                col.appendChild(row);
+            });
+            panel.appendChild(col);
+        };
+        if (audio.length) {
+            column('Ton', audio, playState.AudioStreamIndex, 'SetAudioStreamIndex');
+        }
+        column('Untertitel', subs, playState.SubtitleStreamIndex, 'SetSubtitleStreamIndex', 'Aus');
+    }
+
+    function nfSpeedMenu(anchor) {
+        var video = currentVideo();
+        var panel = nfPanel('lr-nf-speed', anchor);
+        panel.appendChild(el('h3', 'lr-nf-col-title', 'Geschwindigkeit'));
+        var rowNode = el('div', 'lr-nf-speeds');
+        SPEEDS.forEach(function (speed) {
+            var on = video && Math.abs(video.playbackRate - speed) < 0.01;
+            rowNode.appendChild(button('lr-nf-chip' + (on ? ' lr-on' : ''), null, speed === 1 ? '1× (Normal)' : speed.toString().replace('.', ',') + '×', function () {
+                var v = currentVideo();
+                if (v) {
+                    v.playbackRate = speed;
+                }
+                nfClosePanel();
+            }));
+        });
+        panel.appendChild(rowNode);
+    }
+
+    function nfEpisodesMenu() {
+        var item = nf.item;
+        if (!item || item.Type !== 'Episode' || !item.SeriesId) {
+            return;
+        }
+        var panel = nfPanel('lr-nf-side lr-nf-episodes');
+        panel.appendChild(el('h3', 'lr-nf-col-title', item.SeriesName || 'Folgen'));
+        var list = el('div', 'lr-episodes');
+        list.appendChild(el('div', 'lr-spinner'));
+        panel.appendChild(list);
+        getJson(itemsQuery('Shows/' + item.SeriesId + '/Episodes?seasonId=' + (item.SeasonId || ''))).then(function (result) {
+            list.innerHTML = '';
+            itemsOf(result).forEach(function (episode) {
+                var row = episodeRow(episode);
+                if (episode.Id === item.Id) {
+                    row.classList.add('lr-current');
+                    window.setTimeout(function () {
+                        row.scrollIntoView({ block: 'center' });
+                    }, 50);
+                }
+                list.appendChild(row);
+            });
+        });
+    }
+
+    function nfMoreMenu(anchor) {
+        var panel = nfPanel('lr-nf-more', anchor);
+        var add = function (iconName, label, onClick) {
+            panel.appendChild(button('lr-nf-option', iconName, label, function () {
+                nfClosePanel();
+                onClick();
+            }));
+        };
+        var settings = osdNode('.btnVideoOsdSettings');
+        if (settings) {
+            add('settings', 'Qualität & Wiedergabe', function () {
+                clickNative(settings, anchor);
+            });
+        }
+        if (nativeVisible('.btnPreviousChapter')) {
+            add('skip_previous', 'Vorheriges Kapitel', function () {
+                osdNode('.btnPreviousChapter').click();
+            });
+        }
+        if (nativeVisible('.btnNextChapter')) {
+            add('skip_next', 'Nächstes Kapitel', function () {
+                osdNode('.btnNextChapter').click();
+            });
+        }
+        if (nativeVisible('.btnPip')) {
+            add('picture_in_picture_alt', 'Bild in Bild', function () {
+                osdNode('.btnPip').click();
+            });
+        }
+        if (nativeVisible('.btnAirPlay')) {
+            add('airplay', 'AirPlay', function () {
+                osdNode('.btnAirPlay').click();
+            });
+        }
+        if (nativeVisible('.btnRecord')) {
+            add('fiber_manual_record', 'Aufnehmen', function () {
+                osdNode('.btnRecord').click();
+            });
+        }
+        add('tv_off', 'Klassischer Player', function () {
+            storageSet('lrWeb.classicPlayer', '1');
+            stopNetflixPlayer();
+        });
+    }
+
+    function nfChannel(step) {
+        var item = nf.item;
+        if (!item || item.Type !== 'TvChannel') {
+            return;
+        }
+        getJson('LiveTv/Channels?userId=' + userId() + '&EnableImages=false&EnableUserData=false&SortBy=SortName').then(function (result) {
+            var channels = itemsOf(result);
+            var index = channels.map(function (c) {
+                return c.Id;
+            }).indexOf(item.Id);
+            var next = channels[(index + step + channels.length) % channels.length];
+            if (next && nf.session) {
+                post('Sessions/' + nf.session.Id + '/Playing?playCommand=PlayNow&itemIds=' + next.Id);
+            }
+        });
+    }
+
+    function nfPreview(pct) {
+        var bubble = nf.root.querySelector('.lr-nf-preview');
+        var runtime = nfRuntime();
+        if (!runtime) {
+            bubble.classList.add('lr-hidden');
+            return;
+        }
+        var ticks = pct / 100 * runtime;
+        bubble.querySelector('.lr-nf-preview-time').textContent = clock(ticks / 10000000);
+        var thumb = bubble.querySelector('.lr-nf-preview-thumb');
+        var tp = nf.trickplay;
+        if (tp) {
+            var info = tp.info;
+            var tile = Math.floor(ticks / 10000 / info.Interval);
+            var perImage = info.TileWidth * info.TileHeight;
+            var imageIndex = Math.floor(tile / perImage);
+            var offset = tile % perImage;
+            thumb.style.width = info.Width + 'px';
+            thumb.style.height = info.Height + 'px';
+            thumb.style.backgroundImage = 'url("' + url('Videos/' + nf.item.Id + '/Trickplay/' + info.Width + '/' + imageIndex + '.jpg?MediaSourceId=' + tp.sourceId + '&ApiKey=' + api().accessToken()) + '")';
+            thumb.style.backgroundPosition = -(offset % info.TileWidth) * info.Width + 'px ' + -Math.floor(offset / info.TileWidth) * info.Height + 'px';
+            thumb.classList.remove('lr-hidden');
+        } else {
+            thumb.classList.add('lr-hidden');
+        }
+        var bar = nf.root.querySelector('.lr-nf-bar');
+        var rect = bar.getBoundingClientRect();
+        var half = (tp ? tp.info.Width : 60) / 2;
+        bubble.style.left = Math.max(half, Math.min(rect.width - half, pct / 100 * rect.width)) + 'px';
+        bubble.classList.remove('lr-hidden');
+    }
+
+    function buildNetflixPlayer() {
+        var root = el('div', 'lr-nf');
+        // Fläche zum Antippen/Klicken (Steuerung zeigen, am PC Pause, Doppeltipp ±10 s)
+        var surface = el('div', 'lr-nf-surface');
+        surface.addEventListener('click', function (e) {
+            if (nf.panel) {
+                nfClosePanel();
+                return;
+            }
+            var now = Date.now();
+            var third = window.innerWidth / 3;
+            if (isTouch) {
+                if (now - nf.lastTap < 300 && !nfLive()) {
+                    if (e.clientX < third) {
+                        nfSeekTicks(nfPositionTicks() - SEEK_STEP_TICKS);
+                    } else if (e.clientX > third * 2) {
+                        nfSeekTicks(nfPositionTicks() + SEEK_STEP_TICKS);
+                    }
+                    nf.lastTap = 0;
+                    nfShow();
+                    return;
+                }
+                nf.lastTap = now;
+                if (root.classList.contains('lr-nf-visible')) {
+                    root.classList.remove('lr-nf-visible');
+                } else {
+                    nfShow();
+                }
+                return;
+            }
+            var pause = osdNode('.btnPause');
+            if (pause) {
+                pause.click();
+            }
+            nfShow();
+        });
+        surface.addEventListener('dblclick', function () {
+            if (!isTouch) {
+                var fs = nativeVisible('.btnFullscreen');
+                if (fs) {
+                    fs.click();
+                }
+            }
+        });
+        root.appendChild(surface);
+
+        var top = el('div', 'lr-nf-top');
+        top.appendChild(nfButton('lr-nf-back', 'arrow_back', 'Zurück', function () {
+            window.history.back();
+        }));
+        var titleBox = el('div', 'lr-nf-titlebox');
+        titleBox.appendChild(el('div', 'lr-nf-title'));
+        titleBox.appendChild(el('div', 'lr-nf-subtitle'));
+        top.appendChild(titleBox);
+        root.appendChild(top);
+
+        var center = el('div', 'lr-nf-center');
+        center.appendChild(nfButton('lr-nf-seek lr-nf-back10', 'replay_10', '10 Sekunden zurück', function () {
+            nfSeekTicks(nfPositionTicks() - SEEK_STEP_TICKS);
+            nfShow();
+        }));
+        center.appendChild(nfButton('lr-nf-play lr-nf-bigplay', 'pause', 'Abspielen/Pause', function () {
+            var pause = osdNode('.btnPause');
+            if (pause) {
+                pause.click();
+            }
+            nfShow();
+        }));
+        center.appendChild(nfButton('lr-nf-seek lr-nf-fwd10', 'forward_10', '10 Sekunden vor', function () {
+            nfSeekTicks(nfPositionTicks() + SEEK_STEP_TICKS);
+            nfShow();
+        }));
+        center.appendChild(nfButton('lr-nf-channel lr-nf-chup', 'keyboard_arrow_up', 'Nächster Sender', function () {
+            nfChannel(1);
+        }));
+        center.appendChild(nfButton('lr-nf-channel lr-nf-chdown', 'keyboard_arrow_down', 'Vorheriger Sender', function () {
+            nfChannel(-1);
+        }));
+        root.appendChild(center);
+
+        var bottom = el('div', 'lr-nf-bottom');
+        var barRow = el('div', 'lr-nf-barrow');
+        var bar = el('div', 'lr-nf-bar');
+        bar.appendChild(el('div', 'lr-nf-buffer'));
+        bar.appendChild(el('div', 'lr-nf-fill'));
+        bar.appendChild(el('div', 'lr-nf-knob'));
+        var preview = el('div', 'lr-nf-preview lr-hidden');
+        preview.appendChild(el('div', 'lr-nf-preview-thumb lr-hidden'));
+        preview.appendChild(el('div', 'lr-nf-preview-time'));
+        bar.appendChild(preview);
+        barRow.appendChild(bar);
+        barRow.appendChild(el('div', 'lr-nf-remaining'));
+        barRow.appendChild(el('div', 'lr-nf-livebadge', 'LIVE'));
+        bottom.appendChild(barRow);
+
+        var pctFromEvent = function (e) {
+            var rect = bar.getBoundingClientRect();
+            var x = (e.touches && e.touches[0] ? e.touches[0].clientX : e.clientX) - rect.left;
+            return Math.max(0, Math.min(100, x / rect.width * 100));
+        };
+        var dragPct = 0;
+        var startDrag = function (e) {
+            if (nfLive() || !nfRuntime()) {
+                return;
+            }
+            nf.dragging = true;
+            dragPct = pctFromEvent(e);
+            root.classList.add('lr-nf-dragging');
+            nfPreview(dragPct);
+            e.preventDefault();
+        };
+        var moveDrag = function (e) {
+            if (!nf.dragging) {
+                if (!isTouch && e.target && bar.contains(e.target)) {
+                    nfPreview(pctFromEvent(e));
+                }
+                return;
+            }
+            dragPct = pctFromEvent(e);
+            root.querySelector('.lr-nf-fill').style.width = dragPct + '%';
+            root.querySelector('.lr-nf-knob').style.left = dragPct + '%';
+            nfPreview(dragPct);
+        };
+        var endDrag = function () {
+            if (!nf.dragging) {
+                return;
+            }
+            nf.dragging = false;
+            root.classList.remove('lr-nf-dragging');
+            preview.classList.add('lr-hidden');
+            nfSeekTicks(dragPct / 100 * nfRuntime());
+            nfShow();
+        };
+        bar.addEventListener('mousedown', startDrag);
+        bar.addEventListener('touchstart', startDrag, { passive: false });
+        document.addEventListener('mousemove', moveDrag);
+        document.addEventListener('touchmove', moveDrag, { passive: true });
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+        bar.addEventListener('mouseleave', function () {
+            if (!nf.dragging) {
+                preview.classList.add('lr-hidden');
+            }
+        });
+        nf.cleanupDrag = function () {
+            document.removeEventListener('mousemove', moveDrag);
+            document.removeEventListener('touchmove', moveDrag);
+            document.removeEventListener('mouseup', endDrag);
+            document.removeEventListener('touchend', endDrag);
+        };
+
+        var row = el('div', 'lr-nf-row');
+        var left = el('div', 'lr-nf-left');
+        left.appendChild(nfButton('lr-nf-play', 'pause', 'Abspielen/Pause', function () {
+            var pause = osdNode('.btnPause');
+            if (pause) {
+                pause.click();
+            }
+            nfShow();
+        }));
+        left.appendChild(nfButton('lr-nf-seek', 'replay_10', '10 Sekunden zurück', function () {
+            nfSeekTicks(nfPositionTicks() - SEEK_STEP_TICKS);
+        }));
+        left.appendChild(nfButton('lr-nf-seek', 'forward_10', '10 Sekunden vor', function () {
+            nfSeekTicks(nfPositionTicks() + SEEK_STEP_TICKS);
+        }));
+        if (!isTouch) {
+            var volume = el('div', 'lr-nf-volume');
+            volume.appendChild(nfButton('lr-nf-mute', 'volume_up', 'Ton aus/an', function () {
+                var mute = osdNode('.buttonMute');
+                if (mute) {
+                    mute.click();
+                }
+            }));
+            var range = el('input', 'lr-nf-volrange');
+            range.type = 'range';
+            range.min = '0';
+            range.max = '100';
+            range.addEventListener('input', function () {
+                var slider = osdNode('.osdVolumeSlider');
+                if (slider) {
+                    slider.value = range.value;
+                    slider.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+            volume.appendChild(range);
+            left.appendChild(volume);
+        }
+        row.appendChild(left);
+        row.appendChild(el('div', 'lr-nf-rowtitle'));
+        var right = el('div', 'lr-nf-right');
+        right.appendChild(nfButton('lr-nf-next', 'skip_next', 'Nächste Folge', function () {
+            var next = nativeVisible('.btnNextTrack');
+            if (next) {
+                next.click();
+            }
+        }));
+        var episodes = nfButton('lr-nf-episodes-btn', 'video_library', 'Folgen', function () {
+            nfEpisodesMenu();
+        });
+        right.appendChild(episodes);
+        var tracks = nfButton('lr-nf-tracks-btn', 'subtitles', 'Ton & Untertitel', function () {
+            nfAudioSubtitleMenu(tracks);
+        });
+        right.appendChild(tracks);
+        var speed = nfButton('lr-nf-speed-btn', 'speed', 'Geschwindigkeit', function () {
+            nfSpeedMenu(speed);
+        });
+        right.appendChild(speed);
+        right.appendChild(nfButton('lr-nf-fullscreen', 'fullscreen', 'Vollbild', function () {
+            var fs = nativeVisible('.btnFullscreen');
+            if (fs) {
+                fs.click();
+            }
+        }));
+        var more = nfButton('lr-nf-more-btn', 'more_vert', 'Mehr', function () {
+            nfMoreMenu(more);
+        });
+        right.appendChild(more);
+        row.appendChild(right);
+        bottom.appendChild(row);
+        root.appendChild(bottom);
+
+        root.addEventListener('mousemove', nfShow, { passive: true });
+        return root;
+    }
+
+    function nfUpdate() {
+        var root = nf.root;
+        if (!root) {
+            return;
+        }
+        if (!document.querySelector('#videoOsdPage:not(.hide)')) {
+            stopNetflixPlayer();
+            return;
+        }
+        nfRefreshSession(false);
+        var video = currentVideo();
+        var paused = video ? video.paused : false;
+        root.querySelectorAll('.lr-nf-play').forEach(function (b) {
+            nfIcon(b, paused ? 'play_arrow' : 'pause');
+        });
+        root.classList.toggle('lr-nf-paused', paused);
+        if (paused) {
+            nfShow();
+        }
+        var live = nfLive();
+        var pct = nfPercent();
+        if (!nf.dragging) {
+            root.querySelector('.lr-nf-fill').style.width = pct + '%';
+            root.querySelector('.lr-nf-knob').style.left = pct + '%';
+        }
+        if (video && video.buffered && video.buffered.length && video.duration && isFinite(video.duration)) {
+            var bufferedEnd = video.buffered.end(video.buffered.length - 1) / video.duration * 100;
+            root.querySelector('.lr-nf-buffer').style.width = Math.min(100, bufferedEnd) + '%';
+        }
+        var runtime = nfRuntime();
+        root.querySelector('.lr-nf-remaining').textContent = runtime && !live ? '-' + clock((runtime - nfPositionTicks()) / 10000000) : '';
+        var mute = root.querySelector('.lr-nf-mute');
+        if (mute && video) {
+            nfIcon(mute, video.muted || video.volume === 0 ? 'volume_off' : 'volume_up');
+            var range = root.querySelector('.lr-nf-volrange');
+            if (document.activeElement !== range) {
+                range.value = Math.round((video.muted ? 0 : video.volume) * 100);
+            }
+        }
+        root.querySelector('.lr-nf-next').classList.toggle('lr-gone', !nativeVisible('.btnNextTrack'));
+        root.querySelector('.lr-nf-fullscreen').classList.toggle('lr-gone', !nativeVisible('.btnFullscreen'));
+        root.querySelector('.lr-nf-episodes-btn').classList.toggle('lr-gone', !(nf.item && nf.item.Type === 'Episode'));
+    }
+
+    function startNetflixPlayer() {
+        if (nf.root || !playerWanted()) {
+            return;
+        }
+        nf.itemId = null;
+        nf.item = null;
+        nf.sessionAt = 0;
+        nf.root = buildNetflixPlayer();
+        document.body.appendChild(nf.root);
+        document.documentElement.classList.add('lr-player');
+        nfRefreshSession(true);
+        nfShow();
+        nf.tick = window.setInterval(nfUpdate, 250);
+    }
+
+    function stopNetflixPlayer() {
+        window.clearInterval(nf.tick);
+        window.clearTimeout(nf.hideTimer);
+        nf.tick = null;
+        if (nf.cleanupDrag) {
+            nf.cleanupDrag();
+            nf.cleanupDrag = null;
+        }
+        nfClosePanel();
+        if (nf.root) {
+            nf.root.remove();
+            nf.root = null;
+        }
+        document.documentElement.classList.remove('lr-player', 'lr-nf-idle');
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (!nf.root) {
+            return;
+        }
+        if (e.key === 'Escape' && nf.panel) {
+            nfClosePanel();
+            e.stopPropagation();
+            e.preventDefault();
+            return;
+        }
+        nfShow();
+    }, true);
 
     // ---------------------------------------------------------------- Einstellungen und Start
 
