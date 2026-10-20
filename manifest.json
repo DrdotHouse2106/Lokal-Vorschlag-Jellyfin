@@ -6,7 +6,7 @@
     "description": "Das Quallenkinoplugin erweitert Jellyfin um persönliche Empfehlungen für Filme, Serien und Live-TV aus dem eigenen Sehverlauf (ohne Cloud, ohne Tracking), einen eigenen Fernsehprogramm-Anbieter (LocalRecs EPG), Live-TV-Erinnerungen im Kalender, Aufnehmen aus der Info-Ansicht, „Wer schaut?“ mit Profilbildern und eine Startseite, Detailansicht und Player im Quallenkino-Stil für Jellyfin Web. Schnittstellen auch für die TV-App Quallenkino. Früher „Local Recommendations“.",
     "owner": "DrdotHouse2106",
     "category": "General",
-    "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
+    "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkinoplugin.png",
     "versions": [
       {
         "version": "12.28.0.0",
