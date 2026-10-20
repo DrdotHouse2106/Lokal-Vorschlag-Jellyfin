@@ -1,13 +1,21 @@
 [
   {
     "guid": "2d2a8fdf-0593-4258-a83c-31c4b14e0110",
-    "name": "Local Recommendations",
-    "overview": "Lokale, datenschutzfreundliche Empfehlungen für Filme, Serien und Live-TV",
-    "description": "Erstellt pro Benutzer lokale Empfehlungen für Filme, Serien und Live-TV aus dem eigenen Sehverlauf – ohne Cloud und ohne Tracking. Die Empfehlungen erscheinen als Bereiche auf der Startseite (benötigt Home Screen Sections).",
+    "name": "Quallenkinoplugin für Jellyfin",
+    "overview": "Empfehlungen, Live-TV, Erinnerungen, Profile und eine Oberfläche im Quallenkino-Stil – alles lokal",
+    "description": "Das Quallenkinoplugin erweitert Jellyfin um persönliche Empfehlungen für Filme, Serien und Live-TV aus dem eigenen Sehverlauf (ohne Cloud, ohne Tracking), einen eigenen Fernsehprogramm-Anbieter (LocalRecs EPG), Live-TV-Erinnerungen im Kalender, Aufnehmen aus der Info-Ansicht, „Wer schaut?“ mit Profilbildern und eine Startseite, Detailansicht und Player im Quallenkino-Stil für Jellyfin Web. Schnittstellen auch für die TV-App Quallenkino. Früher „Local Recommendations“.",
     "owner": "DrdotHouse2106",
     "category": "General",
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
+      {
+        "version": "12.28.0.0",
+        "changelog": "Neuer Name: „Quallenkinoplugin für Jellyfin“ (früher „Local Recommendations“) / new name\n- Plugin-ID, Einstellungen und Schnittstellen bleiben gleich – einfach aktualisieren\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.28.0.zip",
+        "checksum": "8f14fff65eac27a836e26015df0b1b94",
+        "timestamp": "2026-10-20T12:00:00Z"
+      },
       {
         "version": "12.27.0.0",
         "changelog": "LocalRecs EPG: Film-Merkmale aus der Darsteller-Quelle / movie hints from the second XMLTV source\n- Sender und Sendungen aus der Programmquelle, Regie/Jahr/IMDb aus der „XMLTV-Quelle für Darsteller“\n- Produktionsjahr allein macht keinen Film mehr (schaltbar)\n- BENÖTIGT Jellyfin 12.0 oder neuer",

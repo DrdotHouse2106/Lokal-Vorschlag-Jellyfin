@@ -1,5 +1,5 @@
 /*
- * Local Recommendations – Startseite im Quallenkino-Stil für Jellyfin Web (Browser und Jellyfin-Apps für iOS/Android).
+ * Quallenkinoplugin für Jellyfin – Startseite im Quallenkino-Stil für Jellyfin Web (Browser und Jellyfin-Apps für iOS/Android).
  * Wird über das Plugin „File Transformation“ in index.html eingehängt. Ein- und ausschalten in den Plugin-Einstellungen.
  * Reihen wie in der TV-App Quallenkino: Weiterschauen, Als Nächstes, Empfehlungen mit Begründung, Heute im TV für dich,
  * Top 10, Welten, Jetzt im TV, Kürzlich hinzugefügt je Bibliothek, Genres und Bibliotheken.

@@ -1,15 +1,15 @@
-# Jellyfin Local Recommendations Plug-in
+# Quallenkinoplugin for Jellyfin
 
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Tests](https://github.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/actions/workflows/tests.yml/badge.svg)](https://github.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/actions/workflows/tests.yml)
 
 [![Buy me a coffee](https://img.shields.io/badge/☕_Buy_me_a_coffee-PayPal-0070ba?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/DrdotHouse)
 
-Privacy-first personalized recommendations for Jellyfin based entirely on local watch history and metadata similarity. No cloud services, no tracking. Recommendations appear as rows on the home screen.
+The **Quallenkinoplugin** (called "Local Recommendations" up to 12.27) adds privacy-first personalized recommendations based entirely on local watch history and metadata similarity (no cloud services, no tracking), live TV with an own programme guide provider, reminders, recording, "Wer schaut?" with profile images and a Quallenkino-style interface for Jellyfin Web. The TV app [Quallenkino](https://github.com/DrdotHouse2106/Jellyfin-TV-Client) uses the same APIs.
 
 > [!NOTE]
 > **Based on / original:** This plugin is based on the original project **[rdpharr/jellyfin-plugin-localrecs](https://github.com/rdpharr/jellyfin-plugin-localrecs)** by Roger Pharr.
-> This repository is a version adapted for **Jellyfin 12**, as the original will not be updated for Jellyfin 12. All credit for the actual development goes to the original author.
+> This repository is a heavily extended version adapted for **Jellyfin 12**, as the original will not be updated for Jellyfin 12. All credit for the actual development goes to the original author.
 >
 > German version: [README.md](README.md)
 
@@ -55,7 +55,7 @@ For Jellyfin 10.11.x use upstream version 0.6.1.
    (the shared plugin repository [DrdotHouse2106/Jellyfin-Plugins](https://github.com/DrdotHouse2106/Jellyfin-Plugins); the old URL `https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/manifest.json` keeps working)
 
 2. **Install plugin:**  
-   Dashboard → Plugins → Catalog → Install "Local Recommendations"
+   Dashboard → Plugins → Catalog → Install "Quallenkinoplugin für Jellyfin" (formerly "Local Recommendations"; an installed copy is simply updated)
 
 3. **Restart Jellyfin server**
 
@@ -73,7 +73,7 @@ The plugin's **Startseite** tab shows the connection status and lets you change 
 
 ## Configuration
 
-Access via: **Dashboard → Plugins → Local Recommendations**. Tabs (German UI): **Startseite** (status, rows, live TV), **Einstellungen** (recommendations, Jellyfin Web, calendar, worlds), **Auswertung** (evaluation), **Welten** (worlds), **Fernsehprogramm** (LocalRecs EPG), **Aktionen** (actions).
+Access via: **Dashboard → Plugins → Quallenkinoplugin für Jellyfin**. Tabs (German UI): **Startseite** (status, rows, live TV), **Einstellungen** (recommendations, Jellyfin Web, calendar, worlds), **Auswertung** (evaluation), **Welten** (worlds), **Fernsehprogramm** (LocalRecs EPG), **Aktionen** (actions).
 
 ### Key Settings
 

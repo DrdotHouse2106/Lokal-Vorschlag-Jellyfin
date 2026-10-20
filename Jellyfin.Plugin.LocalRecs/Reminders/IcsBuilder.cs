@@ -26,7 +26,7 @@ namespace Jellyfin.Plugin.LocalRecs.Reminders
             {
                 "BEGIN:VCALENDAR",
                 "VERSION:2.0",
-                "PRODID:-//Local Recommendations//Jellyfin Live-TV Erinnerungen//DE",
+                "PRODID:-//Quallenkinoplugin//Jellyfin Live-TV Erinnerungen//DE",
                 "CALSCALE:GREGORIAN",
                 "METHOD:PUBLISH",
                 "X-WR-CALNAME:" + Escape(calendarName),

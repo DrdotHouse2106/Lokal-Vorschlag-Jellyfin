@@ -67,7 +67,7 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
         public string Description => "Misst die Rechenzeit der Empfehlungen (Wortschatz, Vektoren, Bewertung)";
 
         /// <inheritdoc />
-        public string Category => "Lokale Empfehlungen";
+        public string Category => "Quallenkinoplugin";
 
         /// <inheritdoc />
         public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
@@ -81,7 +81,7 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
             long peakMemoryBytes = initialMemory;
 
             results.AppendLine("================================================================================");
-            results.AppendLine("Local Recommendations Benchmark Results");
+            results.AppendLine("Quallenkinoplugin – Leistungstest");
             results.AppendLine(string.Format("Timestamp: {0:yyyy-MM-dd HH:mm:ss} UTC", DateTime.UtcNow));
             results.AppendLine("================================================================================");
             results.AppendLine();

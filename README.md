@@ -1,15 +1,15 @@
-# Jellyfin Lokale Empfehlungen (Plugin) – Jellyfin 12
+# Quallenkinoplugin für Jellyfin – Jellyfin 12
 
 [![Lizenz: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Tests](https://github.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/actions/workflows/tests.yml/badge.svg)](https://github.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/actions/workflows/tests.yml)
 
 [![Spendier mir einen Kaffee](https://img.shields.io/badge/☕_Spendier_mir_einen_Kaffee-PayPal-0070ba?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/DrdotHouse)
 
-Datenschutzfreundliche, personalisierte Empfehlungen für Jellyfin – ausschließlich auf Basis des lokalen Wiedergabeverlaufs und der Metadaten-Ähnlichkeit. Keine Cloud-Dienste, kein Tracking. Funktioniert auf allen Jellyfin-Clients (auch auf Fernsehern).
+Das **Quallenkinoplugin** (bis 12.27 „Local Recommendations“) erweitert Jellyfin um persönliche Empfehlungen – ausschließlich auf Basis des lokalen Wiedergabeverlaufs und der Metadaten-Ähnlichkeit, ohne Cloud-Dienste und ohne Tracking –, dazu Live-TV mit eigenem Fernsehprogramm-Anbieter, Erinnerungen, Aufnehmen, „Wer schaut?“ mit Profilbildern und eine Oberfläche im Quallenkino-Stil für Jellyfin Web. Die TV-App [Quallenkino](https://github.com/DrdotHouse2106/Jellyfin-TV-Client) nutzt dieselben Schnittstellen.
 
 > [!NOTE]
 > **Vorlage / Original:** Dieses Plugin basiert auf dem originalen Projekt **[rdpharr/jellyfin-plugin-localrecs](https://github.com/rdpharr/jellyfin-plugin-localrecs)** von Roger Pharr.
-> Dieses Repository ist eine an **Jellyfin 12** angepasste Version davon, da das Original für Jellyfin 12 nicht mehr aktualisiert wird. Alle Rechte und der Dank für die eigentliche Entwicklung gehen an den ursprünglichen Autor.
+> Dieses Repository ist eine an **Jellyfin 12** angepasste und stark erweiterte Version davon, da das Original für Jellyfin 12 nicht mehr aktualisiert wird. Alle Rechte und der Dank für die eigentliche Entwicklung gehen an den ursprünglichen Autor.
 >
 > English version: [README.en.md](README.en.md)
 
@@ -56,7 +56,7 @@ Das Plugin steht im gemeinsamen Plugin-Repository [DrdotHouse2106/Jellyfin-Plugi
 
 1. Dashboard → Plugins → Repositories → Hinzufügen
    `https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/manifest.json`
-2. Dashboard → Plugins → Katalog → „Local Recommendations“ installieren
+2. Dashboard → Plugins → Katalog → „Quallenkinoplugin für Jellyfin“ installieren (bis 12.27 hieß es „Local Recommendations“; ein installiertes Plugin wird einfach aktualisiert)
 3. Jellyfin-Server neu starten
 
 Hast du früher das Repository `https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/manifest.json` eingetragen, funktioniert es weiter. Trag aber besser nur noch das gemeinsame Repository oben ein, damit das Plugin nicht doppelt im Katalog auftaucht.
@@ -76,7 +76,7 @@ Hast du früher das Repository `https://raw.githubusercontent.com/DrdotHouse2106
 2. **Bereiche einschalten:** Dashboard → Plugins → **Home Screen Sections** → Plugin aktivieren und die Bereiche **„Empfohlene Filme für dich“**, **„Empfohlene Serien für dich“** und **„Heute im TV für dich“** für alle Benutzer einschalten. (Alternativ schaltet jeder Benutzer sie selbst über das Menü „Modular Home“ ein.)
 3. **Fertig.** Die erste Berechnung startet automatisch nach dem Serverstart. Danach aktualisiert die geplante Aufgabe „Empfehlungen aktualisieren“ (bis 12.25: „Refresh Local Recommendations“) die Empfehlungen täglich um 4 Uhr (oder sofort über Dashboard → Geplante Aufgaben).
 
-In den Plugin-Einstellungen (Dashboard → Plugins → Local Recommendations) siehst du im Reiter **„Startseite“**, ob alles verbunden ist, und kannst die Titel der Zeilen ändern. Die Reiter: **Startseite** (Status, Zeilen, Live-TV), **Einstellungen** (Empfehlungen, Jellyfin Web, Kalender, Welten), **Auswertung**, **Welten**, **Fernsehprogramm** (LocalRecs EPG) und **Aktionen**.
+In den Plugin-Einstellungen (Dashboard → Plugins → Quallenkinoplugin für Jellyfin) siehst du im Reiter **„Startseite“**, ob alles verbunden ist, und kannst die Titel der Zeilen ändern. Die Reiter: **Startseite** (Status, Zeilen, Live-TV), **Einstellungen** (Empfehlungen, Jellyfin Web, Kalender, Welten), **Auswertung**, **Welten**, **Fernsehprogramm** (LocalRecs EPG) und **Aktionen**.
 
 ### Live-TV
 
@@ -245,7 +245,7 @@ GET  /LocalRecs/Epg/Test?search=&kind=series|movie|other|kids|news|sports&limit=
                                                      → Zählung und Beispiele mit Begründung (nur Admins)
 ```
 
-**EPG-Quelle:** Die Datei kommt z. B. von m3u-editor oder einem eigenen Skript. [`extras/epg-enrich`](extras/epg-enrich/) enthält die Fassung für epgshare01 mit Bundesliga-Paarungen. Die Zusammenführung mit MagentaTV (14 Tage, über iptv-org/epg) läuft derzeit nur auf dem Server und soll später als Baustein ins Plugin.
+**EPG-Quelle:** Die Datei kommt z. B. von m3u-editor oder einem eigenen Skript. [`extras/epg-enrich`](extras/epg-enrich/) enthält die Fassung für epgshare01 mit Bundesliga-Paarungen. Die Fassung mit MagentaTV-Zusammenführung (14 Tage, über iptv-org/epg) liegt im Repository [jellyfin-media-stack](https://github.com/DrdotHouse2106/jellyfin-media-stack) unter `scripts/epg-enrich` und `epg-grabber`.
 
 ### Schnittstelle für TV-Apps
 

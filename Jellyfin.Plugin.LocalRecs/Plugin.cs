@@ -38,13 +38,13 @@ namespace Jellyfin.Plugin.LocalRecs
         public static Plugin? Instance { get; private set; }
 
         /// <inheritdoc />
-        public override string Name => "Local Recommendations";
+        public override string Name => "Quallenkinoplugin für Jellyfin";
 
         /// <inheritdoc />
         public override Guid Id => _id;
 
         /// <inheritdoc />
-        public override string Description => "Per-user content recommendations based on local watch history and metadata similarity";
+        public override string Description => "Persönliche Empfehlungen, Live-TV mit eigenem Fernsehprogramm-Anbieter, Erinnerungen, Profile und eine Oberfläche im Quallenkino-Stil für Jellyfin Web";
 
         /// <inheritdoc />
         public IEnumerable<PluginPageInfo> GetPages()

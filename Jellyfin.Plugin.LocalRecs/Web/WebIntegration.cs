@@ -71,7 +71,7 @@ namespace Jellyfin.Plugin.LocalRecs.Web
             }
 
             var v = Uri.EscapeDataString(version ?? "0");
-            var loader = "<script>/* Local Recommendations */(function(){var p=location.pathname,i=p.indexOf('/web/'),b=i>=0?p.slice(0,i):'',v='" + v + "';"
+            var loader = "<script>/* Quallenkinoplugin */(function(){var p=location.pathname,i=p.indexOf('/web/'),b=i>=0?p.slice(0,i):'',v='" + v + "';"
                 + "var l=document.createElement('link');l.rel='stylesheet';l.href=b+'/" + Marker + ".css?v='+v;document.head.appendChild(l);"
                 + "var s=document.createElement('script');s.src=b+'/" + Marker + ".js?v='+v;s.defer=true;document.head.appendChild(s);})();</script>";
             return html.Insert(index, loader);
