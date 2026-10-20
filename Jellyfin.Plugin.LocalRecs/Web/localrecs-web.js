@@ -1230,6 +1230,20 @@
         }));
         actions.appendChild(favoriteButton(item));
         actions.appendChild(likeButton(item));
+        // Glocke auch in der Vorschaukarte – sie verdeckt sonst die Glocke der Kachel
+        if (item.Type === 'Program' && isUpcoming(item.StartDate)) {
+            actions.appendChild(reminderButton(item, false));
+            if (!reminders.loaded) {
+                loadReminders().then(function () {
+                    var bell = actions.querySelector('.lr-reminder');
+                    var on = isRemembered(item);
+                    if (bell) {
+                        bell.classList.toggle('lr-on', on);
+                        bell.querySelector('.lr-icon').textContent = on ? 'notifications_active' : 'notifications_none';
+                    }
+                });
+            }
+        }
         if (item.Type === 'Program') {
             var recordSlot = el('span', 'lr-record-slot');
             actions.appendChild(recordSlot);

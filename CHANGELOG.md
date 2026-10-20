@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.25.1] - 2026-10-20
+
+### Fixed
+
+- Start page: the bell on tiles of upcoming programmes could not be clicked on PCs because the preview card covers it. The preview card now has its own bell (next to the record button, also for users without recording rights).
+
 ## [12.25.0] - 2026-10-20
 
 ### Added

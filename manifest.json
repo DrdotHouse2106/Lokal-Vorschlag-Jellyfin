@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.25.1.0",
+        "changelog": "Glocke in der Vorschaukarte / bell on the preview card\n- Auf der Startseite (PC) verdeckte die Vorschaukarte die Glocke – jetzt hat die Vorschaukarte eine eigene Glocke\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.25.1.zip",
+        "checksum": "1601ccb08d0f840bc0f22bd5da906335",
+        "timestamp": "2026-10-20T08:00:00Z"
+      },
+      {
         "version": "12.25.0.0",
         "changelog": "Aufnehmen direkt aus der Info-Ansicht / record from the info view\n- „Aufnehmen“ und „Serie aufnehmen“ mit Status, Aufnahme-Knopf auf der Vorschaukarte\n- „Sender einschalten“ statt „Alle Optionen“ bei Sendungen\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
