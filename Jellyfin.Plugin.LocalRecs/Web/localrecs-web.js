@@ -1010,6 +1010,7 @@
             fill.style.width = percent + '%';
             bar.appendChild(fill);
             frame.appendChild(bar);
+            frame.appendChild(el('span', 'material-icons lr-card-play', 'play_circle_outline'));
         }
         if (item.Type === 'Program' && isAiring(item)) {
             frame.appendChild(el('div', 'lr-live', 'LIVE'));
@@ -1025,7 +1026,12 @@
             card.appendChild(el('div', 'lr-card-sub', sub));
         }
         onActivate(card, function () {
-            itemClick(item);
+            // Angefangene Titel spielen direkt weiter (Play-Symbol in der Mitte)
+            if (percent && percent > 0 && percent < 100) {
+                play(item);
+            } else {
+                itemClick(item);
+            }
         });
         attachPreview(card, item);
         return card;

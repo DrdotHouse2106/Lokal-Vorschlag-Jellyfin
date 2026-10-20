@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.29.3.0",
+        "changelog": "Startseite\n- Angefangene Titel in Querformat-Kacheln (Tablet, PC) spielen beim Antippen direkt weiter, mit Play-Symbol in der Mitte\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.29.3.zip",
+        "checksum": "b9ea9cbede7eb16ce05f84799279e26f",
+        "timestamp": "2026-10-20T20:15:00Z"
+      },
+      {
         "version": "12.29.2.0",
         "changelog": "iPhone / iOS-App\n- Quallenkino-Player in der iOS-App vorerst aus (Absturz beim Abspielen), dort spielt der Player der App\n- Detailansicht: lange Beschreibungen auf 4 Zeilen mit „Mehr“, lange Links brechen um, Folgenliste bleibt in der Bildschirmbreite\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.29.3] - 2026-10-20
+
+### Fixed
+
+- Start page: tapping a started title (progress bar) in landscape cards (tablet, desktop) now resumes playback directly, like the portrait cards on phones. These cards also show the play symbol in the middle; the symbol never catches the tap itself.
+
 ## [12.29.2] - 2026-10-20
 
 ### Fixed
