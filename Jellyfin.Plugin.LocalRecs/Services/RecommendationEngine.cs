@@ -45,6 +45,24 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         }
 
         /// <summary>
+        /// Adds the bonus of outside signals (public similarity lists, personal Trakt recommendations) to a score.
+        /// </summary>
+        /// <param name="scored">Score so far.</param>
+        /// <param name="bonus">Bonus per item (already weighted), optional.</param>
+        /// <param name="factor">Factor for the bonus (2 in the cold start).</param>
+        /// <returns>The score with bonus.</returns>
+        public static ScoredRecommendation WithBonus(ScoredRecommendation scored, IReadOnlyDictionary<Guid, double>? bonus, double factor = 1)
+        {
+            ArgumentNullException.ThrowIfNull(scored);
+            if (bonus == null || factor <= 0 || !bonus.TryGetValue(scored.ItemId, out var value) || value <= 0)
+            {
+                return scored;
+            }
+
+            return new ScoredRecommendation(scored.ItemId, scored.Score + (float)(factor * value)) { Reason = scored.Reason };
+        }
+
+        /// <summary>
         /// Generates recommendations for a user.
         /// </summary>
         /// <param name="userId">The user identifier.</param>
@@ -54,6 +72,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         /// <param name="config">Plugin configuration.</param>
         /// <param name="mediaType">Filter to specific media type (null = all types).</param>
         /// <param name="maxResults">Maximum number of recommendations to return.</param>
+        /// <param name="bonus">Bonus per item from outside signals (TMDB, Trakt), already weighted, optional.</param>
         /// <returns>List of scored recommendations, ordered by score descending.</returns>
         /// <exception cref="ArgumentNullException">Thrown when required parameters are null.</exception>
         /// <exception cref="ArgumentException">Thrown when embeddings or metadata are empty.</exception>
@@ -64,7 +83,8 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             IReadOnlyDictionary<Guid, MediaItemMetadata> metadata,
             PluginConfiguration config,
             LocalMediaType? mediaType = null,
-            int maxResults = 25)
+            int maxResults = 25,
+            IReadOnlyDictionary<Guid, double>? bonus = null)
         {
             if (embeddings == null)
             {
@@ -106,7 +126,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                     userProfile?.WatchedItemCount ?? 0,
                     config.MinWatchedItemsForPersonalization);
 
-                return GenerateColdStartRecommendations(userId, metadata, mediaType, maxResults);
+                return GenerateColdStartRecommendations(userId, metadata, mediaType, maxResults, bonus);
             }
 
             // Get unwatched candidates
@@ -139,8 +159,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 }
 
                 var score = ScoreCandidate(userProfile, embedding, itemMetadata, config);
-
-                scoredCandidates.Add(score);
+                scoredCandidates.Add(WithBonus(score, bonus));
             }
 
             // Sort by score descending and take top N
@@ -394,18 +413,21 @@ namespace Jellyfin.Plugin.LocalRecs.Services
 
         /// <summary>
         /// Generates recommendations for users with insufficient watch history (cold-start).
-        /// Returns top-rated items from the library.
+        /// Returns top-rated items from the library; titles that public lists name as similar to the few
+        /// watched ones get a double bonus (that is where they help most).
         /// </summary>
         /// <param name="userId">The user identifier.</param>
         /// <param name="metadata">Item metadata dictionary.</param>
         /// <param name="mediaType">Filter to specific media type.</param>
         /// <param name="maxResults">Maximum number of recommendations.</param>
+        /// <param name="bonus">Bonus per item from outside signals, optional.</param>
         /// <returns>List of top-rated items.</returns>
         private List<ScoredRecommendation> GenerateColdStartRecommendations(
             Guid userId,
             IReadOnlyDictionary<Guid, MediaItemMetadata> metadata,
             LocalMediaType? mediaType,
-            int maxResults)
+            int maxResults,
+            IReadOnlyDictionary<Guid, double>? bonus)
         {
             _logger.LogDebug(
                 "Generating cold-start recommendations for user {UserId}",
@@ -467,8 +489,9 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             var topRated = unwatchedCandidates
                 .OrderByDescending(m => m.CommunityRating ?? 0)
                 .ThenByDescending(m => m.CriticRating ?? 0)
+                .Select(m => WithBonus(new ScoredRecommendation(m.Id, (m.CommunityRating ?? 0) / 10.0f), bonus, 2))
+                .OrderByDescending(r => r.Score)
                 .Take(maxResults)
-                .Select(m => new ScoredRecommendation(m.Id, (m.CommunityRating ?? 0) / 10.0f))
                 .ToList();
 
             _logger.LogDebug(

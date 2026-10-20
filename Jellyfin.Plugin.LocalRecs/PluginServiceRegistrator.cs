@@ -53,6 +53,15 @@ namespace Jellyfin.Plugin.LocalRecs
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Avatars.AvatarService>>(),
                     Path.Combine(GetPluginDataPath(sp), "avatars"),
                     sp.GetService<System.Net.Http.IHttpClientFactory>()));
+            serviceCollection.AddSingleton(sp =>
+                new Similarity.ExternalSimilarityService(
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Similarity.ExternalSimilarityService>>(),
+                    Path.Combine(GetPluginDataPath(sp), "aehnliche-titel.json")));
+            serviceCollection.AddSingleton(sp =>
+                new Similarity.TraktPersonalService(
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Similarity.TraktPersonalService>>(),
+                    Path.Combine(GetPluginDataPath(sp), "trakt-konten.json"),
+                    Path.Combine(sp.GetRequiredService<MediaBrowser.Controller.IServerApplicationPaths>().PluginConfigurationsPath, "Trakt.xml")));
             serviceCollection.AddSingleton<RecommendationRefreshService>();
 
             // Phase 7: Home screen sections (via the "Home Screen Sections" plugin)

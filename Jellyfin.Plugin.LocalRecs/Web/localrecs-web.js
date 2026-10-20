@@ -4704,10 +4704,100 @@
                 openAvatarEditor({});
             }));
         }
+        if (state.config && state.config.TraktPersonal && userId()) {
+            items.push(accountMenuItem('recommend', 'Trakt-Empfehlungen', openTraktDialog));
+        }
         items.slice().reverse().forEach(function (item) {
             list.insertBefore(item, list.firstChild);
         });
         return items;
+    }
+
+    // Persönliche Trakt-Empfehlungen: Stand, ein/aus, eigene Verbindung per Code (Zugangsdaten bleiben auf dem Server)
+    function openTraktDialog() {
+        var dialog = overlayShell('lr-calendar lr-trakt');
+        var body = el('div', 'lr-cal-body');
+        body.appendChild(el('h2', 'lr-cal-title', 'Trakt-Empfehlungen'));
+        body.appendChild(el('p', 'lr-cal-text', 'Was Trakt dir persönlich empfiehlt, fließt in deine Empfehlungen ein – nur Titel, die es hier gibt. '
+            + 'Quallenkino ruft dafür nur deine Empfehlungsliste ab und schickt nichts an Trakt.'));
+        var box = el('div', 'lr-trakt-state');
+        body.appendChild(box);
+        dialog.appendChild(body);
+        var poll = null;
+        var send = function (type, path, data) {
+            return api().ajax({
+                type: type,
+                url: url(path),
+                dataType: 'json',
+                data: data ? JSON.stringify(data) : undefined,
+                contentType: data ? 'application/json' : undefined
+            });
+        };
+
+        var render = function (status) {
+            box.innerHTML = '';
+            window.clearTimeout(poll);
+            if (!status.FeatureEnabled) {
+                box.appendChild(el('p', 'lr-cal-text', 'In den Einstellungen des Servers ausgeschaltet.'));
+                return;
+            }
+            var stateText = status.Source === 'eigen' ? 'Mit Trakt verbunden.'
+                : status.Source === 'trakt-plugin' ? 'Verbunden über die Verknüpfung im Trakt-Plugin.'
+                    : 'Kein Trakt-Konto verbunden.';
+            box.appendChild(el('p', 'lr-cal-text lr-trakt-status', stateText));
+            if (status.Source) {
+                var label = el('label', 'lr-trakt-toggle');
+                var check = el('input');
+                check.type = 'checkbox';
+                check.checked = !!status.Enabled;
+                check.addEventListener('change', function () {
+                    send('POST', 'LocalRecs/Trakt/Me', { Enabled: check.checked }).then(render);
+                });
+                label.appendChild(check);
+                label.appendChild(el('span', null, ' Persönliche Trakt-Empfehlungen nutzen'));
+                box.appendChild(label);
+            }
+            if (status.UserCode) {
+                var codeBox = el('div', 'lr-trakt-code');
+                codeBox.appendChild(el('p', 'lr-cal-text', 'Öffne die Adresse und gib den Code ein:'));
+                var link = el('a', 'lr-btn lr-btn-info', status.VerificationUrl);
+                link.href = status.VerificationUrl;
+                link.target = '_blank';
+                link.rel = 'noopener';
+                codeBox.appendChild(link);
+                codeBox.appendChild(el('div', 'lr-trakt-usercode', status.UserCode));
+                box.appendChild(codeBox);
+                poll = window.setTimeout(load, 4000);
+            } else if (status.CanConnect && status.Source !== 'eigen') {
+                box.appendChild(button('lr-btn-play', 'link', 'Mit Trakt verbinden', function () {
+                    send('POST', 'LocalRecs/Trakt/Me/Login').then(render);
+                }));
+            }
+            if (status.Source === 'eigen') {
+                box.appendChild(button('lr-btn-link', 'link_off', 'Verbindung trennen', function () {
+                    send('DELETE', 'LocalRecs/Trakt/Me/Login').then(render);
+                }));
+            }
+            if (status.LoginError) {
+                box.appendChild(el('p', 'lr-cal-hint', status.LoginError));
+            }
+            if (!status.Source && !status.CanConnect) {
+                box.appendChild(el('p', 'lr-cal-hint', 'Verknüpfe dein Konto im Trakt-Plugin (Dashboard → Plugins → Trakt) – oder der Admin hinterlegt eine eigene Trakt-App in den Quallenkino-Einstellungen.'));
+            }
+            box.appendChild(el('p', 'lr-cal-hint', 'Änderungen wirken bei der nächsten Aktualisierung der Empfehlungen.'));
+        };
+
+        function load() {
+            if (!document.body.contains(dialog)) {
+                return;
+            }
+            getJson('LocalRecs/Trakt/Me').then(render).catch(function () {
+                box.innerHTML = '';
+                box.appendChild(el('p', 'lr-cal-text', 'Der Stand konnte nicht geladen werden.'));
+            });
+        }
+
+        load();
     }
 
     // Abmelden abgesetzt ganz unten

@@ -32,7 +32,8 @@ Das **Quallenkinoplugin** (bis 12.27 „Local Recommendations“) erweitert Jell
 - **Aufnehmen** – Sendung oder Serie direkt aus der Info-Ansicht aufnehmen
 - **Welten wie bei Disney+** und **„Top 10 bei euch“** – für Apps wie Quallenkino und die Quallenkino-Startseite
 - **Schnittstellen für TV-Apps** – alles auch für eigene Apps (Quallenkino für Android TV, Fire TV und webOS)
-- **Datenschutz** – alle Berechnungen laufen lokal auf deinem Server
+- **Ähnliche Titel von TMDB und Trakt** – öffentliche Ähnlichkeitslisten als Zusatzsignal, besonders bei wenig Sehverlauf; dazu persönliche Trakt-Empfehlungen für Benutzer mit Trakt-Konto
+- **Datenschutz** – alle Berechnungen laufen lokal auf deinem Server; nach außen gehen nur Titel-IDs (siehe „Ähnliche Titel“)
 
 ## Voraussetzungen
 
@@ -107,6 +108,24 @@ Filme und Serien mit einer Community-Bewertung unter **5.0** werden nicht empfoh
 - **Filmreihen (ab 12.9.0):** Wurde ein Teil einer Jellyfin-Sammlung gesehen (z. B. „Harry Potter“), steht der nächste ungesehene Teil vorne in der Filmzeile – höchstens ein Viertel der Zeile, Mindestbewertung gilt weiterhin. Abschaltbar unter „Filmreihen: nächsten Teil vorziehen“.
 - **Begründung (ab 12.9.0):** Über dem Titel steht auf der Startseite, warum etwas empfohlen wird, z. B. „Weil du „Frieren“ geschaut hast“ (ähnlichster gesehener Titel) oder „Nächster Teil nach „Harry Potter 1““. Voraussetzung: In Home Screen Sections ist die Anzeige der Titel eingeschaltet. Abschaltbar unter „Begründung auf den Karten anzeigen“. Apps holen die Begründungen über `GET /LocalRecs/Recommendations/Reasons` (Zuordnung Element-ID → Text).
 - **Keine gesehenen Folgen im TV:** „Heute im TV für dich“ schlägt keine Folge vor, die schon live oder in der Bibliothek geschaut wurde (Abgleich über Sendung und Episodentitel). Läuft danach eine neue Folge, erscheint diese.
+
+### Ähnliche Titel von TMDB und Trakt (ab 12.33.0)
+
+Die eigene Ähnlichkeit (Genres, Darsteller, Regie, Stichwörter) kennt nur, was in den Metadaten steht. Dazu kommen jetzt öffentliche Listen, die auf dem Verhalten vieler Menschen beruhen:
+
+- **TMDB „Empfehlungen“ und „Ähnlich“** je Film/Serie, optional **Trakt „Related“**. Titel der eigenen Bibliothek, die dort als ähnlich zu gesehenen oder gemochten Titeln genannt werden, bekommen einen Bonus („Gewicht der ähnlichen Titel“, Standard 0.25). Begründung auf der Karte: **„Ähnlich wie „…““**.
+- **Wenig Sehverlauf:** Wer weniger als die Mindestzahl gesehen hat, bekam bisher nur gut bewertete Titel. Jetzt zählt der Bonus dort doppelt – schon zwei, drei gesehene Titel ergeben passende Vorschläge.
+- **Datenschutz:** Gesendet wird nur die TMDB- bzw. IMDb-ID eines Titels – keine Benutzer, kein Sehverlauf, keine Pfade. Abgefragt wird nach und nach **der ganze Bestand** (gesehene Titel zuerst), sodass die Anfragen den Bestand abbilden und nicht, was geschaut wurde. Zwischenspeicher 7 Tage (`plugins/LocalRecs/aehnliche-titel.json`), höchstens 400 Titel je Lauf, kleine Pause zwischen den Anfragen.
+- **Schlüssel:** Ohne Eintrag nutzt das Plugin den TMDB-Schlüssel aus Jellyfins TMDb-Einstellungen (bzw. dessen eingebauten). Ein eigener Schlüssel (v3 oder v4-Lese-Token) geht unter „Eigener TMDB-Schlüssel“. Trakt „Related“ braucht eine eigene Trakt-App (Client-ID). Ohne Schlüssel oder bei Fehlern bleibt es still weg – die eigenen Empfehlungen laufen immer.
+
+**Persönliche Trakt-Empfehlungen:** Für Benutzer mit Trakt-Konto fließen zusätzlich deren persönliche Empfehlungen bei Trakt ein (`/recommendations/movies` und `/shows`, nur Titel der eigenen Bibliothek, „Gewicht der persönlichen Trakt-Empfehlungen“, Standard 0.5). Begründung: **„Für dich bei Trakt empfohlen“**.
+
+- **Zugang:** Bevorzugt eine eigene Verbindung – im Profilmenü **„Trakt-Empfehlungen“ → „Mit Trakt verbinden“**, Code auf trakt.tv/activate eingeben. Dafür hinterlegt der Admin eine eigene Trakt-App (Client-ID und Client-Secret, Redirect-URI `urn:ietf:wg:oauth:2.0:oob`). Ohne eigene Verbindung nutzt das Plugin – **nur lesend** – die Verknüpfung im [Trakt-Plugin](https://github.com/jellyfin/jellyfin-plugin-trakt) (`Trakt.xml`); dessen Zugang wird nie erneuert oder zurückgeschrieben.
+- **Pro Benutzer** im selben Dialog abschaltbar. Abgerufen wird nur die Empfehlungsliste, alle 12 Stunden; es wird nichts an Trakt gesendet. Das Scrobbeln macht weiter das Trakt-Plugin.
+- Eigene Zugänge liegen in `plugins/LocalRecs/trakt-konten.json` auf dem Server und gehen nie an den Browser. „Verbindung trennen“ widerruft den Zugang bei Trakt.
+- Schnittstelle (für den angemeldeten Benutzer): `GET/POST /LocalRecs/Trakt/Me`, `POST/DELETE /LocalRecs/Trakt/Me/Login`.
+
+Ausblick: Ein Konzept für freiwillig geteilte Sehverläufe (gemeinsame Empfehlungen über mehrere Server) steht in [docs/konzept-gemeinsame-empfehlungen.md](docs/konzept-gemeinsame-empfehlungen.md) – noch nicht umgesetzt.
 
 ### Auswertung
 
@@ -324,6 +343,8 @@ dotnet test -c Release
 ## Datenquellen
 
 Daten und Bilder: [TMDB](https://www.themoviedb.org). Dieses Produkt nutzt die TMDB-API, ist aber nicht von TMDB unterstützt oder zertifiziert.
+
+Ähnliche Titel und persönliche Empfehlungen (optional): [Trakt](https://trakt.tv).
 
 Logos der Welten (optional): [fanart.tv](https://fanart.tv).
 

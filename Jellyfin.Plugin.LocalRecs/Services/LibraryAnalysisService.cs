@@ -227,6 +227,12 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 metadata.TvdbId = tvdbId;
             }
 
+            var imdbId = item.GetProviderId(MetadataProvider.Imdb);
+            if (!string.IsNullOrEmpty(imdbId))
+            {
+                metadata.ImdbId = imdbId;
+            }
+
             // Set file path
             metadata.Path = item.Path;
 

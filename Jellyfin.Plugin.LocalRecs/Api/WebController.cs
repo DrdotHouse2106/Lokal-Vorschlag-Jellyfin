@@ -90,6 +90,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 AvatarCatalogUrl = Avatars.AvatarService.ConfiguredCatalog(),
                 Reminders = true,
                 Diagnostics = Config.WebDiagnostics,
+                TraktPersonal = Config.EnableTraktPersonal && Config.TraktPersonalWeight > 0,
                 Version = WebIntegration.Version
             };
         }
@@ -122,6 +123,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets a value indicating whether the web module reports errors to /LocalRecs/ClientLog (since 12.30.0).</summary>
             public bool Diagnostics { get; set; }
+
+            /// <summary>Gets or sets a value indicating whether personal Trakt recommendations are available (since 12.33.0).</summary>
+            public bool TraktPersonal { get; set; }
 
             /// <summary>Gets or sets the plugin version.</summary>
             public string Version { get; set; } = string.Empty;

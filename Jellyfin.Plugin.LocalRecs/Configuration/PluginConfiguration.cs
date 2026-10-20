@@ -59,6 +59,15 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             WebPlayerUserIds = System.Array.Empty<string>();
             WebPlayerForAll = true;
             WebDiagnostics = false;
+            EnableExternalSimilarity = true;
+            ExternalSimilarityWeight = 0.25;
+            ExternalSimilarityCacheDays = 7;
+            ExternalSimilarityMaxLookupsPerRun = 400;
+            TmdbApiKey = string.Empty;
+            TraktClientId = string.Empty;
+            TraktClientSecret = string.Empty;
+            EnableTraktPersonal = true;
+            TraktPersonalWeight = 0.5;
             CalendarPublicUrl = string.Empty;
             CalendarAlarmMinutes = 10;
             MovieSectionTitle = "Empfohlene Filme für dich";
@@ -356,6 +365,53 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Gets or sets a value indicating whether Jellyfin Web reports errors and the last steps before a crash to the server log (since 12.30.0).
         /// </summary>
         public bool WebDiagnostics { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether public similarity lists (TMDB, optionally Trakt) are used as an extra signal (since 12.33.0).
+        /// Only title IDs of the library are sent, never users or watch history.
+        /// </summary>
+        public bool EnableExternalSimilarity { get; set; }
+
+        /// <summary>
+        /// Gets or sets the weight of the public similarity lists (0 = off, 1 = as strong as the own similarity).
+        /// </summary>
+        public double ExternalSimilarityWeight { get; set; }
+
+        /// <summary>
+        /// Gets or sets how many days a fetched list is kept before it is fetched again.
+        /// </summary>
+        public int ExternalSimilarityCacheDays { get; set; }
+
+        /// <summary>
+        /// Gets or sets how many titles are looked up at most per run (the rest follows in the next runs).
+        /// </summary>
+        public int ExternalSimilarityMaxLookupsPerRun { get; set; }
+
+        /// <summary>
+        /// Gets or sets an own TMDB API key (v3 key or v4 read token). Empty = the key of Jellyfin's TMDb plugin.
+        /// </summary>
+        public string TmdbApiKey { get; set; }
+
+        /// <summary>
+        /// Gets or sets the client ID of an own Trakt API app for public "related" lists. Empty = Trakt is not used.
+        /// </summary>
+        public string TraktClientId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the client secret of the own Trakt API app (needed for the login of users with a code).
+        /// </summary>
+        public string TraktClientSecret { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether personal Trakt recommendations are used for users with a Trakt account
+        /// (own login in Quallenkino, or the link of the Trakt plugin read only). Each user can switch it off (since 12.33.0).
+        /// </summary>
+        public bool EnableTraktPersonal { get; set; }
+
+        /// <summary>
+        /// Gets or sets the weight of the personal Trakt recommendations (0 = off).
+        /// </summary>
+        public double TraktPersonalWeight { get; set; }
 
         /// <summary>
         /// Gets or sets the public address of the server for calendar links (e.g. https://jellyfin.example.org).

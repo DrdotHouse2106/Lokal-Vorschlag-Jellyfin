@@ -2,9 +2,11 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.LocalRecs.Configuration;
 using Jellyfin.Plugin.LocalRecs.Models;
+using Jellyfin.Plugin.LocalRecs.Similarity;
 using Jellyfin.Plugin.LocalRecs.Utilities;
 using Jellyfin.Plugin.LocalRecs.Worlds;
 using Microsoft.Extensions.Logging;
@@ -30,6 +32,8 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         private readonly FeedbackStore? _feedback;
         private readonly CollectionService? _collections;
         private readonly WorldService? _worlds;
+        private readonly ExternalSimilarityService? _external;
+        private readonly TraktPersonalService? _traktPersonal;
         private readonly ConcurrentDictionary<Guid, WorldRankings> _worldRankings = new ConcurrentDictionary<Guid, WorldRankings>();
 
         /// <summary>
@@ -44,6 +48,8 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         /// <param name="feedback">Evaluation store (since when titles have been recommended), optional.</param>
         /// <param name="collections">Film series (collections), optional.</param>
         /// <param name="worlds">Worlds (Marvel, Star Wars, …), optional.</param>
+        /// <param name="external">Public similarity lists (TMDB, Trakt), optional.</param>
+        /// <param name="traktPersonal">Personal Trakt recommendations, optional.</param>
         public RecommendationRefreshService(
             ILogger<RecommendationRefreshService> logger,
             LibraryAnalysisService libraryAnalysisService,
@@ -53,7 +59,9 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             RecommendationEngine recommendationEngine,
             FeedbackStore? feedback = null,
             CollectionService? collections = null,
-            WorldService? worlds = null)
+            WorldService? worlds = null,
+            ExternalSimilarityService? external = null,
+            TraktPersonalService? traktPersonal = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _libraryAnalysisService = libraryAnalysisService ?? throw new ArgumentNullException(nameof(libraryAnalysisService));
@@ -64,6 +72,8 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             _feedback = feedback;
             _collections = collections;
             _worlds = worlds;
+            _external = external;
+            _traktPersonal = traktPersonal;
         }
 
         /// <summary>
@@ -110,72 +120,38 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             PluginConfiguration config)
         {
             _logger.LogDebug("Generating recommendations for user {UserId}", userId);
-
+            UserProfile? profile;
             try
             {
                 // Build user profile (returns null if no watch history)
-                var profile = _userProfileService.BuildUserProfile(userId, embeddings, config);
-
-                // Generate movie recommendations (will use cold-start if profile is null)
-                var movieRecs = _recommendationEngine.GenerateRecommendations(
-                    userId,
-                    profile,
-                    embeddings,
-                    metadata,
-                    config,
-                    MediaType.Movie,
-                    CandidateCount(config.MovieRecommendationCount));
-
-                // Generate TV recommendations (will use cold-start if profile is null)
-                var tvRecs = _recommendationEngine.GenerateRecommendations(
-                    userId,
-                    profile,
-                    embeddings,
-                    metadata,
-                    config,
-                    MediaType.Series,
-                    CandidateCount(config.TvRecommendationCount));
-
-                // Lange ignorierte Titel nach hinten, höchstens ein Drittel aus demselben Genre
-                var now = DateTime.UtcNow;
-                movieRecs = RecommendationReranker.Rerank(movieRecs, metadata, ShownSince(userId, FeedbackStore.Movies, now), now, config.IgnoredRecommendationDays, config.MovieRecommendationCount);
-                tvRecs = RecommendationReranker.Rerank(tvRecs, metadata, ShownSince(userId, FeedbackStore.Series, now), now, config.IgnoredRecommendationDays, config.TvRecommendationCount);
-
-                // Filmreihen: nächster ungesehener Teil nach vorne
-                var nextParts = _collections != null && config.EnableCollectionNextParts
-                    ? _collections.GetNextParts(userId)
-                    : Array.Empty<(Guid ItemId, string Reason)>();
-                if (nextParts.Count > 0)
-                {
-                    movieRecs = RecommendationReranker.AddNextParts(
-                        movieRecs,
-                        nextParts,
-                        id => !metadata.TryGetValue(id, out var item) || !RatingQuality.IsBelowMinimum(item, config),
-                        config.MovieRecommendationCount);
-                }
-
-                // Begründung: ähnlichster gesehener Titel
-                if (profile != null)
-                {
-                    RecommendationExplainer.Explain(movieRecs.Concat(tvRecs), profile.PositiveItemIds, embeddings, metadata);
-                }
-
-                // Welten: eigene Rangliste je Welt (Marvel, Star Wars, …)
-                _worldRankings[userId] = RankWorlds(profile, nextParts, embeddings, metadata, config);
-
-                _logger.LogDebug(
-                    "Generated recommendations for user {UserId}: {MovieCount} movies, {TvCount} TV",
-                    userId,
-                    movieRecs.Count,
-                    tvRecs.Count);
-
-                return (movieRecs, tvRecs);
+                profile = _userProfileService.BuildUserProfile(userId, embeddings, config);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to generate recommendations for user {UserId}", userId);
+                _logger.LogError(ex, "Failed to build the profile of user {UserId}", userId);
                 return (new List<ScoredRecommendation>(), new List<ScoredRecommendation>());
             }
+
+            return GenerateForProfile(userId, profile, null, embeddings, metadata, config);
+        }
+
+        /// <summary>
+        /// Hits of the public similarity lists for a user (titles named as similar to the user's watched or liked titles).
+        /// </summary>
+        /// <param name="profile">The user's profile, or null.</param>
+        /// <param name="metadata">Item metadata.</param>
+        /// <param name="config">Plugin configuration.</param>
+        /// <returns>The hits, or null if off or unknown.</returns>
+        public IReadOnlyDictionary<Guid, ExternalHit>? ExternalHits(UserProfile? profile, IReadOnlyDictionary<Guid, MediaItemMetadata> metadata, PluginConfiguration config)
+        {
+            ArgumentNullException.ThrowIfNull(metadata);
+            ArgumentNullException.ThrowIfNull(config);
+            if (_external == null || !config.EnableExternalSimilarity || config.ExternalSimilarityWeight <= 0 || profile == null || profile.PositiveItemIds.Count == 0)
+            {
+                return null;
+            }
+
+            return ExternalSimilarityScorer.Compute(profile.PositiveItemIds.Select(id => (id, 1.0)), metadata, _external.Lookup);
         }
 
         /// <summary>
@@ -184,16 +160,18 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         /// </summary>
         /// <param name="userIds">List of user IDs to process.</param>
         /// <param name="config">Plugin configuration.</param>
+        /// <param name="cancellationToken">Cancellation token (stops fetching public similarity lists).</param>
         /// <returns>Dictionary mapping user IDs to their recommendations (movies, TV).</returns>
-        public Task<Dictionary<Guid, (List<ScoredRecommendation> Movies, List<ScoredRecommendation> Tv)>> GenerateRecommendationsForMultipleUsersAsync(
+        public async Task<Dictionary<Guid, (List<ScoredRecommendation> Movies, List<ScoredRecommendation> Tv)>> GenerateRecommendationsForMultipleUsersAsync(
             IReadOnlyList<Guid> userIds,
-            PluginConfiguration config)
+            PluginConfiguration config,
+            CancellationToken cancellationToken = default)
         {
             var results = new Dictionary<Guid, (List<ScoredRecommendation> Movies, List<ScoredRecommendation> Tv)>();
 
             if (userIds.Count == 0)
             {
-                return Task.FromResult(results);
+                return results;
             }
 
             _logger.LogInformation("Generating recommendations for {Count} users", userIds.Count);
@@ -201,15 +179,43 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             // Compute embeddings once for all users
             var (embeddings, metadata) = ComputeEmbeddings();
 
+            var profiles = new Dictionary<Guid, UserProfile?>();
             foreach (var userId in userIds)
             {
-                var recs = GenerateRecommendationsForUser(userId, embeddings, metadata, config);
-                results[userId] = recs;
+                try
+                {
+                    profiles[userId] = _userProfileService.BuildUserProfile(userId, embeddings, config);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to build the profile of user {UserId}", userId);
+                    profiles[userId] = null;
+                }
+            }
+
+            await RefreshExternalAsync(profiles.Values, metadata, config, cancellationToken).ConfigureAwait(false);
+
+            foreach (var userId in userIds)
+            {
+                PersonalRecommendations? personal = null;
+                if (_traktPersonal != null)
+                {
+                    try
+                    {
+                        personal = await _traktPersonal.GetRecommendationsAsync(userId, config, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        _logger.LogDebug(ex, "Trakt-Empfehlungen für Benutzer {UserId} nicht verfügbar", userId);
+                    }
+                }
+
+                results[userId] = GenerateForProfile(userId, profiles[userId], personal, embeddings, metadata, config);
             }
 
             _logger.LogInformation("Successfully generated recommendations for {Count}/{Total} users", results.Count, userIds.Count);
 
-            return Task.FromResult(results);
+            return results;
         }
 
         /// <summary>
@@ -278,6 +284,160 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             return _feedback.GetShownSince(userId, section, now)
                 .Where(kv => Guid.TryParse(kv.Key, out _))
                 .ToDictionary(kv => Guid.Parse(kv.Key), kv => kv.Value);
+        }
+
+        private (List<ScoredRecommendation> Movies, List<ScoredRecommendation> Tv) GenerateForProfile(
+            Guid userId,
+            UserProfile? profile,
+            PersonalRecommendations? personal,
+            IReadOnlyDictionary<Guid, ItemEmbedding> embeddings,
+            IReadOnlyDictionary<Guid, MediaItemMetadata> metadata,
+            PluginConfiguration config)
+        {
+            try
+            {
+                // Signale von außen: von TMDB/Trakt als ähnlich genannt, persönlich bei Trakt empfohlen
+                var external = ExternalHits(profile, metadata, config);
+                var personalHits = personal != null && config.EnableTraktPersonal && config.TraktPersonalWeight > 0
+                    ? ExternalSimilarityScorer.PersonalHits(personal, metadata)
+                    : null;
+                var bonus = new Dictionary<Guid, double>();
+                foreach (var hit in external ?? new Dictionary<Guid, ExternalHit>())
+                {
+                    bonus[hit.Key] = config.ExternalSimilarityWeight * hit.Value.Strength;
+                }
+
+                foreach (var hit in personalHits ?? new Dictionary<Guid, double>())
+                {
+                    bonus[hit.Key] = bonus.GetValueOrDefault(hit.Key) + (config.TraktPersonalWeight * hit.Value);
+                }
+
+                // Generate movie recommendations (will use cold-start if profile is null)
+                var movieRecs = _recommendationEngine.GenerateRecommendations(
+                    userId,
+                    profile,
+                    embeddings,
+                    metadata,
+                    config,
+                    MediaType.Movie,
+                    CandidateCount(config.MovieRecommendationCount),
+                    bonus);
+
+                // Generate TV recommendations (will use cold-start if profile is null)
+                var tvRecs = _recommendationEngine.GenerateRecommendations(
+                    userId,
+                    profile,
+                    embeddings,
+                    metadata,
+                    config,
+                    MediaType.Series,
+                    CandidateCount(config.TvRecommendationCount),
+                    bonus);
+
+                // Lange ignorierte Titel nach hinten, höchstens ein Drittel aus demselben Genre
+                var now = DateTime.UtcNow;
+                movieRecs = RecommendationReranker.Rerank(movieRecs, metadata, ShownSince(userId, FeedbackStore.Movies, now), now, config.IgnoredRecommendationDays, config.MovieRecommendationCount);
+                tvRecs = RecommendationReranker.Rerank(tvRecs, metadata, ShownSince(userId, FeedbackStore.Series, now), now, config.IgnoredRecommendationDays, config.TvRecommendationCount);
+
+                // Filmreihen: nächster ungesehener Teil nach vorne
+                var nextParts = _collections != null && config.EnableCollectionNextParts
+                    ? _collections.GetNextParts(userId)
+                    : Array.Empty<(Guid ItemId, string Reason)>();
+                if (nextParts.Count > 0)
+                {
+                    movieRecs = RecommendationReranker.AddNextParts(
+                        movieRecs,
+                        nextParts,
+                        id => !metadata.TryGetValue(id, out var item) || !RatingQuality.IsBelowMinimum(item, config),
+                        config.MovieRecommendationCount);
+                }
+
+                // Begründung: persönlich bei Trakt empfohlen, von TMDB/Trakt als ähnlich genannt, sonst ähnlichster gesehener Titel
+                foreach (var recommendation in movieRecs.Concat(tvRecs).Where(r => r.Reason == null))
+                {
+                    if (personalHits != null && personalHits.ContainsKey(recommendation.ItemId))
+                    {
+                        recommendation.Reason = ExternalSimilarityScorer.TraktReason;
+                    }
+                    else if (external != null && external.TryGetValue(recommendation.ItemId, out var hit) && hit.Strength >= ExternalSimilarityScorer.ReasonThreshold
+                        && metadata.TryGetValue(hit.SeedId, out var seed))
+                    {
+                        recommendation.Reason = ExternalSimilarityScorer.SimilarTo(seed.Name);
+                    }
+                }
+
+                if (profile != null)
+                {
+                    RecommendationExplainer.Explain(movieRecs.Concat(tvRecs), profile.PositiveItemIds, embeddings, metadata);
+                }
+
+                // Welten: eigene Rangliste je Welt (Marvel, Star Wars, …)
+                _worldRankings[userId] = RankWorlds(profile, nextParts, embeddings, metadata, config);
+
+                _logger.LogDebug(
+                    "Generated recommendations for user {UserId}: {MovieCount} movies, {TvCount} TV",
+                    userId,
+                    movieRecs.Count,
+                    tvRecs.Count);
+
+                return (movieRecs, tvRecs);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to generate recommendations for user {UserId}", userId);
+                return (new List<ScoredRecommendation>(), new List<ScoredRecommendation>());
+            }
+        }
+
+        // Öffentliche Ähnlichkeitslisten auffrischen: gesehene/gemochte Titel zuerst, dann der übrige Bestand
+        private async Task RefreshExternalAsync(
+            IEnumerable<UserProfile?> profiles,
+            IReadOnlyDictionary<Guid, MediaItemMetadata> metadata,
+            PluginConfiguration config,
+            CancellationToken cancellationToken)
+        {
+            if (_external == null || !config.EnableExternalSimilarity || config.ExternalSimilarityWeight <= 0)
+            {
+                return;
+            }
+
+            var seeds = profiles.Where(p => p != null).SelectMany(p => p!.PositiveItemIds).Where(metadata.ContainsKey).Distinct().ToList();
+            var seedSet = seeds.ToHashSet();
+            var ordered = seeds.Select(id => metadata[id])
+                .Concat(metadata.Values.Where(m => !seedSet.Contains(m.Id)).OrderBy(m => m.Id));
+            try
+            {
+                var result = await _external.RefreshAsync(ordered, config, cancellationToken).ConfigureAwait(false);
+                if (result.Skipped != null)
+                {
+                    _logger.LogDebug("Ähnliche Titel (TMDB/Trakt) übersprungen: {Reason}", result.Skipped);
+                }
+                else if (result.Aborted)
+                {
+                    _logger.LogInformation(
+                        "Ähnliche Titel (TMDB/Trakt): {Fetched} Titel geholt, nach {Errors} Fehlern abgebrochen – {Pending} offen für die nächsten Läufe",
+                        result.Fetched,
+                        result.Errors,
+                        result.Pending);
+                }
+                else if (result.Requests > 0)
+                {
+                    _logger.LogInformation(
+                        "Ähnliche Titel (TMDB/Trakt): {Fetched} Titel geholt, {Pending} offen für die nächsten Läufe, {Errors} Fehler",
+                        result.Fetched,
+                        result.Pending,
+                        result.Errors);
+                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // Die eigenen Empfehlungen dürfen daran nie scheitern
+                _logger.LogWarning(ex, "Ähnliche Titel (TMDB/Trakt) konnten nicht aufgefrischt werden");
+            }
         }
     }
 }

@@ -194,13 +194,19 @@ Since 12.16.0 each world in `/LocalRecs/Worlds` has `TrailerItemId`, `TrailerIte
 
 Since 12.6.0: `GET /LocalRecs/Top10?type=all|movies|series&days=60&limit=10` returns the most watched movies and series of **all users** (more different viewers first, then plays; episodes count for their series). No admin rights needed; only titles visible to the signed-in user, no user names. **Thumbs up/down:** "like" counts like a favorite for watched titles (since 12.17.0 only weakly, 30 % without favorite boost, for never played titles, since Jellyfin Enhanced uses likes as a watchlist), "dislike" is never recommended and pulls similar titles down.
 
+### Similar titles from TMDB and Trakt (since 12.33.0)
+
+Public similarity lists are an extra signal on top of the own content similarity – mostly for users with little watch history (there the bonus counts twice):
+
+- TMDB "recommendations" and "similar" per title, optionally Trakt "related" (needs an own Trakt app, client ID). Library titles named as similar to watched or liked titles get a bonus (weight 0.25 by default); card reason „Ähnlich wie „…““.
+- Only the TMDB/IMDb ID of a title is sent – no users, no watch history. The whole library is looked up bit by bit (watched titles first), so the requests reflect the library, not what was watched. Cache 7 days, at most 400 titles per run. Key: own TMDB key (v3 or v4 read token) or the one of Jellyfin's TMDb plugin. Without key or on errors it is silently skipped.
+- **Personal Trakt recommendations** for users with a Trakt account (`/recommendations/movies` and `/shows`, weight 0.5, reason „Für dich bei Trakt empfohlen“): own login in Quallenkino (profile menu „Trakt-Empfehlungen“, device code; needs client ID and secret of an own Trakt app) or – read only – the link of the Trakt plugin (`Trakt.xml`, never refreshed or written back). Each user can switch it off; only the recommendation list is fetched every 12 hours, nothing is sent to Trakt. API: `GET/POST /LocalRecs/Trakt/Me`, `POST/DELETE /LocalRecs/Trakt/Me/Login`.
+- Concept for voluntarily shared watch histories (not built yet): [docs/konzept-gemeinsame-empfehlungen.md](docs/konzept-gemeinsame-empfehlungen.md) (German).
+
 ### Privacy
 
-**100% local processing:**
-- No external services or cloud dependencies
-- No tracking or telemetry
-- Only uses data already in your Jellyfin database
-- All computation happens on your server
+- All computation happens on your server; no tracking or telemetry
+- Outgoing: only title IDs to TMDB/Trakt (similar titles, see above) and, for linked users, the request of their Trakt recommendation list
 
 ### Live TV
 

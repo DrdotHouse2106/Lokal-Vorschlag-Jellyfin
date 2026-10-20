@@ -105,6 +105,11 @@ namespace Jellyfin.Plugin.LocalRecs.Models
         public string? TvdbId { get; set; }
 
         /// <summary>
+        /// Gets or sets the IMDb ID (for public similarity lists of Trakt).
+        /// </summary>
+        public string? ImdbId { get; set; }
+
+        /// <summary>
         /// Gets or sets the file path to the media item.
         /// </summary>
         public string? Path { get; set; }

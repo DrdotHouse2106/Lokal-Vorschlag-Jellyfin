@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.33.0] - 2026-10-20
+
+### Added
+
+- **Similar titles from TMDB and Trakt:** public similarity lists (TMDB "recommendations" and "similar" per title, optionally Trakt "related") are an extra signal. Library titles named as similar to watched or liked titles get a bonus („Gewicht der ähnlichen Titel“, default 0.25; doubled for users with little watch history) and the reason „Ähnlich wie „…““. Only title IDs are sent; the whole library is looked up bit by bit (watched titles first), so the requests reflect the library, not the watch history. Cache 7 days (`aehnliche-titel.json`), at most 400 titles per run, pause between requests, retry after HTTP 429, a rejected key stops that source for the run. Key: own TMDB key (v3 key or v4 read token) or the one of Jellyfin's TMDb plugin; Trakt needs an own Trakt app. Without key or on errors it is silently skipped.
+- **Personal Trakt recommendations** for users with a Trakt account (`/recommendations/movies` and `/shows`, weight 0.5, reason „Für dich bei Trakt empfohlen“): own login in Quallenkino with a code (profile menu „Trakt-Empfehlungen“, needs client ID and secret of an own Trakt app) or – read only – the link of the Trakt plugin (`Trakt.xml`, never refreshed or written back). Each user can switch it off; only the recommendation list is fetched (every 12 hours), nothing is sent to Trakt. API: `GET/POST /LocalRecs/Trakt/Me`, `POST/DELETE /LocalRecs/Trakt/Me/Login`.
+- Concept for voluntarily shared watch histories (not built): `docs/konzept-gemeinsame-empfehlungen.md`.
+
+### Changed
+
+- The IMDb ID is part of the item metadata (for Trakt).
+
 ## [12.32.0] - 2026-10-20
 
 ### Changed

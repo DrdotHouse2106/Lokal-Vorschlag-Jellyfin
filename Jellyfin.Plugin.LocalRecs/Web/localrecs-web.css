@@ -3039,3 +3039,23 @@ html.lr-profiles-open body {
 .lr-record-slot {
     display: contents;
 }
+
+/* Trakt-Empfehlungen */
+.lr-trakt-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    margin: 0.6em 0 1em;
+    cursor: pointer;
+}
+
+.lr-trakt-code {
+    margin: 0.8em 0;
+}
+
+.lr-trakt-usercode {
+    margin-top: 0.6em;
+    font-size: 2em;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+}

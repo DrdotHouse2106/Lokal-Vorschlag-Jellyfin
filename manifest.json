@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.33.0.0",
+        "changelog": "Bessere Empfehlungen\n- Ähnliche Titel von TMDB (und Trakt) als Zusatzsignal, besonders bei wenig Sehverlauf – „Ähnlich wie …“; gesendet werden nur Titel-IDs\n- Persönliche Trakt-Empfehlungen für Benutzer mit Trakt-Konto (eigene Anmeldung oder Verknüpfung des Trakt-Plugins, nur lesend), pro Benutzer abschaltbar\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.33.0.zip",
+        "checksum": "178f5b74250c76e68db04c1e3a0d949d",
+        "timestamp": "2026-10-21T00:00:00Z"
+      },
+      {
         "version": "12.32.0.0",
         "changelog": "iOS-App und Welten\n- Quallenkino-Player in der iOS-App wieder standardmäßig an (zurück pro Gerät über „Klassischer Player“)\n- Welt-Seite: Filter Filme/Serien nur, wenn es beides gibt\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
