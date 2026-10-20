@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.24.0] - 2026-10-20
+
+### Added
+
+- **Reminder bell in Jellyfin's own live TV views:** bell on tiles of upcoming programmes in the „Programme“ tab, „An Sendung erinnern“ / „An Serie erinnern“ at the top of the context menu, „Merken“ / „Serie merken“ in the guide's programme dialog. All bells of a programme update together.
+
+### Fixed
+
+- Jellyfin's programme rows (series, movies, sports, kids, news) also listed programmes that were already airing with their start time from the morning: requests with `hasAired=false` now get `minStartDate=now` and are sorted by start (old and new live TV page).
+- Start page preview card: „Weitere Infos“ on an airing programme started playback; it now opens the info view (only the play button plays). Upcoming programmes also open the info view with the bell instead of Jellyfin's detail page.
+
 ## [12.23.0] - 2026-10-20
 
 ### Changed

@@ -352,6 +352,18 @@
             } else {
                 delete reminders.ids[id];
             }
+            // Alle Glocken dieser Sendung (Kachel, Dialog, Menü) gleich anzeigen
+            document.querySelectorAll('.lr-reminder[data-program="' + id + '"]').forEach(function (other) {
+                other.classList.toggle('lr-on', on);
+                var otherIcon = other.querySelector('.lr-icon');
+                if (otherIcon) {
+                    otherIcon.textContent = on ? 'notifications_active' : 'notifications_none';
+                }
+                var otherText = other.querySelector('span:not(.lr-icon)');
+                if (otherText) {
+                    otherText.textContent = on ? 'Gemerkt' : 'Merken';
+                }
+            });
             if (onDone) {
                 onDone(on);
             }
@@ -375,9 +387,229 @@
                 });
             });
         b.classList.toggle('lr-on', isRemembered(item));
+        b.setAttribute('data-program', programKey(item.Id));
         b.title = 'An diese Sendung erinnern (Kalender)';
         return b;
     }
+
+    function seriesReminderButton(item) {
+        var seriesButton = button('lr-btn-link', 'repeat', 'Serie merken', function () {
+            post('LocalRecs/Reminders/Series/' + programKey(item.Id)).then(function () {
+                seriesButton.querySelector('span:not(.lr-icon)').textContent = 'Serie gemerkt';
+                seriesButton.classList.add('lr-on');
+            });
+        });
+        seriesButton.title = 'An alle künftigen Ausstrahlungen erinnern';
+        return seriesButton;
+    }
+
+    function isUpcoming(start) {
+        return !!start && Date.parse(start) > Date.now();
+    }
+
+    // ---------------------------------------------------------------- Glocke auch in Jellyfins eigenen Live-TV-Ansichten
+
+    // Zuletzt angeklickte Sendung (Kachel, ⋮-Knopf oder Zelle im Fernsehprogramm) – für Kontextmenü und Aufnahme-Dialog
+    var lastProgram = { id: null, time: 0 };
+
+    function rememberProgramTarget(e) {
+        var node = e.target && e.target.closest ? e.target.closest('[data-id][data-type="Program"]') : null;
+        if (node && !node.closest('.lr-home-root, .lr-overlay')) {
+            lastProgram = { id: node.getAttribute('data-id'), time: Date.now() };
+        }
+    }
+
+    document.addEventListener('pointerdown', rememberProgramTarget, true);
+    document.addEventListener('click', rememberProgramTarget, true);
+    document.addEventListener('contextmenu', rememberProgramTarget, true);
+
+    function remindersOn() {
+        return !!(state.config && state.config.Reminders && userId());
+    }
+
+    function loadProgram(id) {
+        return getJson('LiveTv/Programs/' + id + '?userId=' + userId());
+    }
+
+    // Kontextmenü (Aktionsblatt) einer künftigen Sendung: „An Sendung erinnern“ und „An Serie erinnern“
+    function extendActionSheet(sheet) {
+        if (!remindersOn() || !lastProgram.id || Date.now() - lastProgram.time > 3000 || sheet.querySelector('.lr-sheet-item')) {
+            return;
+        }
+        var scroller = sheet.querySelector('.actionSheetScroller');
+        if (!scroller || !scroller.querySelector('.actionSheetMenuItem')) {
+            return;
+        }
+        var id = lastProgram.id;
+        Promise.all([loadProgram(id), reminders.loaded ? null : loadReminders()]).then(function (results) {
+            var item = results[0];
+            if (!item || !isUpcoming(item.StartDate) || !document.body.contains(sheet)) {
+                return;
+            }
+            var sheetItem = function (iconName, text, onClick) {
+                var b = el('button', 'listItem listItem-button lr-sheet-item');
+                b.type = 'button';
+                var i = el('span', 'actionsheetMenuItemIcon listItemIcon listItemIcon-transparent material-icons ' + iconName);
+                i.setAttribute('aria-hidden', 'true');
+                b.appendChild(i);
+                var bodyBox = el('div', 'listItemBody actionsheetListItemBody');
+                var label = el('div', 'listItemBodyText actionSheetItemText', text);
+                bodyBox.appendChild(label);
+                b.appendChild(bodyBox);
+                b.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClick(b, label, i);
+                });
+                return b;
+            };
+            var single = sheetItem(isRemembered(item) ? 'notifications_active' : 'notifications_none',
+                isRemembered(item) ? 'Erinnerung entfernen' : 'An Sendung erinnern', function (b, label, i) {
+                    toggleReminder(item, function (on) {
+                        i.className = i.className.replace(/notifications_\w+/, on ? 'notifications_active' : 'notifications_none');
+                        label.textContent = on ? 'Erinnerung gesetzt ✓' : 'Erinnerung entfernt';
+                    });
+                });
+            var series = sheetItem('repeat', 'An Serie erinnern', function (b, label) {
+                post('LocalRecs/Reminders/Series/' + programKey(item.Id)).then(function () {
+                    label.textContent = 'Serie gemerkt ✓';
+                });
+            });
+            scroller.insertBefore(series, scroller.firstChild);
+            scroller.insertBefore(single, scroller.firstChild);
+        }).catch(function () {
+            return null;
+        });
+    }
+
+    // Dialog einer Sendung im Fernsehprogramm (Aufnahme-Dialog von Jellyfin): Glocke und „Serie merken“
+    function extendRecordingDialog(dialog) {
+        if (!remindersOn() || !lastProgram.id || Date.now() - lastProgram.time > 10000 || dialog.querySelector('.lr-rec-reminders')) {
+            return;
+        }
+        var id = lastProgram.id;
+        Promise.all([loadProgram(id), reminders.loaded ? null : loadReminders()]).then(function (results) {
+            var item = results[0];
+            var target = dialog.querySelector('.recordingDetails');
+            if (!item || !target || !isUpcoming(item.StartDate) || dialog.querySelector('.lr-rec-reminders')) {
+                return;
+            }
+            var box = el('div', 'lr-rec-reminders');
+            box.appendChild(reminderButton(item, true));
+            box.appendChild(seriesReminderButton(item));
+            var fields = target.querySelector('.recordingFields');
+            target.insertBefore(box, fields ? fields.nextSibling : null);
+        }).catch(function () {
+            return null;
+        });
+    }
+
+    // Kacheln künftiger Sendungen in Jellyfins Live-TV-Reihen: kleine Glocke oben rechts
+    function addCardBells(root) {
+        if (!remindersOn()) {
+            return;
+        }
+        (root || document).querySelectorAll('.card[data-type="Program"][data-startdate]:not(.lr-belled)').forEach(function (card) {
+            card.classList.add('lr-belled');
+            if (card.closest('.lr-home-root, .lr-overlay') || card.querySelector('.lr-native-bell') || !isUpcoming(card.getAttribute('data-startdate'))) {
+                return;
+            }
+            var box = card.querySelector('.cardScalable') || card.querySelector('.cardBox');
+            if (!box) {
+                return;
+            }
+            var item = { Id: card.getAttribute('data-id'), StartDate: card.getAttribute('data-startdate') };
+            var bell = reminderButton(item, false);
+            bell.classList.add('lr-card-bell', 'lr-native-bell');
+            bell.addEventListener('click', function (e) {
+                e.stopPropagation();
+            }, true);
+            box.appendChild(bell);
+        });
+    }
+
+    var bellObserverTimer = null;
+    new MutationObserver(function (mutations) {
+        mutations.forEach(function (m) {
+            m.addedNodes.forEach(function (node) {
+                if (node.nodeType !== 1) {
+                    return;
+                }
+                var sheet = node.classList.contains('actionSheet') ? node : node.querySelector && node.querySelector('.actionSheet');
+                if (sheet) {
+                    extendActionSheet(sheet);
+                }
+                var recording = node.classList.contains('recordingDialog') ? node : node.querySelector && node.querySelector('.recordingDialog');
+                if (recording) {
+                    // Inhalt kommt erst nach dem Laden der Sendung
+                    var tries = 0;
+                    var wait = window.setInterval(function () {
+                        tries++;
+                        if (recording.querySelector('.recordingDetails') || tries > 40) {
+                            window.clearInterval(wait);
+                            extendRecordingDialog(recording);
+                        }
+                    }, 100);
+                }
+            });
+        });
+        if (remindersOn() && document.querySelector('.card[data-type="Program"][data-startdate]:not(.lr-belled)')) {
+            window.clearTimeout(bellObserverTimer);
+            bellObserverTimer = window.setTimeout(function () {
+                if (!reminders.loaded) {
+                    loadReminders().then(function () {
+                        addCardBells();
+                    });
+                } else {
+                    addCardBells();
+                }
+            }, 300);
+        }
+    }).observe(document.documentElement, { childList: true, subtree: true });
+
+    // Programm-Reihen von Jellyfin (Serien, Filme, Sport …) zeigen sonst auch laufende Sendungen mit Startzeit von heute früh –
+    // dort nur künftige Sendungen nach Beginn sortiert; laufende stehen in „Gerade läuft“
+    // Gilt für die alte Seite (ApiClient, fetch) und die neue React-Seite (SDK, XMLHttpRequest) – beide fragen LiveTv/Programs ab
+    function upcomingProgramsUrl(requestUrl) {
+        if (typeof requestUrl !== 'string' || !/\/LiveTv\/Programs\?/i.test(requestUrl)) {
+            return requestUrl;
+        }
+        var query = requestUrl.slice(requestUrl.indexOf('?') + 1);
+        if (!/(^|&)hasAired=false(&|$)/i.test(query) || /(^|&)(isAiring|minStartDate|maxStartDate)=/i.test(query)) {
+            return requestUrl;
+        }
+        var extra = '&minStartDate=' + encodeURIComponent(new Date().toISOString());
+        if (!/(^|&)sortBy=/i.test(query)) {
+            extra += '&sortBy=StartDate';
+        }
+        return requestUrl + extra;
+    }
+
+    function patchUpcomingPrograms() {
+        if (window.lrUpcomingPatched) {
+            return;
+        }
+        window.lrUpcomingPatched = true;
+        var open = window.XMLHttpRequest && window.XMLHttpRequest.prototype.open;
+        if (open) {
+            window.XMLHttpRequest.prototype.open = function (method, requestUrl) {
+                var args = Array.prototype.slice.call(arguments);
+                args[1] = upcomingProgramsUrl(requestUrl);
+                return open.apply(this, args);
+            };
+        }
+        var originalFetch = window.fetch;
+        if (originalFetch) {
+            window.fetch = function (input, init) {
+                if (typeof input === 'string') {
+                    input = upcomingProgramsUrl(input);
+                }
+                return originalFetch.call(this, input, init);
+            };
+        }
+    }
+
+    patchUpcomingPrograms();
 
     function openCalendarDialog() {
         var dialog = overlayShell('lr-calendar');
@@ -580,7 +812,7 @@
             if (item.Type === 'TvChannel' || isAiring(item)) {
                 play(item);
             } else {
-                openDetailsPage(item);
+                openInfo(item);
             }
             return;
         }
@@ -905,7 +1137,12 @@
         actions.appendChild(likeButton(item));
         var more = button('lr-round lr-round-right', 'expand_more', null, function () {
             hidePreview();
-            itemClick(item);
+            // „Weitere Infos“ zeigt immer Infos – auch bei laufenden Sendungen (nur der Play-Knopf spielt ab)
+            if (item.Type === 'TvChannel') {
+                openDetailsPage(item);
+            } else {
+                openInfo(item);
+            }
         });
         more.title = 'Weitere Infos';
         actions.appendChild(more);
@@ -1226,14 +1463,7 @@
             if (!isAiring(item)) {
                 actions.appendChild(reminderButton(item, true));
             }
-            var seriesButton = button('lr-btn-link', 'repeat', 'Serie merken', function () {
-                post('LocalRecs/Reminders/Series/' + programKey(item.Id)).then(function () {
-                    seriesButton.querySelector('span:not(.lr-icon)').textContent = 'Serie gemerkt';
-                    seriesButton.classList.add('lr-on');
-                });
-            });
-            seriesButton.title = 'An alle künftigen Ausstrahlungen erinnern';
-            actions.appendChild(seriesButton);
+            actions.appendChild(seriesReminderButton(item));
             if (!reminders.loaded) {
                 loadReminders();
             }
@@ -4145,6 +4375,7 @@
         }).then(function () {
             lastUser = userId();
             rememberProfile();
+            patchUpcomingPrograms();
             api().getCurrentUser().then(function (user) {
                 state.liveTv = !!(user && user.Policy && user.Policy.EnableLiveTvAccess);
                 updateTabBar();
@@ -4177,6 +4408,7 @@
                     return null;
                 }).then(function () {
                     rememberProfile();
+                    patchUpcomingPrograms();
                     activate();
                 });
             }

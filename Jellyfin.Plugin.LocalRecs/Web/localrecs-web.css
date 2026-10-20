@@ -2911,3 +2911,24 @@ html.lr-profiles-open body {
     color: #6f6f7a;
     font-size: 0.85em;
 }
+
+/* Glocke in Jellyfins eigenen Live-TV-Ansichten */
+.lr-native-bell {
+    z-index: 3;
+    font-size: 0.8rem;
+}
+
+.lr-rec-reminders {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.8em;
+    margin: 0 0 1em;
+}
+
+.lr-rec-reminders .lr-reminder-label {
+    width: auto;
+    height: auto;
+    padding: 0.45em 1.1em 0.45em 0.8em;
+    border-radius: 999px;
+}

@@ -172,7 +172,13 @@ POST /LocalRecs/Avatars/Me  { "Icon": "tiere/katze", "Color": "#2e96e0" } → { 
 
 ### Live-TV-Erinnerungen und Kalender (ab 12.20.0)
 
-Sendungen aus dem Programmführer lassen sich merken – einzeln oder als ganze Serie (alle künftigen Ausstrahlungen mit gleichem Titel, gleiche Folgen nur einmal). Gemerktes erscheint in einem **Kalender-Abo (iCal)** pro Benutzer, mit Erinnerung vor Beginn (Standard 10 Minuten). So erinnert das Handy über den eigenen Kalender, ganz ohne zusätzliche App. In Jellyfin Web: Glocke an Live-TV-Kacheln und auf der Sendungsseite („Merken“, „Serie merken“), im Profilmenü „Erinnerungen im Kalender“ (Abonnieren, Link kopieren, QR-Code, Link erneuern).
+Sendungen aus dem Programmführer lassen sich merken – einzeln oder als ganze Serie (alle künftigen Ausstrahlungen mit gleichem Titel, gleiche Folgen nur einmal). Gemerktes erscheint in einem **Kalender-Abo (iCal)** pro Benutzer, mit Erinnerung vor Beginn (Standard 10 Minuten). So erinnert das Handy über den eigenen Kalender, ganz ohne zusätzliche App. In Jellyfin Web gibt es dafür mehrere Stellen:
+- **Glocke** auf den Kacheln künftiger Sendungen, auf der Startseite und ab 12.24.0 auch im Live-TV-Bereich von Jellyfin (Tab „Programme“).
+- **Kontextmenü** einer künftigen Sendung (⋮ oder Rechtsklick): „An Sendung erinnern“ und „An Serie erinnern“.
+- **Dialog einer Sendung im Fernsehprogramm** sowie Info-Ansicht: „Merken“ und „Serie merken“.
+- **Profilmenü:** „Erinnerungen im Kalender“ (Abonnieren, Link kopieren, QR-Code, Link erneuern).
+
+In den Programm-Reihen von Jellyfin (Serien, Filme, Sport, Für Kinder, Nachrichten) stehen ab 12.24.0 nur noch künftige Sendungen, nach Beginn sortiert. Laufende Sendungen stehen in „Gerade läuft“.
 
 ```
 GET    /LocalRecs/Reminders                    → [{ ProgramId, ChannelId, ChannelName, SeriesKey, Name, EpisodeTitle, Overview, StartDate, EndDate, IsSeries }]
