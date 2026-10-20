@@ -26,7 +26,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         private static PluginConfiguration Config => Plugin.Instance?.Configuration ?? new PluginConfiguration();
 
         /// <summary>
-        /// Checks whether a user gets the Netflix-style player (IDs compared without dashes, case-insensitive).
+        /// Checks whether a user gets the Quallenkino-style player (IDs compared without dashes, case-insensitive).
         /// </summary>
         /// <param name="userIds">Configured user IDs.</param>
         /// <param name="userId">User ID.</param>
@@ -98,13 +98,13 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// </summary>
         public class WebConfig
         {
-            /// <summary>Gets or sets a value indicating whether the Netflix-style start page is on.</summary>
+            /// <summary>Gets or sets a value indicating whether the Quallenkino-style start page is on.</summary>
             public bool HomeEnabled { get; set; }
 
             /// <summary>Gets or sets a value indicating whether the Quallenkino colors are on.</summary>
             public bool ThemeEnabled { get; set; }
 
-            /// <summary>Gets or sets a value indicating whether the signed-in user gets the Netflix-style player.</summary>
+            /// <summary>Gets or sets a value indicating whether the signed-in user gets the Quallenkino-style player.</summary>
             public bool PlayerEnabled { get; set; }
 
             /// <summary>Gets or sets a value indicating whether the "Wer schaut?" profile picker is on (since 12.21.0).</summary>

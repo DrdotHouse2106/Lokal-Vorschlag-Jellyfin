@@ -70,7 +70,7 @@ namespace Jellyfin.Plugin.LocalRecs
 
             serviceCollection.AddHostedService<HomeScreenSectionsIntegration>();
 
-            // Startseite im Netflix-Stil für Jellyfin Web (über das Plugin „File Transformation“)
+            // Startseite im Quallenkino-Stil für Jellyfin Web (über das Plugin „File Transformation“)
             serviceCollection.AddHostedService<Web.WebIntegration>();
 
             // Empfehlungen für TV-Apps ohne Home Screen Sections (GET /LocalRecs/Recommendations)

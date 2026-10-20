@@ -5,7 +5,7 @@ using Xunit;
 namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
 {
     /// <summary>
-    /// Tests für die Freigabe des Netflix-Players pro Benutzer.
+    /// Tests für die Freigabe des Quallenkino-Players pro Benutzer.
     /// </summary>
     public class WebPlayerUserTests
     {

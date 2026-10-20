@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.26.1] - 2026-10-20
+
+### Changed
+
+- Wording: the start page, detail view and player of Jellyfin Web are now called „Quallenkino-Stil“ / „Quallenkino-Player“ in the settings, the web module, the README and the catalog texts (no more references to other streaming services).
+
 ## [12.26.0] - 2026-10-20
 
 ### Added
@@ -15,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Settings page completely in German (tabs „Einstellungen“ and „Aktionen“, all labels, help texts and buttons); scheduled tasks are now called „Empfehlungen aktualisieren“ and „Leistungstest der Empfehlungen“ (keys unchanged).
-- The Netflix-style player is no longer marked as test.
+- The Quallenkino-style player is no longer marked as test.
 - README (de/en) brought up to date: feature list, manual installation without fixed version numbers, tab names, detail view, profile menu, preview card bell, EPG provider.
 
 ## [12.25.1] - 2026-10-20
@@ -28,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Record from the Netflix-style views:** info view of a programme with „Aufnehmen“ and, for series, „Serie aufnehmen“ (status „Aufnahme geplant ✓“ / „Serie wird aufgenommen ✓“, a second click cancels after a confirmation); round record button on the start page preview card. Uses Jellyfin's defaults (`GET /LiveTv/Timers/Defaults?programId=`, then `POST /LiveTv/Timers` or `/LiveTv/SeriesTimers`), only for users allowed to manage recordings.
+- **Record from the Quallenkino-style views:** info view of a programme with „Aufnehmen“ and, for series, „Serie aufnehmen“ (status „Aufnahme geplant ✓“ / „Serie wird aufgenommen ✓“, a second click cancels after a confirmation); round record button on the start page preview card. Uses Jellyfin's defaults (`GET /LiveTv/Timers/Defaults?programId=`, then `POST /LiveTv/Timers` or `/LiveTv/SeriesTimers`), only for users allowed to manage recordings.
 
 ### Changed
 
@@ -49,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Profile menu in the Netflix style** (Jellyfin Web with the Netflix start page): black, slim rows with grey icons, underline on hover, „Abmelden“ set apart at the bottom. At the top the other saved profiles of „Wer schaut?“ with their image (one click switches) and „Profile verwalten“ (opens the picker in manage mode).
+- **Profile menu in the Quallenkino style** (Jellyfin Web with the Quallenkino start page): black, slim rows with grey icons, underline on hover, „Abmelden“ set apart at the bottom. At the top the other saved profiles of „Wer schaut?“ with their image (one click switches) and „Profile verwalten“ (opens the picker in manage mode).
 
 ### Fixed
 
@@ -80,12 +86,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Live TV reminders with calendar subscription**: remember single programmes or whole series (all future broadcasts with the same title within 14 days, episodes with the same title only once). Per-user iCal feed with a secret token (`/LocalRecs/Calendar/{token}.ics`, no sign-in needed for calendar apps), alarm before the start (setting, default 10 min), events from 2 days ago onwards; link can be renewed (old link stops working). API for apps: `/LocalRecs/Reminders`, `/LocalRecs/Reminders/Series`, `/LocalRecs/Calendar`, `/LocalRecs/Calendar/Renew`, `/LocalRecs/Calendar/Qr` (QR code as SVG, own encoder without extra package). `/LocalRecs/Web/Config` reports `"Reminders": true`.
-- Jellyfin Web: bell on upcoming live TV tiles, programme page in the Netflix style with „Merken“ / „Serie merken“ (and „Einschalten“ while airing), profile menu „Erinnerungen im Kalender“ with subscribe (webcal), copy link, QR code, renew link and the list of reminders.
+- Jellyfin Web: bell on upcoming live TV tiles, programme page in the Quallenkino style with „Merken“ / „Serie merken“ (and „Einschalten“ while airing), profile menu „Erinnerungen im Kalender“ with subscribe (webcal), copy link, QR code, renew link and the list of reminders.
 - Settings: public address for calendar links, reminder minutes.
 
 ### Changed
 
-- Netflix player: the audio & subtitles button shows a speech bubble with lines instead of „CC“.
+- Quallenkino player: the audio & subtitles button shows a speech bubble with lines instead of „CC“.
 
 ### Fixed
 
@@ -95,32 +101,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Netflix-style player (test, opt-in per user)** for Jellyfin Web and the phone apps – new setting „Netflix-Player (Test) für diese Benutzer“. Own controls over the playback, Jellyfin keeps playing (no own player core):
+- **Quallenkino-style player (test, opt-in per user)** for Jellyfin Web and the phone apps – new setting „Quallenkino-Player (Test) für diese Benutzer“. Own controls over the playback, Jellyfin keeps playing (no own player core):
   - top: back and title (series · S1:F5 title, live TV: channel and programme);
   - centre: big play/pause and ±10 s; bottom: wide progress bar with gradient, trickplay preview while dragging/hovering, remaining time;
   - right: next episode, episode list of the season, audio & subtitles in one menu, speed, fullscreen, ⋮ (quality & playback settings, chapters, picture-in-picture, AirPlay, recording, „Klassischer Player“);
   - volume on PCs only; controls hide after 3 s; keyboard keeps Jellyfin's keys (space, arrows, F, M); phones: tap shows/hides, double tap left/right = ±10 s;
   - seeking uses Jellyfin's position slider (correct with transcoding and live TV), audio/subtitle changes are sent to the own session like Jellyfin's remote control (fallback: Jellyfin's menus); live TV: no seeking, LIVE badge, channel up/down; music is not affected; safe areas for the iOS app;
   - skip countdown and Jellyfin's „Up next“ stay on top;
-  - „Klassischer Player“ is stored per device; „Netflix-Player einschalten“ in the profile menu switches back.
+  - „Klassischer Player“ is stored per device; „Quallenkino-Player einschalten“ in the profile menu switches back.
 
 ## [12.18.7] - 2026-10-19
 
 ### Added
 
-- Netflix-style details page also for episodes (series logo, „S2:F5 Title“, resume, Jellyfin buttons, „Zur Serie“, episode list of the season with the current episode highlighted) and seasons (the series page with that season selected).
+- Quallenkino-style details page also for episodes (series logo, „S2:F5 Title“, resume, Jellyfin buttons, „Zur Serie“, episode list of the season with the current episode highlighted) and seasons (the series page with that season selected).
 
 ## [12.18.6] - 2026-10-19
 
 ### Added
 
-- Netflix-style details page: Jellyfin's detail buttons are shown in the new design – mark as watched, trailer, shuffle, instant mix, download, split versions, cancel recording and the ⋮ menu (add to collection/playlist, download, copy stream link, delete, edit metadata/images/subtitles, identify, media info, refresh). They trigger Jellyfin's own buttons, so permissions, confirmations and menus stay Jellyfin's; menus open at the new button.
+- Quallenkino-style details page: Jellyfin's detail buttons are shown in the new design – mark as watched, trailer, shuffle, instant mix, download, split versions, cancel recording and the ⋮ menu (add to collection/playlist, download, copy stream link, delete, edit metadata/images/subtitles, identify, media info, refresh). They trigger Jellyfin's own buttons, so permissions, confirmations and menus stay Jellyfin's; menus open at the new button.
 
 ## [12.18.5] - 2026-10-19
 
 ### Added
 
-- Jellyfin Web: the details page of movies and series (also when opened from a library, the search or on phones) uses the Netflix-style view like the overlay on the start page: large backdrop with trailer, logo, „Abspielen“, my list, like, cast, seasons with episodes, similar titles. „Alle Optionen“ switches to Jellyfin's own details page (versions, audio/subtitles, editing …). Other types (episodes, people, collections …) keep Jellyfin's page.
+- Jellyfin Web: the details page of movies and series (also when opened from a library, the search or on phones) uses the Quallenkino-style view like the overlay on the start page: large backdrop with trailer, logo, „Abspielen“, my list, like, cast, seasons with episodes, similar titles. „Alle Optionen“ switches to Jellyfin's own details page (versions, audio/subtitles, editing …). Other types (episodes, people, collections …) keep Jellyfin's page.
 
 ## [12.18.4] - 2026-10-19
 
@@ -131,7 +137,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Skip like in Quallenkino: during an intro, outro, recap or preview segment (media segments, e.g. from Intro Skipper) a button „Intro überspringen“ / „Abspann überspringen“ … appears with a 5-second progress fill and then skips automatically. Cancel with × , Esc or Back. Uses Jellyfin's own skip (correct with transcoding) when available, otherwise seeks the video. Active when the start page or the colors are on; also on phones.
-- Player in Netflix look (with the Quallenkino colors): dark gradients at the top and bottom, bigger title, white controls, slim position slider with the gradient, Jellyfin's skip button in the same style.
+- Player in Quallenkino look (with the Quallenkino colors): dark gradients at the top and bottom, bigger title, white controls, slim position slider with the gradient, Jellyfin's skip button in the same style.
 
 ## [12.18.3] - 2026-10-19
 
@@ -147,8 +153,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Jellyfin Web: tidy header like Netflix (when the start page is on). PCs: logo with Startseite, Serien, Filme, Live-TV, Meine Liste and „Bibliotheken ▾“ (all libraries); on the right only cast, search and profile. Phones: menu, search and profile. SyncPlay and icons of other plugins move to the top of the profile menu (they still open their own menus).
-- Top 10: the big number lies over the bottom left of the poster, as on Netflix; on phones about 3 titles per screen width.
+- Jellyfin Web: tidy header like a streaming app (when the start page is on). PCs: logo with Startseite, Serien, Filme, Live-TV, Meine Liste and „Bibliotheken ▾“ (all libraries); on the right only cast, search and profile. Phones: menu, search and profile. SyncPlay and icons of other plugins move to the top of the profile menu (they still open their own menus).
+- Top 10: the big number lies over the bottom left of the poster, as in streaming apps; on phones about 3 titles per screen width.
 - Phones: the hero card got an „Info“ button; the trailer fills the card (letterbox bars are cropped).
 - iOS app: no own tab bar at the bottom (the app has its own bar); Safari and Android keep it.
 
@@ -167,11 +173,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Start page in Netflix style for Jellyfin Web** (browser and the Jellyfin apps for iOS/Android), injected via the plugin "File Transformation" (setting „Startseite im Netflix-Stil“, off by default):
+- **Start page in Quallenkino style for Jellyfin Web** (browser and the Jellyfin apps for iOS/Android), injected via the plugin "File Transformation" (setting „Startseite im Quallenkino-Stil“, off by default):
   - large hero with backdrop, logo, reason, „Abspielen“/„Weitere Infos“ and the local trailer (always muted; sound button only on PCs), header transparent over the hero and dark when scrolling;
   - all rows of the TV app Quallenkino, loaded in parallel: Weiterschauen, Als Nächstes, recommended movies/series with reason, Heute im TV für dich, Top 10 with big numbers, Welten (tile → world page with filter and sorting), Jetzt im TV, „Neu in …“ per library, random genre rows, libraries;
   - PCs: arrows at the row edges and a preview card on hover (play, my list, like, more info); „Weitere Infos“ opens a detail overlay (episodes per season, similar titles, cast) instead of a new page;
-  - phones like the Netflix app: hero as a card with poster, logo and genres, „Abspielen“/„Meine Liste“, chips „Serien“/„Filme“/„Meine Liste“, portrait posters (about 3.3 per screen), worlds as circles, tab bar at the bottom (Startseite, Suche, Live-TV, Meine Liste, Mehr);
+  - phones like a streaming app: hero as a card with poster, logo and genres, „Abspielen“/„Meine Liste“, chips „Serien“/„Filme“/„Meine Liste“, portrait posters (about 3.3 per screen), worlds as circles, tab bar at the bottom (Startseite, Suche, Live-TV, Meine Liste, Mehr);
   - the last start page is shown immediately from the browser storage and refreshed row by row in the background; „Abspielen“ starts playback in the same browser/app (remote command to the own session, fallback: details page);
   - every user can switch back to the classic start page at the bottom of the page.
 - Setting „Quallenkino-Farben“: dark blue with the violet-blue gradient for all of Jellyfin Web, including side menu, playback bar and buttons.

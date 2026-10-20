@@ -27,12 +27,12 @@ Please report any issues or feedback on [GitHub Issues](https://github.com/Drdot
 - **Real library items** - full metadata, shared watch state, no duplicates in "Continue Watching", no extra libraries
 - **Live TV** - tracks which programs you watch live (all clients, including TV apps) and shows the row **"Heute im TV für dich"** with matching upcoming programs from the EPG
 - **Own programme guide provider "LocalRecs EPG"** - replaces Jellyfin's XMLTV provider; rule blocks decide movie or series, season/episode are kept, recordings land in the right folder
-- **Netflix-style Jellyfin Web** (browser, iOS and Android app) - start page with all rows, detail view, Netflix-style player, skip with countdown, tidy header and profile menu
+- **Quallenkino-style Jellyfin Web** (browser, iOS and Android app) - start page with all rows, detail view, Quallenkino-style player, skip with countdown, tidy header and profile menu
 - **"Wer schaut?"** - profile picker on start, one click to switch, no PIN
 - **Profile images** - pick a figure and a background colour, the server renders the round image
 - **Live TV reminders** - remember programmes and series, iCal calendar subscription with alarm, QR code for phones
 - **Recording** - record a programme or a series right from the info view
-- **Worlds like Disney+** and **"Top 10 bei euch"** - for apps like Quallenkino and the Netflix-style start page
+- **Worlds like Disney+** and **"Top 10 bei euch"** - for apps like Quallenkino and the Quallenkino-style start page
 - **APIs for TV apps** - everything also for own apps (Quallenkino for Android TV, Fire TV and webOS)
 - **Privacy-first** - All processing happens locally on your server
 - **Performance optimized** - Handles 2,000+ item libraries efficiently
@@ -131,20 +131,20 @@ Access via: **Dashboard → Plugins → Local Recommendations**. Tabs (German UI
 - The plugin registers two sections with Home Screen Sections; when a user's home screen is built, the sections return the real library items for exactly that user
 - Items the user can no longer see, or has watched/started in the meantime, are filtered out at request time
 
-### Netflix-style start page for Jellyfin Web (since 12.18.0)
+### Quallenkino-style start page for Jellyfin Web (since 12.18.0)
 
-In the browser and the Jellyfin apps for iOS and Android the start page can look like Netflix, with all rows of the TV app Quallenkino. Requires the plugin **File Transformation**. Turn it on in the settings („Startseite im Netflix-Stil“); the Quallenkino colors are a separate setting („Quallenkino-Farben“).
+In the browser and the Jellyfin apps for iOS and Android the start page can look like the TV app Quallenkino, with all its rows. Requires the plugin **File Transformation**. Turn it on in the settings („Startseite im Quallenkino-Stil“); the Quallenkino colors are a separate setting („Quallenkino-Farben“).
 
 - Large hero with backdrop, logo, reason, "Play" and "More info"; a local trailer plays in the background (always muted, sound button on PCs). The header is transparent over the hero and turns dark when scrolling.
 - Rows: continue watching, next up, recommended movies and series (with reason), today on TV for you, Top 10 (big numbers), worlds (opens the world page with filter and sorting), on now, "new in …" per library, genre rows and libraries. Loaded in parallel; the last start page is shown immediately from browser storage and refreshed row by row.
 - PCs: arrows at the row edges and a preview card on hover; "More info" opens an overlay with episodes per season, similar titles and cast.
-- Phones like the Netflix app: hero as a card with poster, logo and genres, chips, portrait posters, worlds as circles and a tab bar at the bottom.
-- Netflix-style player (since 12.19.0) for the users selected under „Netflix-Player für diese Benutzer“: own controls (back/title, big play/pause and ±10 s, progress bar with trickplay preview, audio & subtitles in one menu, episode list, speed, fullscreen, ⋮), Jellyfin keeps playing. „Klassischer Player“ under ⋮ per device.
+- Phones like a streaming app: hero as a card with poster, logo and genres, chips, portrait posters, worlds as circles and a tab bar at the bottom.
+- Quallenkino-style player (since 12.19.0) for the users selected under „Quallenkino-Player für diese Benutzer“: own controls (back/title, big play/pause and ±10 s, progress bar with trickplay preview, audio & subtitles in one menu, episode list, speed, fullscreen, ⋮), Jellyfin keeps playing. „Klassischer Player“ under ⋮ per device.
 - "Play" starts playback in the same browser/app. Every user can switch back to the classic start page at the bottom of the page. Files are loaded with the plugin version as query (`?v=…`), so apps with a web cache get updates right away.
 
 ### "Wer schaut?" – profile picker (since 12.21.0)
 
-So that every person gets their own recommendations, Jellyfin Web shows a profile picker with avatars when it opens, like Netflix. Turn it on in the settings („Wer schaut?“ – Profilauswahl, default off; requires **File Transformation**).
+So that every person gets their own recommendations, Jellyfin Web shows a profile picker with avatars when it opens, like streaming services. Turn it on in the settings („Wer schaut?“ – Profilauswahl, default off; requires **File Transformation**).
 
 - **No PIN:** each profile signs in once via „Profil hinzufügen“, afterwards one click switches. The other profiles stay signed in.
 - Sign-ins are stored **only in that browser** (the same way Jellyfin stores its own sign-in), not on the server.

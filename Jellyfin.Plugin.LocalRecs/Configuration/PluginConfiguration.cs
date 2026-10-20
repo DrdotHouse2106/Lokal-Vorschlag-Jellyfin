@@ -257,7 +257,7 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
 
         /// <summary>
         /// Gets or sets a value indicating whether Jellyfin Web (browser and the iOS/Android apps) shows the start page
-        /// in Netflix style with all rows of the TV app (needs the plugin "File Transformation").
+        /// in Quallenkino style with all rows of the TV app (needs the plugin "File Transformation").
         /// </summary>
         public bool WebHomeEnabled { get; set; }
 
@@ -329,7 +329,7 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         public string EpgSportsChannels { get; set; }
 
         /// <summary>
-        /// Gets or sets the users (IDs without dashes) who get the Netflix-style player in Jellyfin Web (test, opt-in).
+        /// Gets or sets the users (IDs without dashes) who get the Quallenkino-style player in Jellyfin Web (test, opt-in).
         /// </summary>
         public string[] WebPlayerUserIds { get; set; }
 

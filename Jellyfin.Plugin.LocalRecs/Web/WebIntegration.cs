@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.LocalRecs.Web
 {
     /// <summary>
-    /// Hängt das Web-Modul (Startseite im Netflix-Stil, Quallenkino-Farben) über das Plugin „File Transformation“
+    /// Hängt das Web-Modul (Startseite im Quallenkino-Stil, Quallenkino-Farben) über das Plugin „File Transformation“
     /// in die index.html von Jellyfin Web ein. Ob es aktiv ist, entscheidet das Skript anhand der Einstellungen,
     /// so wirken Änderungen ohne Neustart.
     /// </summary>
@@ -118,7 +118,7 @@ namespace Jellyfin.Plugin.LocalRecs.Web
                 }
             }
 
-            _logger.LogInformation("Plugin „File Transformation“ nicht gefunden – die Startseite im Netflix-Stil für Jellyfin Web ist nicht verfügbar");
+            _logger.LogInformation("Plugin „File Transformation“ nicht gefunden – die Startseite im Quallenkino-Stil für Jellyfin Web ist nicht verfügbar");
         }
 
         private bool TryRegister()
@@ -143,7 +143,7 @@ namespace Jellyfin.Plugin.LocalRecs.Web
                 });
                 register.Invoke(null, new[] { parse.Invoke(null, new object[] { json }) });
                 Registered = true;
-                _logger.LogInformation("Web-Modul (Startseite im Netflix-Stil) bei „File Transformation“ angemeldet");
+                _logger.LogInformation("Web-Modul (Startseite im Quallenkino-Stil) bei „File Transformation“ angemeldet");
                 return true;
             }
             catch (Exception ex) when (ex is TargetInvocationException || ex is ArgumentException || ex is InvalidOperationException)

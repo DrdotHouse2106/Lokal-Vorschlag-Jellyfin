@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.26.1.0",
+        "changelog": "Texte: „Quallenkino-Stil“ statt Verweisen auf andere Streaming-Dienste / wording\n- Einstellungen, Web-Modul, README und Katalogtexte angepasst\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.26.1.zip",
+        "checksum": "c720b192fdca7bbf9004322dddd94c16",
+        "timestamp": "2026-10-20T10:00:00Z"
+      },
+      {
         "version": "12.26.0.0",
         "changelog": "Eigener Fernsehprogramm-Anbieter „LocalRecs EPG“, Einstellungen auf Deutsch / own programme guide provider, German settings\n- Film oder Serie über Regel-Bausteine statt Kategorienliste: Staffel, Folge und Folgentitel bleiben erhalten, Aufnahmen landen richtig\n- Neuer Reiter „Fernsehprogramm“: einrichten (Senderzuordnung übernehmen), Regeln, Test mit Begründung\n- Einstellungsseite und geplante Aufgaben komplett auf Deutsch, README aktualisiert\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
@@ -42,7 +50,7 @@
       },
       {
         "version": "12.23.0.0",
-        "changelog": "Profilmenü im Netflix-Stil, Kalender-Abo auf dem iPhone repariert / Netflix-style profile menu, iPhone calendar fix\n- Profilmenü: andere Profile mit Bild oben, „Profile verwalten“, Abmelden unten; Würfel-Symbol für „Zufälliger Titel“\n- QR-Code führt auf eine Abo-Seite (iPhone-Kamera öffnet keine webcal-Links), leerer Kalender mit Platzhalter\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "changelog": "Profilmenü im Quallenkino-Stil, Kalender-Abo auf dem iPhone repariert / Quallenkino-style profile menu, iPhone calendar fix\n- Profilmenü: andere Profile mit Bild oben, „Profile verwalten“, Abmelden unten; Würfel-Symbol für „Zufälliger Titel“\n- QR-Code führt auf eine Abo-Seite (iPhone-Kamera öffnet keine webcal-Links), leerer Kalender mit Platzhalter\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.23.0.zip",
         "checksum": "481b8a023157d28fd0f07ac87f2f20b5",
@@ -66,7 +74,7 @@
       },
       {
         "version": "12.20.0.0",
-        "changelog": "Live-TV-Erinnerungen per Kalender / Live TV reminders via calendar\n- Sendungen und Serien merken, Kalender-Abo (iCal) mit Erinnerung 10 Minuten vorher, QR-Code\n- Schnittstelle für Apps: /LocalRecs/Reminders, /LocalRecs/Calendar\n- Netflix-Player: neues Symbol für Ton & Untertitel\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "changelog": "Live-TV-Erinnerungen per Kalender / Live TV reminders via calendar\n- Sendungen und Serien merken, Kalender-Abo (iCal) mit Erinnerung 10 Minuten vorher, QR-Code\n- Schnittstelle für Apps: /LocalRecs/Reminders, /LocalRecs/Calendar\n- Quallenkino-Player: neues Symbol für Ton & Untertitel\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.20.0.zip",
         "checksum": "d18de9c7ec25a3dc998c720abf9c95aa",
@@ -74,7 +82,7 @@
       },
       {
         "version": "12.19.0.0",
-        "changelog": "Netflix-Player (Test) für ausgewählte Benutzer / Netflix-style player (test, opt-in)\n- Eigene Steuerleiste: Titel, große Play/Pause- und ±10-s-Knöpfe, Zeitleiste mit Vorschaubildern, Ton & Untertitel in einem Menü, Folgenliste, Geschwindigkeit\n- Jellyfin spielt weiter selbst ab; „Klassischer Player“ pro Gerät\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "changelog": "Quallenkino-Player (Test) für ausgewählte Benutzer / Quallenkino-style player (test, opt-in)\n- Eigene Steuerleiste: Titel, große Play/Pause- und ±10-s-Knöpfe, Zeitleiste mit Vorschaubildern, Ton & Untertitel in einem Menü, Folgenliste, Geschwindigkeit\n- Jellyfin spielt weiter selbst ab; „Klassischer Player“ pro Gerät\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.19.0.zip",
         "checksum": "4e4393800a49c14057bde38c6c22e9b8",
@@ -82,7 +90,7 @@
       },
       {
         "version": "12.18.7.0",
-        "changelog": "Detailseite im Netflix-Stil auch für Folgen und Staffeln / Netflix-style details for episodes and seasons\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "changelog": "Detailseite im Quallenkino-Stil auch für Folgen und Staffeln / Quallenkino-style details for episodes and seasons\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.18.7.zip",
         "checksum": "6d24bb2c9ea63ef3124c5df1737b9c34",
@@ -90,7 +98,7 @@
       },
       {
         "version": "12.18.6.0",
-        "changelog": "Detailseite: Jellyfin-Knöpfe im neuen Design / Jellyfin detail buttons in the new design\n- Gesehen, Trailer, Download und ⋮-Menü (Löschen, Bearbeiten, Zur Sammlung …) direkt in der Netflix-Ansicht\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "changelog": "Detailseite: Jellyfin-Knöpfe im neuen Design / Jellyfin detail buttons in the new design\n- Gesehen, Trailer, Download und ⋮-Menü (Löschen, Bearbeiten, Zur Sammlung …) direkt in der Quallenkino-Ansicht\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.18.6.zip",
         "checksum": "1dceae7d6e8ac1a49f8adb9878a9d316",
@@ -98,7 +106,7 @@
       },
       {
         "version": "12.18.5.0",
-        "changelog": "Detailseite im Netflix-Stil / Netflix-style details page\n- Filme und Serien zeigen überall (auch Handy, Bibliothek, Suche) die neue Ansicht mit Trailer, Staffeln und ähnlichen Titeln\n- „Alle Optionen“ öffnet die Jellyfin-Detailseite\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "changelog": "Detailseite im Quallenkino-Stil / Quallenkino-style details page\n- Filme und Serien zeigen überall (auch Handy, Bibliothek, Suche) die neue Ansicht mit Trailer, Staffeln und ähnlichen Titeln\n- „Alle Optionen“ öffnet die Jellyfin-Detailseite\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.18.5.zip",
         "checksum": "7988d1717a18164172c0932609770b64",
@@ -106,7 +114,7 @@
       },
       {
         "version": "12.18.4.0",
-        "changelog": "Fix: schwarzes Bild bei der Wiedergabe / Fix: black picture during playback\n- Quallenkino-Farben überdecken das Video nicht mehr\n- Überspringen wie in Quallenkino: „Intro überspringen“ mit 5-Sekunden-Countdown\n- Player im Netflix-Look\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "changelog": "Fix: schwarzes Bild bei der Wiedergabe / Fix: black picture during playback\n- Quallenkino-Farben überdecken das Video nicht mehr\n- Überspringen wie in Quallenkino: „Intro überspringen“ mit 5-Sekunden-Countdown\n- Player im Quallenkino-Look\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.18.4.zip",
         "checksum": "0e10d3ef4d135e6177bf631a61978d7d",
@@ -114,7 +122,7 @@
       },
       {
         "version": "12.18.3.0",
-        "changelog": "Netflix-Startseite: Profilmenü und Seitenmenü / Profile and side menu\n- Würfel (Jellyfin Enhanced) und andere Plugin-Knöpfe zuverlässig im Profilmenü, auch auf dem iPhone\n- Profilmenü einheitlich hell, Suchsymbol weiß\n- Seitenmenü in Quallenkino-Farben (auch iOS-App)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "changelog": "Quallenkino-Startseite: Profilmenü und Seitenmenü / Profile and side menu\n- Würfel (Jellyfin Enhanced) und andere Plugin-Knöpfe zuverlässig im Profilmenü, auch auf dem iPhone\n- Profilmenü einheitlich hell, Suchsymbol weiß\n- Seitenmenü in Quallenkino-Farben (auch iOS-App)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.18.3.zip",
         "checksum": "503b67e8801b090878744bfd407264c4",
@@ -122,7 +130,7 @@
       },
       {
         "version": "12.18.2.0",
-        "changelog": "Netflix-Startseite: Kopfleiste aufgeräumt, Top 10 wie Netflix / Tidy header, Netflix-style Top 10\n- Kopfleiste: Startseite, Serien, Filme, Live-TV, Meine Liste, Bibliotheken ▾; SyncPlay & Co. im Profilmenü\n- Top-10-Ziffern über dem Poster\n- Handy: Info-Knopf, Trailer füllt die Karte, keine doppelte Leiste in der iOS-App\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "changelog": "Quallenkino-Startseite: Kopfleiste aufgeräumt, Top 10 mit großen Ziffern / Tidy header, Quallenkino-style Top 10\n- Kopfleiste: Startseite, Serien, Filme, Live-TV, Meine Liste, Bibliotheken ▾; SyncPlay & Co. im Profilmenü\n- Top-10-Ziffern über dem Poster\n- Handy: Info-Knopf, Trailer füllt die Karte, keine doppelte Leiste in der iOS-App\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.18.2.zip",
         "checksum": "2fd32379acd509f3e13defe51d5ac660",
@@ -130,7 +138,7 @@
       },
       {
         "version": "12.18.1.0",
-        "changelog": "Netflix-Startseite: Feinschliff / Netflix start page polish\n- Keine doppelten Titel auf Kacheln, kleineres Logo und Beschreibung im Infobereich\n- Genre-Reihen nur deutsch und mit mindestens 8 Titeln, Begründung nur in Empfehlungsreihen\n- Ersatzbild für Kacheln ohne Bild, Top-10-Ziffern besser lesbar\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "changelog": "Quallenkino-Startseite: Feinschliff / Quallenkino start page polish\n- Keine doppelten Titel auf Kacheln, kleineres Logo und Beschreibung im Infobereich\n- Genre-Reihen nur deutsch und mit mindestens 8 Titeln, Begründung nur in Empfehlungsreihen\n- Ersatzbild für Kacheln ohne Bild, Top-10-Ziffern besser lesbar\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.18.1.zip",
         "checksum": "6fb5bcae652ade7a0ccfcea5dbd2a1c7",
@@ -138,7 +146,7 @@
       },
       {
         "version": "12.18.0.0",
-        "changelog": "Startseite im Netflix-Stil für Jellyfin Web / Netflix-style start page for Jellyfin Web\n- Großer Infobereich mit stummem Trailer, alle Reihen der TV-App (Top 10, Welten, Heute im TV …), Detail-Overlay, Handy-Ansicht wie die Netflix-App mit Tab-Leiste\n- Quallenkino-Farben für ganz Jellyfin Web\n- Einschalten in den Plugin-Einstellungen, braucht „File Transformation“\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "changelog": "Startseite im Quallenkino-Stil für Jellyfin Web / Quallenkino-style start page for Jellyfin Web\n- Großer Infobereich mit stummem Trailer, alle Reihen der TV-App (Top 10, Welten, Heute im TV …), Detail-Overlay, Handy-Ansicht wie eine Streaming-App mit Tab-Leiste\n- Quallenkino-Farben für ganz Jellyfin Web\n- Einschalten in den Plugin-Einstellungen, braucht „File Transformation“\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.18.0.zip",
         "checksum": "a15a0bd0527cb1a4f2ec78ece2dab3bd",

@@ -1,5 +1,5 @@
 /*
- * Local Recommendations – Startseite im Netflix-Stil für Jellyfin Web (Browser und Jellyfin-Apps für iOS/Android).
+ * Local Recommendations – Startseite im Quallenkino-Stil für Jellyfin Web (Browser und Jellyfin-Apps für iOS/Android).
  * Wird über das Plugin „File Transformation“ in index.html eingehängt. Ein- und ausschalten in den Plugin-Einstellungen.
  * Reihen wie in der TV-App Quallenkino: Weiterschauen, Als Nächstes, Empfehlungen mit Begründung, Heute im TV für dich,
  * Top 10, Welten, Jetzt im TV, Kürzlich hinzugefügt je Bibliothek, Genres und Bibliotheken.
@@ -30,7 +30,7 @@
     var phoneQuery = window.matchMedia('(max-width: 700px)');
     var isNativeIos = !!window.NativeShell && /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-    // Handy-Ansicht wie in der Netflix-App: Hochformat-Poster, Hero als Karte, Tab-Leiste unten
+    // Handy-Ansicht wie in Streaming-Apps: Hochformat-Poster, Hero als Karte, Tab-Leiste unten
     function phoneLayout() {
         return phoneQuery.matches;
     }
@@ -1770,7 +1770,7 @@
         return row;
     }
 
-    // ---------------------------------------------------------------- Detailseite im Netflix-Stil
+    // ---------------------------------------------------------------- Detailseite im Quallenkino-Stil
 
     var DETAIL_TYPES = ['Movie', 'Series', 'Episode', 'Season', 'Program'];
 
@@ -2414,7 +2414,7 @@
             return;
         }
         var bar = el('div', 'lr-classic-switch');
-        bar.appendChild(button('lr-btn-link', 'movie_filter', 'Startseite im Netflix-Stil anzeigen', function () {
+        bar.appendChild(button('lr-btn-link', 'movie_filter', 'Startseite im Quallenkino-Stil anzeigen', function () {
             storageSet('lrWeb.classic.' + userId(), null);
             bar.remove();
             activate();
@@ -2467,7 +2467,7 @@
         refresh(false);
     }
 
-    // ---------------------------------------------------------------- Kopfleiste aufräumen (Netflix-Stil)
+    // ---------------------------------------------------------------- Kopfleiste aufräumen (Quallenkino-Stil)
     // Links: Logo + Startseite, Serien, Filme, Live-TV, Meine Liste, Bibliotheken ▾. Rechts: Suche, Cast (nur PC), Profil.
     // Alle anderen Symbole (SyncPlay, Symbole anderer Plugins) wandern ins Profilmenü.
 
@@ -2721,7 +2721,7 @@
             var playerIcon = el('span', 'lr-menu-icon');
             playerIcon.appendChild(icon('movie'));
             playerItem.appendChild(playerIcon);
-            playerItem.appendChild(el('span', null, 'Netflix-Player einschalten'));
+            playerItem.appendChild(el('span', null, 'Quallenkino-Player einschalten'));
             onActivate(playerItem, function () {
                 storageSet('lrWeb.classicPlayer', null);
                 var backdrop = document.querySelector('#app-user-menu .MuiBackdrop-root');
@@ -2999,10 +2999,10 @@
         var view = e && e.target;
         if (view && view.id === 'videoOsdPage') {
             startSkipWatcher();
-            startNetflixPlayer();
+            startOwnPlayer();
         } else {
             stopSkipWatcher();
-            stopNetflixPlayer();
+            stopOwnPlayer();
         }
         if (view && view.id === 'itemDetailPage') {
             onDetailShow(view);
@@ -3016,7 +3016,7 @@
         }
     }
 
-    // ---------------------------------------------------------------- Player im Netflix-Stil (Test, nur für freigeschaltete Benutzer)
+    // ---------------------------------------------------------------- Player im Quallenkino-Stil (Test, nur für freigeschaltete Benutzer)
     // Eigene Steuerleiste über der Wiedergabe. Abgespielt wird weiter von Jellyfin: Spulen über Jellyfins Zeitleiste
     // (stimmt auch beim Transkodieren und bei Live-TV), Knöpfe lösen Jellyfins eigene Knöpfe aus, Ton und Untertitel
     // werden über die eigene Sitzung umgeschaltet (wie bei der Fernbedienung in Jellyfin).
@@ -3357,7 +3357,7 @@
         }
         add('tv_off', 'Klassischer Player', function () {
             storageSet('lrWeb.classicPlayer', '1');
-            stopNetflixPlayer();
+            stopOwnPlayer();
         });
     }
 
@@ -3410,7 +3410,7 @@
         bubble.classList.remove('lr-hidden');
     }
 
-    function buildNetflixPlayer() {
+    function buildOwnPlayer() {
         var root = el('div', 'lr-nf');
         // Fläche zum Antippen/Klicken (Steuerung zeigen, am PC Pause, Doppeltipp ±10 s)
         var surface = el('div', 'lr-nf-surface');
@@ -3614,7 +3614,7 @@
         var tracks = nfButton('lr-nf-tracks-btn', null, 'Ton & Untertitel', function () {
             nfAudioSubtitleMenu(tracks);
         });
-        // Sprechblase mit Zeilen (wie bei Netflix) statt „CC“
+        // Sprechblase mit Zeilen statt „CC“
         var bubble = el('span', 'lr-icon lr-svg-icon');
         bubble.setAttribute('aria-hidden', 'true');
         bubble.innerHTML = '<svg viewBox="0 0 24 24" width="1em" height="1em"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" '
@@ -3650,7 +3650,7 @@
             return;
         }
         if (!document.querySelector('#videoOsdPage:not(.hide)')) {
-            stopNetflixPlayer();
+            stopOwnPlayer();
             return;
         }
         nfRefreshSession(false);
@@ -3688,14 +3688,14 @@
         root.querySelector('.lr-nf-episodes-btn').classList.toggle('lr-gone', !(nf.item && nf.item.Type === 'Episode'));
     }
 
-    function startNetflixPlayer() {
+    function startOwnPlayer() {
         if (nf.root || !playerWanted()) {
             return;
         }
         nf.itemId = null;
         nf.item = null;
         nf.sessionAt = 0;
-        nf.root = buildNetflixPlayer();
+        nf.root = buildOwnPlayer();
         document.body.appendChild(nf.root);
         document.documentElement.classList.add('lr-player');
         nfRefreshSession(true);
@@ -3703,7 +3703,7 @@
         nf.tick = window.setInterval(nfUpdate, 250);
     }
 
-    function stopNetflixPlayer() {
+    function stopOwnPlayer() {
         window.clearInterval(nf.tick);
         window.clearTimeout(nf.hideTimer);
         nf.tick = null;
@@ -4064,7 +4064,7 @@
         return item;
     }
 
-    // Netflix-Stil: oben die anderen gespeicherten Profile (Klick wechselt), „Profile verwalten“ und „Profilbild wählen“
+    // Quallenkino-Stil: oben die anderen gespeicherten Profile (Klick wechselt), „Profile verwalten“ und „Profilbild wählen“
     function addAccountMenuItems(list) {
         var items = [];
         if (!list || list.querySelector('.lr-menu-account')) {
@@ -4111,7 +4111,7 @@
         return items;
     }
 
-    // Abmelden wie bei Netflix abgesetzt ganz unten
+    // Abmelden abgesetzt ganz unten
     function markLogout(list) {
         if (!list) {
             return;

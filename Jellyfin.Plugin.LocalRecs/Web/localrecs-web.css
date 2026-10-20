@@ -1,5 +1,5 @@
 /*
- * Local Recommendations – Startseite im Netflix-Stil und Quallenkino-Farben für Jellyfin Web.
+ * Local Recommendations – Startseite im Quallenkino-Stil und Quallenkino-Farben für Jellyfin Web.
  * Startseite: Klassen lr-*, nur aktiv, wenn sie in den Plugin-Einstellungen eingeschaltet ist.
  * Farben: nur mit html.lr-theme (Einstellung „Quallenkino-Farben“).
  */
@@ -518,7 +518,7 @@ body.lr-home.lr-scrolled header.MuiAppBar-root {
     width: var(--lr-poster-w);
 }
 
-/* Top 10 wie bei Netflix: große Ziffer liegt unten links über dem Poster */
+/* Top 10: große Ziffer liegt unten links über dem Poster */
 .lr-card-top10 {
     position: relative;
     width: calc(var(--lr-poster-w) * 1.28);
@@ -964,7 +964,7 @@ html.lr-noscroll body {
     font-size: 0.9em;
 }
 
-/* ------------------------------------------------------------------ Detailseite (Filme, Serien) im Netflix-Stil */
+/* ------------------------------------------------------------------ Detailseite (Filme, Serien) im Quallenkino-Stil */
 
 /* Jellyfin-Inhalt unsichtbar, aber vorhanden (seine Knöpfe werden gespiegelt und dienen als Anker für Menüs) */
 #itemDetailPage.lr-detail-active > :not(.lr-detail-page) {
@@ -1176,7 +1176,7 @@ body:has(#itemDetailPage.lr-detail-active:not(.hide)) .mdl-spinner {
     }
 }
 
-/* ------------------------------------------------------------------ Handy wie die Netflix-App */
+/* ------------------------------------------------------------------ Handy wie eine Streaming-App */
 
 @media (max-width: 700px) {
     .lr-topchips {
@@ -1428,7 +1428,7 @@ body.lr-tidy-header .lr-tucked + .lr-tucked {
     color: #fff;
 }
 
-/* Profilmenü im Netflix-Stil: schwarz, schlanke Zeilen, graue Symbole, Unterstreichen beim Überfahren */
+/* Profilmenü im Quallenkino-Stil: schwarz, schlanke Zeilen, graue Symbole, Unterstreichen beim Überfahren */
 body.lr-tidy-header #app-user-menu .MuiPaper-root {
     min-width: 240px;
     margin-top: 6px;
@@ -1672,7 +1672,7 @@ html.lr-theme header.MuiAppBar-root {
     background-color: rgba(11, 14, 20, 0.94);
 }
 
-/* ------------------------------------------------------------------ Player im Netflix-Look */
+/* ------------------------------------------------------------------ Player im Quallenkino-Look */
 
 html.lr-theme #videoOsdPage .videoOsdBottom {
     background: linear-gradient(0deg, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.55) 55%, rgba(0, 0, 0, 0) 100%) !important;
@@ -1949,7 +1949,7 @@ html.lr-theme ::selection {
     background: rgba(127, 118, 214, 0.5);
 }
 
-/* ------------------------------------------------------------------ Player im Netflix-Stil (Test) */
+/* ------------------------------------------------------------------ Player im Quallenkino-Stil (Test) */
 
 /* Jellyfins Bedienleiste unsichtbar, aber vorhanden (ihre Knöpfe und Regler werden benutzt) */
 html.lr-player #videoOsdPage .videoOsdBottom,
