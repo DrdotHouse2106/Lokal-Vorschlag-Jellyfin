@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.29.4] - 2026-10-20
+
+### Fixed
+
+- Episodes with date numbering (e.g. YouTube channels: season = year, episode = 101799) no longer show „S2026:F101799“: cards, preview, detail view and player show only the episode title (or the release date), the episode list leaves the number empty. Applies when the season number is above 1900 or the episode number above 9999.
+
 ## [12.29.3] - 2026-10-20
 
 ### Fixed

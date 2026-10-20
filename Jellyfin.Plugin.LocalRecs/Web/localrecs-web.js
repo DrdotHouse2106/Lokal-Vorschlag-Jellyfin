@@ -300,8 +300,16 @@
         return item.Name || '';
     }
 
+    // Datumsnummern (YouTube-Kanäle u. Ä.: Staffel = Jahr, Folge = 101799) sind keine echten Folgennummern
+    function datedNumbering(item) {
+        return item.ParentIndexNumber > 1900 || item.IndexNumber > 9999;
+    }
+
     function subtitle(item, showReason) {
         if (item.Type === 'Episode') {
+            if (datedNumbering(item)) {
+                return item.Name || (item.PremiereDate ? new Date(item.PremiereDate).toLocaleDateString('de-DE') : '');
+            }
             var number = item.ParentIndexNumber != null && item.IndexNumber != null
                 ? 'S' + item.ParentIndexNumber + ':F' + item.IndexNumber + ' ' : '';
             return number + (item.Name || '');
@@ -1764,7 +1772,7 @@
 
     function episodeRow(episode) {
         var row = el('div', 'lr-episode');
-        row.appendChild(el('div', 'lr-episode-number', episode.IndexNumber != null ? String(episode.IndexNumber) : ''));
+        row.appendChild(el('div', 'lr-episode-number', episode.IndexNumber != null && !datedNumbering(episode) ? String(episode.IndexNumber) : ''));
         var frame = el('div', 'lr-episode-frame');
         var image = landscapeImage(episode);
         if (image) {

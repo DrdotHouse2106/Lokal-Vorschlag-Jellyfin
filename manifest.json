@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.29.4.0",
+        "changelog": "Folgennummern\n- Datumsnummern (z. B. YouTube-Kanäle: Staffel 2026, Folge 101799) werden nicht mehr als „S2026:F101799“ gezeigt, nur noch der Folgentitel\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.29.4.zip",
+        "checksum": "addad1a930fd47cb462006e9ec45b50a",
+        "timestamp": "2026-10-20T20:45:00Z"
+      },
+      {
         "version": "12.29.3.0",
         "changelog": "Startseite\n- Angefangene Titel in Querformat-Kacheln (Tablet, PC) spielen beim Antippen direkt weiter, mit Play-Symbol in der Mitte\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
