@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.25.0.0",
+        "changelog": "Aufnehmen direkt aus der Info-Ansicht / record from the info view\n- „Aufnehmen“ und „Serie aufnehmen“ mit Status, Aufnahme-Knopf auf der Vorschaukarte\n- „Sender einschalten“ statt „Alle Optionen“ bei Sendungen\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.25.0.zip",
+        "checksum": "d8f308447bcc31d5c50b4461076e4e74",
+        "timestamp": "2026-10-20T07:00:00Z"
+      },
+      {
         "version": "12.24.0.0",
         "changelog": "Erinnerungs-Glocke im Live-TV-Bereich / reminder bell in live TV\n- Glocke auf Programm-Kacheln, im Kontextmenü und im Sendungs-Dialog des Fernsehprogramms\n- Programm-Reihen zeigen nur noch künftige Sendungen\n- „Weitere Infos“ bei laufenden Sendungen öffnet die Infos statt abzuspielen\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

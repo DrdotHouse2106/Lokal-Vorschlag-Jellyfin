@@ -2932,3 +2932,29 @@ html.lr-profiles-open body {
     padding: 0.45em 1.1em 0.45em 0.8em;
     border-radius: 999px;
 }
+
+/* Aufnehmen: roter Punkt, geplant = rot hinterlegt */
+.lr-record .lr-icon {
+    color: #e50914;
+}
+
+.lr-round.lr-record.lr-on {
+    background: #e50914;
+    border-color: #e50914;
+}
+
+.lr-round.lr-record.lr-on .lr-icon {
+    color: #fff;
+}
+
+.lr-btn-link.lr-record.lr-on {
+    color: #fff;
+}
+
+.lr-record:disabled {
+    opacity: 0.5;
+}
+
+.lr-record-slot {
+    display: contents;
+}

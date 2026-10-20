@@ -70,6 +70,10 @@
         return api().ajax({ type: 'POST', url: url(path) });
     }
 
+    function postJson(path, body) {
+        return api().ajax({ type: 'POST', url: url(path), data: JSON.stringify(body), contentType: 'application/json' });
+    }
+
     function del(path) {
         return api().ajax({ type: 'DELETE', url: url(path) });
     }
@@ -401,6 +405,97 @@
         });
         seriesButton.title = 'An alle künftigen Ausstrahlungen erinnern';
         return seriesButton;
+    }
+
+    // ---------------------------------------------------------------- Aufnehmen (wie Jellyfin: Vorgaben aus LiveTv/Timers/Defaults)
+
+    var recordRights = { user: null, promise: null };
+
+    function canRecord() {
+        if (recordRights.user !== userId() || !recordRights.promise) {
+            recordRights.user = userId();
+            recordRights.promise = api().getCurrentUser().then(function (user) {
+                return !!(user && user.Policy && (user.Policy.EnableLiveTvManagement || user.Policy.IsAdministrator));
+            }).catch(function () {
+                return false;
+            });
+        }
+        return recordRights.promise;
+    }
+
+    // „Aufnehmen“ bzw. „Serie aufnehmen“ mit Status; compact = runder Knopf ohne Text (Vorschaukarte)
+    function recordButton(program, series, compact) {
+        var b = button(compact ? 'lr-round lr-record' : 'lr-btn-link lr-record', 'fiber_manual_record', compact ? null : 'Aufnehmen', function () {
+            var timerId = series ? program.SeriesTimerId : program.TimerId;
+            var request;
+            if (timerId) {
+                if (!window.confirm(series ? 'Serienaufnahme von „' + program.Name + '“ beenden?' : 'Aufnahme von „' + program.Name + '“ abbrechen?')) {
+                    return;
+                }
+                request = del('LiveTv/' + (series ? 'SeriesTimers/' : 'Timers/') + timerId);
+            } else {
+                request = getJson('LiveTv/Timers/Defaults?programId=' + programKey(program.Id)).then(function (defaults) {
+                    return postJson(series ? 'LiveTv/SeriesTimers' : 'LiveTv/Timers', defaults);
+                });
+            }
+            b.disabled = true;
+            request.then(function () {
+                // Jellyfin legt Timer etwas verzögert an – Status kurz danach neu holen
+                return new Promise(function (resolve) {
+                    window.setTimeout(resolve, 600);
+                });
+            }).then(function () {
+                return loadProgram(program.Id);
+            }).then(function (fresh) {
+                program.TimerId = fresh.TimerId;
+                program.SeriesTimerId = fresh.SeriesTimerId;
+                document.querySelectorAll('.lr-record[data-program="' + programKey(program.Id) + '"]').forEach(function (other) {
+                    if (other.lrUpdate) {
+                        other.lrUpdate();
+                    }
+                });
+            }).catch(function () {
+                window.alert('Die Aufnahme konnte nicht geändert werden.');
+            }).then(function () {
+                b.disabled = false;
+            });
+        });
+        b.setAttribute('data-program', programKey(program.Id));
+        b.lrUpdate = function () {
+            var on = !!(series ? program.SeriesTimerId : program.TimerId);
+            b.classList.toggle('lr-on', on);
+            var text = series ? (on ? 'Serie wird aufgenommen ✓' : 'Serie aufnehmen') : (on ? 'Aufnahme geplant ✓' : 'Aufnehmen');
+            var label = b.querySelector('span:not(.lr-icon)');
+            if (label) {
+                label.textContent = text;
+            }
+            b.title = on ? (series ? 'Serienaufnahme beenden' : 'Aufnahme abbrechen') : text;
+        };
+        b.lrUpdate();
+        return b;
+    }
+
+    // Hängt die Aufnahme-Knöpfe an, sobald Recht und aktueller Timer-Status bekannt sind
+    function addRecordButtons(item, container, compact, before) {
+        if (item.Type !== 'Program' || (item.EndDate && Date.parse(item.EndDate) < Date.now())) {
+            return;
+        }
+        canRecord().then(function (ok) {
+            return ok ? loadProgram(item.Id) : null;
+        }).then(function (program) {
+            if (!program || !document.body.contains(container)) {
+                return;
+            }
+            var buttons = [recordButton(program, false, compact)];
+            if (program.IsSeries && !compact) {
+                buttons.push(recordButton(program, true, false));
+            }
+            buttons.forEach(function (b) {
+                container.insertBefore(b, before && before.parentNode === container ? before : null);
+            });
+        }).catch(function () {
+            return null;
+        });
     }
 
     function isUpcoming(start) {
@@ -1135,6 +1230,11 @@
         }));
         actions.appendChild(favoriteButton(item));
         actions.appendChild(likeButton(item));
+        if (item.Type === 'Program') {
+            var recordSlot = el('span', 'lr-record-slot');
+            actions.appendChild(recordSlot);
+            addRecordButtons(item, recordSlot, true, null);
+        }
         var more = button('lr-round lr-round-right', 'expand_more', null, function () {
             hidePreview();
             // „Weitere Infos“ zeigt immer Infos – auch bei laufenden Sendungen (nur der Play-Knopf spielt ab)
@@ -1467,14 +1567,21 @@
             if (!reminders.loaded) {
                 loadReminders();
             }
+            var channelButton = item.ChannelId ? button('lr-btn-link', 'live_tv', 'Sender einschalten', function () {
+                play({ Id: item.ChannelId, Type: 'TvChannel', Name: item.ChannelName });
+            }) : null;
+            if (channelButton) {
+                actions.appendChild(channelButton);
+            }
+            addRecordButtons(item, actions, false, channelButton);
         }
         if (isEpisode && item.SeriesId) {
             actions.appendChild(button('lr-btn-link', 'tv', 'Zur Serie', function () {
                 openDetailsPage({ Id: item.SeriesId });
             }));
         }
-        // Jellyfin-Detailseite mit allen Optionen (Versionen, Tonspur, Untertitel, Bearbeiten …)
-        actions.appendChild(button('lr-btn-link', 'tune', 'Alle Optionen', function () {
+        // Jellyfin-Detailseite mit allen Optionen (Versionen, Tonspur, Untertitel, Bearbeiten …) – bei Sendungen steht alles schon hier
+        actions.appendChild(item.Type === 'Program' ? el('span') : button('lr-btn-link', 'tune', 'Alle Optionen', function () {
             if (onNative) {
                 onNative();
                 return;

@@ -176,6 +176,7 @@ Sendungen aus dem Programmführer lassen sich merken – einzeln oder als ganze 
 - **Glocke** auf den Kacheln künftiger Sendungen, auf der Startseite und ab 12.24.0 auch im Live-TV-Bereich von Jellyfin (Tab „Programme“).
 - **Kontextmenü** einer künftigen Sendung (⋮ oder Rechtsklick): „An Sendung erinnern“ und „An Serie erinnern“.
 - **Dialog einer Sendung im Fernsehprogramm** sowie Info-Ansicht: „Merken“ und „Serie merken“.
+- **Aufnehmen** (ab 12.25.0): In der Info-Ansicht einer Sendung gibt es „Aufnehmen“ und bei Serien „Serie aufnehmen“, auf der Vorschaukarte einen roten Aufnahme-Knopf. Der Status wird angezeigt („Aufnahme geplant ✓“), ein zweiter Klick bricht ab. Es gelten die Aufnahme-Vorgaben von Jellyfin (Vor- und Nachlauf, Pfad). Die Knöpfe sieht nur, wer in Jellyfin Aufnahmen verwalten darf. „Sender einschalten“ ersetzt bei Sendungen „Alle Optionen“, die alte Programmseite wird nicht mehr gebraucht.
 - **Profilmenü:** „Erinnerungen im Kalender“ (Abonnieren, Link kopieren, QR-Code, Link erneuern).
 
 In den Programm-Reihen von Jellyfin (Serien, Filme, Sport, Für Kinder, Nachrichten) stehen ab 12.24.0 nur noch künftige Sendungen, nach Beginn sortiert. Laufende Sendungen stehen in „Gerade läuft“.

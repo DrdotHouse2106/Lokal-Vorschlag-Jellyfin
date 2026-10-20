@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.25.0] - 2026-10-20
+
+### Added
+
+- **Record from the Netflix-style views:** info view of a programme with „Aufnehmen“ and, for series, „Serie aufnehmen“ (status „Aufnahme geplant ✓“ / „Serie wird aufgenommen ✓“, a second click cancels after a confirmation); round record button on the start page preview card. Uses Jellyfin's defaults (`GET /LiveTv/Timers/Defaults?programId=`, then `POST /LiveTv/Timers` or `/LiveTv/SeriesTimers`), only for users allowed to manage recordings.
+
+### Changed
+
+- Programme info view: „Sender einschalten“ instead of „Alle Optionen“ – the old Jellyfin programme page is no longer needed.
+
 ## [12.24.0] - 2026-10-20
 
 ### Added
