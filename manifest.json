@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.30.1.0",
+        "changelog": "Abspielen in der iOS-App\n- „Abspielen“ startet wieder (lokal über Jellyfins Abspielknopf, wenn die eigene Sitzung nicht gefunden wird oder nichts startet)\n- Diagnose: Schritte rund ums Abspielen sofort, „Diagnose senden“ im Profilmenü\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.30.1.zip",
+        "checksum": "45b8fc93b63952b7f49dc04ecff8ba67",
+        "timestamp": "2026-10-20T21:45:00Z"
+      },
+      {
         "version": "12.30.0.0",
         "changelog": "Diagnose und iOS-App\n- Neuer Schalter „Diagnose“: Fehler und die letzten Schritte vor einem Absturz kommen ins Serverlog („Quallenkino-Diagnose“)\n- iOS-App: „Quallenkino-Player testen“ im Profilmenü (pro Gerät)\n- Player: beim Laden nur der Ladekreis\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.30.1] - 2026-10-20
+
+### Fixed
+
+- **Playback in the Jellyfin iOS app:** „Abspielen“ (hero, detail view, Continue Watching) only opened the detail page or did nothing when the own session could not be found or controlled. Playback now starts locally through Jellyfin's own play button of the detail page (resuming at the saved position) when no controllable session is found, when the PlayNow request fails, or when 6 s after PlayNow no playback has started (no player and no PlaybackInfo request).
+
+### Added
+
+- Diagnostics: the steps around playing (play request, own session found or not and why, PlayNow sent/accepted, fallback) are sent immediately, not only after a crash. Profile menu „Diagnose senden“ sends the last 30 steps on demand. Taps on cards and buttons are recorded as steps.
+
 ## [12.30.0] - 2026-10-20
 
 ### Added

@@ -145,11 +145,14 @@
     }
 
     // Lebenszeichen ersetzen das vorige, damit die eigentlichen Schritte nicht verdrängt werden
-    function diagStep(text, heartbeat) {
+    function diagStep(text, heartbeat, send) {
         if (!diagOn()) {
             return;
         }
         var line = diagTime() + ' ' + text;
+        if (send) {
+            diagSend(line);
+        }
         if (heartbeat && diag.beat >= 0 && diag.beat === diag.steps.length - 1) {
             diag.steps[diag.beat] = line;
         } else {
@@ -186,6 +189,16 @@
         postJson('LocalRecs/ClientLog', { Lines: lines }).catch(function () {
             // Diagnose darf nie stören
         });
+    }
+
+    function errorText(err) {
+        if (!err) {
+            return '?';
+        }
+        if (err.status) {
+            return 'HTTP ' + err.status + (err.statusText ? ' ' + err.statusText : '');
+        }
+        return err.message || String(err);
     }
 
     function diagEnvironment() {
@@ -1017,17 +1030,31 @@
     }
 
     // Eigene Sitzung (dieser Browser bzw. diese App) – Jellyfin Web nimmt „Abspielen“-Befehle an sich selbst an
-    function ownSession() {
+    // report: Gründe für „keine Sitzung“ in die Diagnose (nur beim Abspielen, nicht beim Abgleich im Player)
+    function ownSession(report) {
         var client = api();
         var deviceId = client.deviceId ? client.deviceId() : null;
         if (!deviceId) {
+            if (report) {
+                diagStep('Keine Geräte-ID im ApiClient', false, true);
+            }
             return Promise.resolve(null);
         }
         return getJson('Sessions?deviceId=' + encodeURIComponent(deviceId)).then(function (sessions) {
-            return (sessions || []).filter(function (s) {
+            var found = (sessions || []).filter(function (s) {
                 return s.SupportsRemoteControl !== false;
             })[0] || null;
-        }).catch(function () {
+            if (!found && report) {
+                diagStep('Eigene Sitzung nicht gefunden: ' + (sessions || []).length + ' Sitzung(en) für dieses Gerät, Fernsteuerung '
+                    + (sessions || []).map(function (s) {
+                        return s.SupportsRemoteControl + '/' + s.Client;
+                    }).join(', '), false, true);
+            }
+            return found;
+        }).catch(function (err) {
+            if (report) {
+                diagStep('Sitzungen nicht abrufbar: ' + errorText(err), false, true);
+            }
             return null;
         });
     }
@@ -1050,38 +1077,150 @@
         return Promise.resolve(item);
     }
 
+    // Abspielen über die eigene Sitzung (PlayNow vom Server, wie eine Fernbedienung). Kommt danach keine Wiedergabe
+    // in Gang (z. B. in der iOS-App), startet Jellyfins eigener Abspielknopf der Detailseite lokal.
+    var playState = { osdAt: 0 };
+
     function play(item) {
-        diagStep('Abspielen: ' + item.Type + ' ' + item.Id);
+        diagStep('Abspielen: ' + item.Type + ' ' + item.Id, false, true);
         resolvePlayable(item).then(function (target) {
             if (!target) {
+                diagStep('Nichts Abspielbares gefunden – Detailseite', false, true);
                 openDetailsPage(item);
                 return null;
             }
-            return ownSession().then(function (session) {
+            return ownSession(true).then(function (session) {
+                closeOverlays();
+                stopHeroVideo();
                 if (!session) {
-                    openDetailsPage(item);
+                    diagStep('Keine fernsteuerbare eigene Sitzung – lokaler Start', false, true);
+                    playLocally(target);
                     return null;
                 }
                 var ticks = target.UserData && target.UserData.PlaybackPositionTicks ? target.UserData.PlaybackPositionTicks : 0;
-                closeOverlays();
-                stopHeroVideo();
-                diagStep('PlayNow an eigene Sitzung: ' + target.Type + ' ' + target.Id);
+                var client = api();
+                var socket = client && typeof client.isWebSocketOpen === 'function' ? String(client.isWebSocketOpen()) : '?';
+                diagStep('PlayNow an eigene Sitzung ' + session.Id.slice(0, 8) + ': ' + target.Type + ' ' + target.Id + ' (Fernsteuerung '
+                    + session.SupportsRemoteControl + ', WebSocket offen ' + socket + ')', false, true);
+                var sentAt = Date.now();
                 return post('Sessions/' + session.Id + '/Playing?playCommand=PlayNow&itemIds=' + target.Id
-                    + (ticks ? '&startPositionTicks=' + ticks : ''));
+                    + (ticks ? '&startPositionTicks=' + ticks : '')).then(function () {
+                    diagStep('PlayNow angenommen', false, true);
+                    window.setTimeout(function () {
+                        checkPlaybackStarted(target, sentAt);
+                    }, 6000);
+                });
             });
-        }).catch(function () {
-            openDetailsPage(item);
+        }).catch(function (err) {
+            diagStep('Abspielen fehlgeschlagen: ' + errorText(err) + ' – lokaler Start', false, true);
+            playLocally(item);
         });
+    }
+
+    // Hat der Browser seit dem Befehl Wiedergabe-Infos geholt, ist der Start unterwegs (auch wenn er noch lädt oder scheitert)
+    function playbackRequestedSince(sentAt) {
+        try {
+            var origin = window.performance.timeOrigin || window.performance.timing.navigationStart;
+            return window.performance.getEntriesByType('resource').some(function (entry) {
+                return /\/PlaybackInfo/.test(entry.name) && origin + entry.startTime >= sentAt;
+            });
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function checkPlaybackStarted(target, sentAt) {
+        if (playState.osdAt >= sentAt || document.querySelector('#videoOsdPage:not(.hide)')) {
+            diagStep('Wiedergabe nach PlayNow gestartet', false, true);
+            return;
+        }
+        if (playbackRequestedSince(sentAt)) {
+            diagStep('Nach PlayNow Wiedergabe-Infos geholt, aber kein Player sichtbar – kein zweiter Start', false, true);
+            return;
+        }
+        ownSession(true).then(function (session) {
+            if (session && session.NowPlayingItem) {
+                diagStep('Wiedergabe läuft laut Server (' + session.NowPlayingItem.Id + ')', false, true);
+                return;
+            }
+            diagStep('6 s nach PlayNow keine Wiedergabe – lokaler Start', false, true);
+            playLocally(target);
+        });
+    }
+
+    // Jellyfins Abspielknopf (Fortsetzen bzw. Abspielen) auf der Detailseite – spielt im Browser selbst, ohne Server-Umweg
+    function nativePlayButton() {
+        var match = detailIdFromHash();
+        var view = document.querySelector('#itemDetailPage:not(.hide)');
+        var buttonNode = view && view.querySelector('.mainDetailButtons .btnPlay:not(.hide)');
+        return buttonNode ? { id: match, button: buttonNode } : null;
+    }
+
+    function playLocally(target) {
+        var current = nativePlayButton();
+        if (current && current.id === target.Id) {
+            diagStep('Lokaler Start über Jellyfins Abspielknopf', false, true);
+            current.button.click();
+            return;
+        }
+        try {
+            window.sessionStorage.setItem('lrWeb.autoPlay', target.Id);
+        } catch (e) {
+            // ohne Merker öffnet sich nur die Detailseite
+        }
+        diagStep('Lokaler Start: Detailseite öffnen, dann Abspielknopf', false, true);
+        openDetailsPage(target);
+        waitForAutoPlay();
+    }
+
+    function waitForAutoPlay() {
+        var tries = 0;
+        var timer = window.setInterval(function () {
+            tries++;
+            var wanted = null;
+            try {
+                wanted = window.sessionStorage.getItem('lrWeb.autoPlay');
+            } catch (e) {
+                wanted = null;
+            }
+            if (!wanted || tries > 50) {
+                window.clearInterval(timer);
+                if (wanted) {
+                    diagStep('Abspielknopf nicht gefunden', false, true);
+                }
+                return;
+            }
+            var current = nativePlayButton();
+            if (current && current.id === wanted) {
+                window.clearInterval(timer);
+                try {
+                    window.sessionStorage.removeItem('lrWeb.autoPlay');
+                } catch (e) {
+                    // egal
+                }
+                diagStep('Lokaler Start über Jellyfins Abspielknopf', false, true);
+                current.button.click();
+            }
+        }, 200);
     }
 
     // ---------------------------------------------------------------- Karten und Reihen
 
     function onActivate(node, handler) {
         node.tabIndex = 0;
-        node.addEventListener('click', handler);
+        function run(e) {
+            diagStep('Tippen: ' + String(node.className).split(' ').slice(0, 2).join('.'));
+            try {
+                handler(e);
+            } catch (err) {
+                diagStep('Fehler beim Tippen: ' + errorText(err), false, true);
+                throw err;
+            }
+        }
+        node.addEventListener('click', run);
         node.addEventListener('keydown', function (e) {
             if (e.key === 'Enter') {
-                handler(e);
+                run(e);
             }
         });
     }
@@ -2927,6 +3066,26 @@
             list.insertBefore(playerItem, list.firstChild);
             tucked.push(playerItem);
         }
+        if (diagOn()) {
+            var diagItem = el('li', 'lr-menu-item MuiButtonBase-root MuiMenuItem-root');
+            diagItem.setAttribute('role', 'menuitem');
+            var diagIcon = el('span', 'lr-menu-icon');
+            diagIcon.appendChild(icon('bug_report'));
+            diagItem.appendChild(diagIcon);
+            diagItem.appendChild(el('span', null, 'Diagnose senden'));
+            onActivate(diagItem, function () {
+                diagSend('Diagnose gesendet von Hand (' + diagEnvironment() + '), letzte Schritte:');
+                diag.steps.slice(-30).forEach(function (step) {
+                    diagSend('  ' + step);
+                });
+                var backdrop = document.querySelector('#app-user-menu .MuiBackdrop-root');
+                if (backdrop) {
+                    backdrop.click();
+                }
+            });
+            list.appendChild(diagItem);
+            tucked.push(diagItem);
+        }
         addAccountMenuItems(list).forEach(function (item) {
             tucked.push(item);
         });
@@ -3196,6 +3355,7 @@
             diagStep('Ansicht ' + (view.id || String(view.className).split(' ')[0]) + ' ' + window.location.hash);
         }
         if (view && view.id === 'videoOsdPage') {
+            playState.osdAt = Date.now();
             startSkipWatcher();
             startOwnPlayer();
             diagWatchClassicPlayer();
