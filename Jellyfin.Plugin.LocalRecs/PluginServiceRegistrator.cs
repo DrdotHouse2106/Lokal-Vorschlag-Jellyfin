@@ -44,6 +44,10 @@ namespace Jellyfin.Plugin.LocalRecs
                     Path.Combine(GetPluginDataPath(sp), "welten-logos"),
                     sp.GetService<System.Net.Http.IHttpClientFactory>()));
             serviceCollection.AddSingleton<Worlds.WorldService>();
+
+            // Eigener Fernsehprogramm-Anbieter (ersetzt den eingebauten XMLTV-Anbieter)
+            serviceCollection.AddSingleton<Epg.EpgListingsProvider>();
+            serviceCollection.AddSingleton<MediaBrowser.Controller.LiveTv.IListingsProvider>(sp => sp.GetRequiredService<Epg.EpgListingsProvider>());
             serviceCollection.AddSingleton(sp =>
                 new Avatars.AvatarService(
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Avatars.AvatarService>>(),

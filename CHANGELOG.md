@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.26.0] - 2026-10-20
+
+### Added
+
+- **Own programme guide provider „LocalRecs EPG“** (replaces Jellyfin's built-in XMLTV provider, registered as listings provider `localrecs-epg`): reads XMLTV (URL or path, also `.gz`) and decides movie or series with switchable rule blocks instead of the „movie categories“ list – series by episode number (xmltv_ns or on-screen `S02E02`, „Staffel 2, Folge 2“, `2x02`), movie by length (default 75 min) plus director, `date`, IMDb link or movie category (never sports/news), series by sub-title, kids/news/sports by category or channel. Genres are kept; programme IDs, ShowId and SeriesId are built exactly like the built-in provider, so recordings and series timers survive the switch.
+- Settings tab „Fernsehprogramm“: set up the provider (takes over source, tuners and channel mapping from the old provider, puts itself first, refreshes the guide), all rules, „Regeln testen“ (counts and examples with reasons) and „Fernsehprogramm neu laden“. API for admins: `GET /LocalRecs/Epg/Providers`, `POST /LocalRecs/Epg/Setup`, `POST /LocalRecs/Epg/Refresh`, `GET /LocalRecs/Epg/Test`.
+
+### Changed
+
+- Settings page completely in German (tabs „Einstellungen“ and „Aktionen“, all labels, help texts and buttons); scheduled tasks are now called „Empfehlungen aktualisieren“ and „Leistungstest der Empfehlungen“ (keys unchanged).
+- The Netflix-style player is no longer marked as test.
+- README (de/en) brought up to date: feature list, manual installation without fixed version numbers, tab names, detail view, profile menu, preview card bell, EPG provider.
+
 ## [12.25.1] - 2026-10-20
 
 ### Fixed

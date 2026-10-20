@@ -58,16 +58,16 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
         }
 
         /// <inheritdoc />
-        public string Name => "Benchmark Recommendation Engine";
+        public string Name => "Leistungstest der Empfehlungen";
 
         /// <inheritdoc />
         public string Key => "LocalRecsBenchmark";
 
         /// <inheritdoc />
-        public string Description => "Measures performance metrics for the recommendation engine (vocabulary build, embeddings, scoring)";
+        public string Description => "Misst die Rechenzeit der Empfehlungen (Wortschatz, Vektoren, Bewertung)";
 
         /// <inheritdoc />
-        public string Category => "Local Recommendations";
+        public string Category => "Lokale Empfehlungen";
 
         /// <inheritdoc />
         public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)

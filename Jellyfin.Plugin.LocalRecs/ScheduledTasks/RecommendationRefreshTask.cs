@@ -51,16 +51,16 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
         }
 
         /// <inheritdoc />
-        public string Name => "Refresh Local Recommendations";
+        public string Name => "Empfehlungen aktualisieren";
 
         /// <inheritdoc />
         public string Key => "LocalRecsRefresh";
 
         /// <inheritdoc />
-        public string Description => "Updates personalized recommendations for all users based on watch history and metadata similarity";
+        public string Description => "Berechnet die persönlichen Empfehlungen aller Benutzer aus Sehverlauf und ähnlichen Titeln neu";
 
         /// <inheritdoc />
-        public string Category => "Local Recommendations";
+        public string Category => "Lokale Empfehlungen";
 
         /// <inheritdoc />
         public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)

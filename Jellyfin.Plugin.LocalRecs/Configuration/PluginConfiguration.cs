@@ -39,6 +39,20 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             AvatarsEnabled = true;
             AvatarCatalogUrl = Avatars.AvatarService.DefaultCatalogUrl;
             AvatarExtraCatalogUrls = string.Empty;
+            EpgSeriesByEpisodeNumber = true;
+            EpgSeriesBySubTitle = true;
+            EpgMovieRule = true;
+            EpgMovieMinMinutes = 75;
+            EpgMovieByDirector = true;
+            EpgMovieByDate = true;
+            EpgMovieByImdb = true;
+            EpgMovieCategories = "Spielfilm";
+            EpgKidsCategories = "Kinder, Kindersendung, Kinderserie, Kinderfilm, Kids, Children, Zeichentrick";
+            EpgKidsChannels = "KiKA, Super RTL, Toggo, Disney Channel, Nickelodeon, Nick Jr, Cartoon Network, Boomerang, Junior";
+            EpgNewsCategories = "Nachrichten, News, Nachrichtenmagazin";
+            EpgNewsChannels = "tagesschau24, n-tv, ntv, WELT, euronews";
+            EpgSportsCategories = "Sport, Fußball, Fussball, Tennis, Handball, Basketball, Eishockey, Motorsport, Formel 1, Radsport, Leichtathletik, Wintersport, Darts, Golf, Boxen";
+            EpgSportsChannels = "Sky Sport, Sport1, Eurosport, DAZN, sportdigital, MagentaSport";
             WebPlayerUserIds = System.Array.Empty<string>();
             CalendarPublicUrl = string.Empty;
             CalendarAlarmMinutes = 10;
@@ -271,6 +285,48 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Gets or sets additional catalogs of profile images (one URL or path per line); their categories are added.
         /// </summary>
         public string AvatarExtraCatalogUrls { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether an episode number (xmltv_ns or onscreen) makes a series episode (EPG rule).</summary>
+        public bool EpgSeriesByEpisodeNumber { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether a sub-title makes a series episode if it is no movie (EPG rule).</summary>
+        public bool EpgSeriesBySubTitle { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether the movie rule is on (EPG rule).</summary>
+        public bool EpgMovieRule { get; set; }
+
+        /// <summary>Gets or sets the minimum length of a movie in minutes.</summary>
+        public int EpgMovieMinMinutes { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether a director counts as movie evidence.</summary>
+        public bool EpgMovieByDirector { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether a date counts as movie evidence.</summary>
+        public bool EpgMovieByDate { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether an IMDb link counts as movie evidence.</summary>
+        public bool EpgMovieByImdb { get; set; }
+
+        /// <summary>Gets or sets categories that count as movie evidence (only with the minimum length).</summary>
+        public string EpgMovieCategories { get; set; }
+
+        /// <summary>Gets or sets the kids categories.</summary>
+        public string EpgKidsCategories { get; set; }
+
+        /// <summary>Gets or sets the kids channels (name contains).</summary>
+        public string EpgKidsChannels { get; set; }
+
+        /// <summary>Gets or sets the news categories.</summary>
+        public string EpgNewsCategories { get; set; }
+
+        /// <summary>Gets or sets the news channels.</summary>
+        public string EpgNewsChannels { get; set; }
+
+        /// <summary>Gets or sets the sports categories.</summary>
+        public string EpgSportsCategories { get; set; }
+
+        /// <summary>Gets or sets the sports channels.</summary>
+        public string EpgSportsChannels { get; set; }
 
         /// <summary>
         /// Gets or sets the users (IDs without dashes) who get the Netflix-style player in Jellyfin Web (test, opt-in).

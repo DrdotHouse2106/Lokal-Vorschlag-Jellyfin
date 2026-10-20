@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.26.0.0",
+        "changelog": "Eigener Fernsehprogramm-Anbieter „LocalRecs EPG“, Einstellungen auf Deutsch / own programme guide provider, German settings\n- Film oder Serie über Regel-Bausteine statt Kategorienliste: Staffel, Folge und Folgentitel bleiben erhalten, Aufnahmen landen richtig\n- Neuer Reiter „Fernsehprogramm“: einrichten (Senderzuordnung übernehmen), Regeln, Test mit Begründung\n- Einstellungsseite und geplante Aufgaben komplett auf Deutsch, README aktualisiert\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.26.0.zip",
+        "checksum": "57eaf75f85f81f8a2e5b84b4a7652fdc",
+        "timestamp": "2026-10-20T09:00:00Z"
+      },
+      {
         "version": "12.25.1.0",
         "changelog": "Glocke in der Vorschaukarte / bell on the preview card\n- Auf der Startseite (PC) verdeckte die Vorschaukarte die Glocke – jetzt hat die Vorschaukarte eine eigene Glocke\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

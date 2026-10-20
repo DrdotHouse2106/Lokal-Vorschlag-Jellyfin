@@ -26,6 +26,14 @@ Please report any issues or feedback on [GitHub Issues](https://github.com/Drdot
 - **Home screen rows** - "Empfohlene Filme für dich" / "Empfohlene Serien für dich", individual per user
 - **Real library items** - full metadata, shared watch state, no duplicates in "Continue Watching", no extra libraries
 - **Live TV** - tracks which programs you watch live (all clients, including TV apps) and shows the row **"Heute im TV für dich"** with matching upcoming programs from the EPG
+- **Own programme guide provider "LocalRecs EPG"** - replaces Jellyfin's XMLTV provider; rule blocks decide movie or series, season/episode are kept, recordings land in the right folder
+- **Netflix-style Jellyfin Web** (browser, iOS and Android app) - start page with all rows, detail view, Netflix-style player, skip with countdown, tidy header and profile menu
+- **"Wer schaut?"** - profile picker on start, one click to switch, no PIN
+- **Profile images** - pick a figure and a background colour, the server renders the round image
+- **Live TV reminders** - remember programmes and series, iCal calendar subscription with alarm, QR code for phones
+- **Recording** - record a programme or a series right from the info view
+- **Worlds like Disney+** and **"Top 10 bei euch"** - for apps like Quallenkino and the Netflix-style start page
+- **APIs for TV apps** - everything also for own apps (Quallenkino for Android TV, Fire TV and webOS)
 - **Privacy-first** - All processing happens locally on your server
 - **Performance optimized** - Handles 2,000+ item libraries efficiently
 
@@ -53,17 +61,19 @@ For Jellyfin 10.11.x use upstream version 0.6.1.
 
 4. **Set up the home screen rows** (see Setup below)
 
+Manual installation: download the newest `jellyfin-plugin-localrecs-v<version>.zip` from [`release/`](release/) (current version: top of the [CHANGELOG](CHANGELOG.md)), put `Jellyfin.Plugin.LocalRecs.dll` into a folder `LocalRecs_<version>` in Jellyfin's plugin directory (remove the old `LocalRecs_…` folder) and restart Jellyfin.
+
 ## Setup
 
 1. Add the repository `https://www.iamparadox.dev/jellyfin/plugins/manifest.json` and install **Home Screen Sections**, **File Transformation** and **Plugin Pages**. Restart Jellyfin.
 2. Dashboard → Plugins → **Home Screen Sections**: enable the plugin and enable the sections **"Empfohlene Filme für dich"** and **"Empfohlene Serien für dich"** for all users (or let every user enable them via "Modular Home").
-3. Done. The first calculation starts automatically after server start; afterwards the scheduled task "Refresh Local Recommendations" runs daily at 4:00 AM.
+3. Done. The first calculation starts automatically after server start; afterwards the scheduled task "Empfehlungen aktualisieren" (before 12.26: "Refresh Local Recommendations") runs daily at 4:00 AM.
 
 The plugin's **Startseite** tab shows the connection status and lets you change the row titles. Watched or started movies disappear from the row immediately. Every user only sees their own recommendations.
 
 ## Configuration
 
-Access via: **Dashboard → Plugins → Local Recommendations → Settings**
+Access via: **Dashboard → Plugins → Local Recommendations**. Tabs (German UI): **Startseite** (status, rows, live TV), **Einstellungen** (recommendations, Jellyfin Web, calendar, worlds), **Auswertung** (evaluation), **Welten** (worlds), **Fernsehprogramm** (LocalRecs EPG), **Aktionen** (actions).
 
 ### Key Settings
 
@@ -129,7 +139,7 @@ In the browser and the Jellyfin apps for iOS and Android the start page can look
 - Rows: continue watching, next up, recommended movies and series (with reason), today on TV for you, Top 10 (big numbers), worlds (opens the world page with filter and sorting), on now, "new in …" per library, genre rows and libraries. Loaded in parallel; the last start page is shown immediately from browser storage and refreshed row by row.
 - PCs: arrows at the row edges and a preview card on hover; "More info" opens an overlay with episodes per season, similar titles and cast.
 - Phones like the Netflix app: hero as a card with poster, logo and genres, chips, portrait posters, worlds as circles and a tab bar at the bottom.
-- Netflix-style player (test, since 12.19.0) for selected users: own controls (back/title, big play/pause and ±10 s, progress bar with trickplay preview, audio & subtitles in one menu, episode list, speed, fullscreen, ⋮), Jellyfin keeps playing. „Klassischer Player“ under ⋮ per device.
+- Netflix-style player (since 12.19.0) for the users selected under „Netflix-Player für diese Benutzer“: own controls (back/title, big play/pause and ±10 s, progress bar with trickplay preview, audio & subtitles in one menu, episode list, speed, fullscreen, ⋮), Jellyfin keeps playing. „Klassischer Player“ under ⋮ per device.
 - "Play" starts playback in the same browser/app. Every user can switch back to the classic start page at the bottom of the page. Files are loaded with the plugin version as query (`?v=…`), so apps with a web cache get updates right away.
 
 ### "Wer schaut?" – profile picker (since 12.21.0)
@@ -151,6 +161,17 @@ Settings (Jellyfin Web): „Profilbilder aus Figuren wählen“ (default on), ca
 Catalog format: `{ "format": 1, "name", "license", "colors": ["#RRGGBB"], "categories": [{ "id", "name", "icons": [{ "id", "name", "file" | "url", "fit": "contain" | "cover" }] }] }` – IDs `a–z0–9-_`, `file` relative to the catalog, PNG/JPEG/WebP up to 2 MB, transparent square PNGs recommended. The catalog is cached for 6 hours, images for 7 days.
 
 API: `GET /LocalRecs/Avatars` (catalog, image URLs via the plugin, `Current` = last choice), `GET /LocalRecs/Avatars/Icons/{category}/{icon}` (image, no sign-in), `POST /LocalRecs/Avatars/Me {"Icon":"tiere/katze","Color":"#2e96e0"}` → `{ PrimaryImageTag }`. `/LocalRecs/Web/Config` reports `"Avatars"` and `"AvatarCatalogUrl"`.
+
+### Programme guide provider "LocalRecs EPG" (since 12.26.0)
+
+Jellyfin's built-in XMLTV provider marks a programme as a movie as soon as one category is in its „movie categories“ list. With e.g. „Komödie“ there, comedy series become movies: season/episode/episode title are dropped and recordings end up under `Movies/`. **LocalRecs EPG** is an own listings provider for XMLTV sources (URL or path, also `.gz`) that replaces it, keeping the channel mapping. Switchable rule blocks decide instead (tab „Fernsehprogramm“):
+
+- **Series by episode number** – `episode-num` (xmltv_ns or on-screen like `S02E02`) → series episode with season, episode and episode title, whatever the categories.
+- **Movie** – no episode number, at least 75 minutes (configurable) and one movie hint: director, `date`, IMDb link or a movie category (default „Spielfilm“). Never for sports or news.
+- **Series by sub-title** – no movie but a `sub-title` → series episode.
+- **Kids / news / sports** – by category (whole word) or channel (e.g. KiKA = always kids).
+
+Genres are kept completely. Programme IDs (Id, ShowId, SeriesId) are built exactly like the built-in provider, so scheduled and series recordings survive the switch. Setup: choose the old provider to take over channel mapping, tuners and source, press „LocalRecs EPG einrichten“ (it is put first and the guide is refreshed), check with „Regeln testen“ (counts and examples with reasons), then remove the old provider. API (admins): `GET /LocalRecs/Epg/Providers`, `POST /LocalRecs/Epg/Setup {Path?, FromProviderId?}`, `POST /LocalRecs/Epg/Refresh`, `GET /LocalRecs/Epg/Test?search=&kind=&limit=&path=`.
 
 ### Live TV reminders and calendar (since 12.20.0)
 
@@ -208,7 +229,7 @@ Since 12.6.0: `GET /LocalRecs/Top10?type=all|movies|series&days=60&limit=10` ret
 - Check the plugin's **Startseite** tab: Home Screen Sections must be installed and the sections registered.
 - Make sure Home Screen Sections is enabled and the two sections are switched on (admin settings or "Modular Home").
 - Force-refresh the browser page (Ctrl+F5).
-- If no recommendations were calculated yet, run Dashboard → Scheduled Tasks → "Refresh Local Recommendations".
+- If no recommendations were calculated yet, run Dashboard → Scheduled Tasks → "Empfehlungen aktualisieren".
 
 ## Building from Source
 
