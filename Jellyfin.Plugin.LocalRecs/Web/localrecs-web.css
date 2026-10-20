@@ -1428,58 +1428,96 @@ body.lr-tidy-header .lr-tucked + .lr-tucked {
     color: #fff;
 }
 
-/* Profilmenü: alle Einträge gleich (hell, gleiche Zeilenhöhe, leichter Hover) */
+/* Profilmenü im Netflix-Stil: schwarz, schlanke Zeilen, graue Symbole, Unterstreichen beim Überfahren */
+body.lr-tidy-header #app-user-menu .MuiPaper-root {
+    min-width: 240px;
+    margin-top: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 2px !important;
+    background: rgba(0, 0, 0, 0.92) !important;
+    background-image: none !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+body.lr-tidy-header #app-user-menu .MuiList-root {
+    padding: 8px 0 0 !important;
+}
+
 body.lr-tidy-header #app-user-menu .MuiMenuItem-root,
 .lr-menu-item {
     display: flex;
     align-items: center;
     gap: 0;
     box-sizing: border-box;
-    min-height: 44px !important;
-    padding: 8px 16px !important;
-    color: #e8eaf0 !important;
-    font-size: 0.95rem;
-    line-height: 1.4;
+    min-height: 36px !important;
+    padding: 5px 16px !important;
+    color: #fff !important;
+    font-size: 0.875rem;
+    line-height: 1.3;
+    white-space: nowrap;
     text-decoration: none !important;
+    background: transparent !important;
     cursor: pointer;
 }
 
 body.lr-tidy-header #app-user-menu .MuiMenuItem-root .MuiListItemIcon-root,
 body.lr-tidy-header #app-user-menu .MuiMenuItem-root .MuiTypography-root {
-    color: inherit !important;
     font-size: inherit;
 }
 
+body.lr-tidy-header #app-user-menu .MuiMenuItem-root .MuiTypography-root {
+    color: inherit !important;
+}
+
 body.lr-tidy-header #app-user-menu .MuiListItemIcon-root {
-    min-width: 40px;
+    min-width: 36px;
+    color: #b3b3b3 !important;
+}
+
+body.lr-tidy-header #app-user-menu .MuiListItemIcon-root svg {
+    width: 20px;
+    height: 20px;
 }
 
 body.lr-tidy-header #app-user-menu .MuiMenuItem-root:hover,
 body.lr-tidy-header #app-user-menu .MuiMenuItem-root.Mui-focusVisible,
+body.lr-tidy-header #app-user-menu .MuiMenuItem-root:focus-visible,
 .lr-menu-item:hover,
 .lr-menu-item:focus-visible {
-    background: rgba(255, 255, 255, 0.08) !important;
+    background: transparent !important;
     outline: none;
+}
+
+body.lr-tidy-header #app-user-menu .MuiMenuItem-root:hover .MuiTypography-root,
+body.lr-tidy-header #app-user-menu .MuiMenuItem-root:focus-visible .MuiTypography-root,
+body.lr-tidy-header #app-user-menu .MuiMenuItem-root.Mui-focusVisible .MuiTypography-root,
+.lr-menu-item:hover > span:last-child,
+.lr-menu-item:focus-visible > span:last-child {
+    text-decoration: underline;
+}
+
+body.lr-tidy-header #app-user-menu .MuiDivider-root {
+    margin: 6px 0 !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 .lr-menu-icon {
     display: inline-flex;
-    flex: 0 0 40px;
-    justify-content: flex-start !important;
-    width: 24px;
+    flex: 0 0 36px;
+    width: 20px;
     height: 24px;
     align-items: center;
-    justify-content: center;
-    color: inherit;
+    justify-content: flex-start;
+    color: #b3b3b3;
 }
 
 .lr-menu-icon svg,
 .lr-menu-icon img,
 .lr-menu-icon .material-icons,
 .lr-menu-icon .je-dice-face {
-    width: 24px !important;
-    height: 24px !important;
-    font-size: 24px;
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 20px;
     fill: currentColor;
 }
 
@@ -1487,11 +1525,59 @@ body.lr-tidy-header #app-user-menu .MuiMenuItem-root.Mui-focusVisible,
     animation: none !important;
 }
 
+/* Andere Profile oben: kleines Profilbild statt Symbol */
+.lr-menu-profile {
+    min-height: 44px !important;
+}
+
+.lr-menu-profile .lr-menu-icon {
+    flex-basis: 44px;
+    height: 32px;
+}
+
+.lr-menu-profile .lr-profile-avatar {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 4px;
+    transform: none !important;
+}
+
+.lr-menu-profile .lr-menu-icon .lr-profile-avatar img {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.lr-menu-profile > span:last-child {
+    line-height: 32px;
+}
+
+.lr-menu-profile .lr-profile-initial {
+    font-size: 1rem;
+}
+
 .lr-menu-divider {
     height: 1px;
     margin: 6px 0;
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.15);
     list-style: none;
+}
+
+/* Abmelden abgesetzt und mittig ganz unten */
+body.lr-tidy-header #app-user-menu .lr-menu-logout {
+    justify-content: center;
+    min-height: 44px !important;
+    margin-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+body.lr-tidy-header #app-user-menu .lr-menu-logout .MuiListItemIcon-root {
+    display: none;
+}
+
+body.lr-tidy-header #app-user-menu .lr-menu-logout .MuiListItemText-root {
+    flex: none;
 }
 
 /* Tab-Leiste unten (Handy) */

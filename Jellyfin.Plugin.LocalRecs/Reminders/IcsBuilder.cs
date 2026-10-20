@@ -30,11 +30,24 @@ namespace Jellyfin.Plugin.LocalRecs.Reminders
                 "CALSCALE:GREGORIAN",
                 "METHOD:PUBLISH",
                 "X-WR-CALNAME:" + Escape(calendarName),
-                "X-WR-TIMEZONE:UTC",
                 "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
                 "X-PUBLISHED-TTL:PT1H"
             };
-            foreach (var entry in entries.OrderBy(e => e.StartDate))
+            var list = entries.OrderBy(e => e.StartDate).ToList();
+            if (list.Count == 0)
+            {
+                // iOS lehnt Abos ohne ein einziges Ereignis ab – daher ein ganztägiger Platzhalter weit in der Vergangenheit
+                lines.Add("BEGIN:VEVENT");
+                lines.Add("UID:platzhalter@localrecs");
+                lines.Add("DTSTAMP:" + Stamp(now));
+                lines.Add("DTSTART;VALUE=DATE:20000101");
+                lines.Add("DTEND;VALUE=DATE:20000102");
+                lines.Add("SUMMARY:" + Escape(calendarName));
+                lines.Add("TRANSP:TRANSPARENT");
+                lines.Add("END:VEVENT");
+            }
+
+            foreach (var entry in list)
             {
                 var summary = string.IsNullOrWhiteSpace(entry.ChannelName) ? entry.Name : entry.ChannelName + ": " + entry.Name;
                 if (!string.IsNullOrWhiteSpace(entry.EpisodeTitle))

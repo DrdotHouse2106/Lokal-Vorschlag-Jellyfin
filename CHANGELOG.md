@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.23.0] - 2026-10-20
+
+### Changed
+
+- **Profile menu in the Netflix style** (Jellyfin Web with the Netflix start page): black, slim rows with grey icons, underline on hover, „Abmelden“ set apart at the bottom. At the top the other saved profiles of „Wer schaut?“ with their image (one click switches) and „Profile verwalten“ (opens the picker in manage mode).
+
+### Fixed
+
+- **Calendar on iPhone:** the iPhone camera does not open webcal links from a QR code. The QR code now leads to a subscribe page (`/LocalRecs/Calendar/{token}/Abonnieren`, no sign-in) whose button opens the subscribe dialog in Safari; in the iOS app „Im Kalender abonnieren“ opens that page too. `GET /LocalRecs/Calendar` also returns `PageUrl`; `Calendar/Qr` defaults to `target=page`.
+- An empty calendar feed contains an invisible all-day placeholder (2000-01-01), because iOS rejects subscriptions without events; `X-WR-TIMEZONE` was removed (all times are UTC anyway).
+- Profile menu: Jellyfin Enhanced's random button showed a white square instead of the dice and wrapped – now „Zufälliger Titel“ with a dice icon.
+
 ## [12.22.0] - 2026-10-20
 
 ### Added

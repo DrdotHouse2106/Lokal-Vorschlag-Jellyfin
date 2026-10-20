@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.23.0.0",
+        "changelog": "Profilmenü im Netflix-Stil, Kalender-Abo auf dem iPhone repariert / Netflix-style profile menu, iPhone calendar fix\n- Profilmenü: andere Profile mit Bild oben, „Profile verwalten“, Abmelden unten; Würfel-Symbol für „Zufälliger Titel“\n- QR-Code führt auf eine Abo-Seite (iPhone-Kamera öffnet keine webcal-Links), leerer Kalender mit Platzhalter\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.23.0.zip",
+        "checksum": "481b8a023157d28fd0f07ac87f2f20b5",
+        "timestamp": "2026-10-20T05:00:00Z"
+      },
+      {
         "version": "12.22.0.0",
         "changelog": "Profilbilder aus Figuren / profile images from figures\n- Figur und Hintergrundfarbe wählen, der Server erzeugt ein rundes Profilbild (nur das eigene)\n- Im Profilmenü „Profilbild wählen“ und in „Wer schaut?“ → „Profile verwalten“\n- Katalog austauschbar, weitere Kataloge ergänzbar; Schnittstelle für Apps: /LocalRecs/Avatars\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

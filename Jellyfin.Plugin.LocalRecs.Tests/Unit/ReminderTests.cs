@@ -115,5 +115,25 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
 
             qr.ToSvg().Should().StartWith("<?xml").And.Contain("<path d=\"M");
         }
+
+        [Fact]
+        public void Ics_EmptyCalendar_HasPlaceholderEvent_ForIos()
+        {
+            var ics = IcsBuilder.Build(Array.Empty<ReminderEntry>(), "Live-TV – Ben", 10, Now);
+
+            ics.Should().Contain("BEGIN:VEVENT").And.Contain("UID:platzhalter@localrecs").And.Contain("DTSTART;VALUE=DATE:20000101");
+            ics.Should().NotContain("VALARM").And.NotContain("X-WR-TIMEZONE");
+            IcsBuilder.Build(new[] { Program("a", "X", null, 1) }, "K", 0, Now).Should().NotContain("platzhalter");
+        }
+
+        [Fact]
+        public void CalendarPage_EncodesLinks_AndOffersWebcalButton()
+        {
+            var html = CalendarPage.Build("webcal://tv.example.org/LocalRecs/Calendar/ab.ics", "https://tv.example.org/LocalRecs/Calendar/ab.ics?x=1&y=<2>", "Live-TV – \"Ben\"");
+
+            html.Should().Contain("href=\"webcal://tv.example.org/LocalRecs/Calendar/ab.ics\"");
+            html.Should().Contain("x=1&amp;y=&lt;2&gt;").And.NotContain("<2>");
+            html.Should().Contain("&quot;Ben&quot;").And.Contain("Im Kalender abonnieren");
+        }
     }
 }

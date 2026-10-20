@@ -220,12 +220,12 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// <summary>
         /// Gets a QR code (SVG, scalable, with quiet zone) of the calendar link, e.g. to scan from the TV screen.
         /// </summary>
-        /// <param name="target">"webcal" (default, subscribes directly on iPhone) or "https".</param>
+        /// <param name="target">"page" (default: web page with subscribe button – the iPhone camera does not open webcal links), "webcal" or "https".</param>
         /// <returns>The SVG image.</returns>
         [HttpGet("Calendar/Qr")]
         [Authorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public ActionResult GetCalendarQr([FromQuery] string target = "webcal")
+        public ActionResult GetCalendarQr([FromQuery] string target = "page")
         {
             var user = CurrentUser();
             if (user == null)
@@ -234,7 +234,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             }
 
             var link = Link(_reminders.Store.GetToken(user.Id, false));
-            var text = string.Equals(target, "https", StringComparison.OrdinalIgnoreCase) ? link.Url : link.WebcalUrl;
+            var text = string.Equals(target, "https", StringComparison.OrdinalIgnoreCase) ? link.Url
+                : string.Equals(target, "webcal", StringComparison.OrdinalIgnoreCase) ? link.WebcalUrl
+                : link.PageUrl;
             Response.Headers.CacheControl = "no-store";
             return Content(QrCode.Encode(text).ToSvg(), "image/svg+xml");
         }
@@ -263,6 +265,32 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             return File(Encoding.UTF8.GetBytes(ics), "text/calendar; charset=utf-8");
         }
 
+        /// <summary>
+        /// Web page for subscribing on a phone (target of the QR code): button for iPhone/Mac (webcal) and the link for Google Calendar.
+        /// Without sign-in, protected by the secret token like the feed.
+        /// </summary>
+        /// <param name="token">Secret token.</param>
+        /// <returns>The HTML page.</returns>
+        [HttpGet("Calendar/{token}/Abonnieren")]
+        [AllowAnonymous]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public ActionResult GetCalendarPage([FromRoute] string token)
+        {
+            var userId = _reminders.Store.FindUserByToken(token);
+            var user = userId.HasValue ? _userManager.GetUserById(userId.Value) : null;
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            var link = Link(token);
+            Response.Headers.CacheControl = "no-store";
+            Response.Headers["X-Content-Type-Options"] = "nosniff";
+            Response.Headers["Referrer-Policy"] = "no-referrer";
+            return Content(CalendarPage.Build(link.WebcalUrl, link.Url, "Live-TV – " + user.Username), "text/html; charset=utf-8");
+        }
+
         private Jellyfin.Database.Implementations.Entities.User? CurrentUser() => _userManager.GetUserById(RecommendationsController.GetUserId(User));
 
         private string PublicBase()
@@ -282,7 +310,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         {
             var url = PublicBase() + "/LocalRecs/Calendar/" + token + ".ics";
             var webcal = "webcal://" + url.Substring(url.IndexOf("://", StringComparison.Ordinal) + 3);
-            return new CalendarLink { Url = url, WebcalUrl = webcal, QrUrl = "/LocalRecs/Calendar/Qr" };
+            return new CalendarLink { Url = url, WebcalUrl = webcal, PageUrl = PublicBase() + "/LocalRecs/Calendar/" + token + "/Abonnieren", QrUrl = "/LocalRecs/Calendar/Qr" };
         }
 
         /// <summary>
@@ -296,7 +324,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             /// <summary>Gets or sets the webcal link (subscribes directly on iPhone/Mac/Outlook).</summary>
             public string WebcalUrl { get; set; } = string.Empty;
 
-            /// <summary>Gets or sets the path of the QR code (SVG) on this server; add ?target=https for the https link.</summary>
+            /// <summary>Gets or sets the web page with subscribe button (target of the QR code, since 12.23.0).</summary>
+            public string PageUrl { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the path of the QR code (SVG) on this server (page; ?target=webcal or ?target=https for the links).</summary>
             public string QrUrl { get; set; } = string.Empty;
         }
     }

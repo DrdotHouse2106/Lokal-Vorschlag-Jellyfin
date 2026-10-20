@@ -182,12 +182,14 @@ DELETE /LocalRecs/Reminders/{programId}        → 204 entfernt · 404 war nicht
 GET    /LocalRecs/Reminders/Series             → [{ Key, Name, Added }]
 POST   /LocalRecs/Reminders/Series/{programId} → 200 { Key, Name, Added } – Serie dieser Sendung merken · 404 unbekannte Sendung
 DELETE /LocalRecs/Reminders/Series/{key}       → 204 · 404 (statt Key geht auch die Id einer Sendung der Serie)
-GET    /LocalRecs/Calendar                     → { Url, WebcalUrl, QrUrl } – Abo-Links (Schlüssel wird beim ersten Aufruf erzeugt)
+GET    /LocalRecs/Calendar                     → { Url, WebcalUrl, PageUrl, QrUrl } – Abo-Links (Schlüssel wird beim ersten Aufruf erzeugt)
 POST   /LocalRecs/Calendar/Renew               → wie oben, mit neuem Schlüssel (alter Link wird ungültig)
-GET    /LocalRecs/Calendar/Qr?target=webcal|https → QR-Code als SVG (skalierbar, mit Ruhezone; Standard webcal)
+GET    /LocalRecs/Calendar/Qr?target=page|webcal|https → QR-Code als SVG (skalierbar, mit Ruhezone; Standard ab 12.23.0: page)
 GET    /LocalRecs/Calendar/{token}.ics         → iCal-Feed ohne Anmeldung (der geheime Schlüssel schützt ihn)
+GET    /LocalRecs/Calendar/{token}/Abonnieren  → Abo-Seite ohne Anmeldung: Knopf „Im Kalender abonnieren“ (webcal), Link für Google Kalender, „Link kopieren“
 ```
 
+- **iPhone:** Die Kamera-App öffnet webcal-Links aus einem QR-Code nicht („Im Kalender öffnen“ bewirkt nichts). Deshalb führt der QR-Code ab 12.23.0 auf die Abo-Seite; dort öffnet der Knopf in Safari den Dialog „Kalenderabo hinzufügen“. In der iOS-App öffnet „Im Kalender abonnieren“ ebenfalls diese Seite. Ein leerer Kalender enthält einen unsichtbaren Platzhalter (1.1.2000), weil iOS Abos ganz ohne Ereignis ablehnt.
 - Ids (`programId`) mit oder ohne Bindestriche. Alle Endpunkte außer dem `.ics`-Feed brauchen die normale Anmeldung (`Authorization: MediaBrowser Token="…"`, bei Bild-Links `?ApiKey=…`).
 - `/LocalRecs/Web/Config` meldet `"Reminders": true`, Apps können die Funktion darüber erkennen.
 - Die Abo-Adresse ergibt sich aus der Anfrage (beachtet `X-Forwarded-Proto`/`X-Forwarded-Host`) oder aus der Einstellung „Öffentliche Adresse für Kalender-Links“.

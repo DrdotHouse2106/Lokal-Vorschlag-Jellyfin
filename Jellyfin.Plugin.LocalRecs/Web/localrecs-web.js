@@ -395,7 +395,13 @@
             links.innerHTML = '';
             var actions = el('div', 'lr-cal-actions');
             var subscribe = el('a', 'lr-btn lr-btn-play', null);
-            subscribe.href = link.WebcalUrl;
+            // In Apps (z. B. der iOS-App) öffnen webcal-Links nichts – dort die Abo-Seite in Safari öffnen
+            var inApp = /iPhone|iPad|iPod/.test(navigator.userAgent) || !!window.NativeShell;
+            subscribe.href = inApp && link.PageUrl ? link.PageUrl : link.WebcalUrl;
+            if (inApp && link.PageUrl) {
+                subscribe.target = '_blank';
+                subscribe.rel = 'noopener';
+            }
             subscribe.appendChild(icon('event'));
             subscribe.appendChild(el('span', null, 'Im Kalender abonnieren'));
             actions.appendChild(subscribe);
@@ -419,8 +425,8 @@
             qr.src = url('LocalRecs/Calendar/Qr?ApiKey=' + api().accessToken() + '&v=' + Date.now());
             var qrBox = el('div', 'lr-cal-qrbox');
             qrBox.appendChild(qr);
-            qrBox.appendChild(el('p', 'lr-cal-hint', 'Mit der Handy-Kamera scannen. iPhone: Abo bestätigen. Android/Google Kalender: Link kopieren und am PC unter '
-                + '„Weitere Kalender → Per URL“ einfügen.'));
+            qrBox.appendChild(el('p', 'lr-cal-hint', 'Mit der Handy-Kamera scannen – es öffnet sich eine Seite mit dem Knopf „Im Kalender abonnieren“. '
+                + 'Android/Google Kalender: Link kopieren und am PC unter „Weitere Kalender → Per URL“ einfügen.'));
             links.appendChild(qrBox);
             links.appendChild(button('lr-btn-link', 'autorenew', 'Link erneuern (alter Link wird ungültig)', function () {
                 if (window.confirm('Neuen Link erzeugen? Bestehende Kalender-Abos hören dann auf, sich zu aktualisieren.')) {
@@ -2318,9 +2324,15 @@
             li.setAttribute('role', 'menuitem');
             li.tabIndex = 0;
             var iconBox = el('span', 'lr-menu-icon');
-            var svg = node.querySelector('svg, img, .material-icons, i');
-            if (svg) {
-                iconBox.appendChild(svg.cloneNode(true));
+            if (node.id === 'randomItemButton') {
+                // Würfel von Jellyfin Enhanced wird per CSS gezeichnet – als Kopie bliebe nur ein weißes Quadrat
+                iconBox.appendChild(icon('casino'));
+                label = 'Zufälliger Titel';
+            } else {
+                var svg = node.querySelector('svg, img, .material-icons, i');
+                if (svg) {
+                    iconBox.appendChild(svg.cloneNode(true));
+                }
             }
             li.appendChild(iconBox);
             li.appendChild(el('span', null, label));
@@ -2397,6 +2409,7 @@
                 window.clearInterval(timer);
                 if (tidy) {
                     extendUserMenu(list);
+                    markLogout(list);
                 } else if (list) {
                     list.querySelectorAll('.lr-menu-account').forEach(function (node) {
                         node.remove();
@@ -3562,7 +3575,7 @@
         var title = el('h1', 'lr-profiles-title', 'Wer schaut?');
         var hint = el('p', 'lr-profiles-hint');
         var grid = el('div', 'lr-profiles-grid');
-        var editing = false;
+        var editing = !!options.manage;
         var manage;
 
         function draw() {
@@ -3648,17 +3661,22 @@
             }
         }
 
+        function drawTitle() {
+            title.textContent = editing ? 'Profile verwalten' : 'Wer schaut?';
+            hint.textContent = !editing ? '' : avatarsEnabled()
+                ? 'Profil antippen, um das Profilbild zu ändern oder es aus diesem Browser zu entfernen.'
+                : 'Entfernt das Profil nur aus diesem Browser.';
+        }
+
         manage = el('button', 'lr-profiles-manage');
         manage.type = 'button';
         manage.addEventListener('click', function (e) {
             e.preventDefault();
             editing = !editing;
-            title.textContent = editing ? 'Profile verwalten' : 'Wer schaut?';
-            hint.textContent = !editing ? '' : avatarsEnabled()
-                ? 'Profil antippen, um das Profilbild zu ändern oder es aus diesem Browser zu entfernen.'
-                : 'Entfernt das Profil nur aus diesem Browser.';
+            drawTitle();
             draw();
         });
+        drawTitle();
         inner.appendChild(title);
         inner.appendChild(grid);
         inner.appendChild(hint);
@@ -3680,7 +3698,9 @@
         item.setAttribute('role', 'menuitem');
         item.tabIndex = 0;
         var itemIcon = el('span', 'lr-menu-icon');
-        itemIcon.appendChild(icon(iconName));
+        if (iconName) {
+            itemIcon.appendChild(icon(iconName));
+        }
         item.appendChild(itemIcon);
         item.appendChild(el('span', null, label));
         onActivate(item, function () {
@@ -3693,16 +3713,40 @@
         return item;
     }
 
-    // „Profilbild wählen“ und „Profil wechseln“ oben im Profilmenü
+    // Netflix-Stil: oben die anderen gespeicherten Profile (Klick wechselt), „Profile verwalten“ und „Profilbild wählen“
     function addAccountMenuItems(list) {
         var items = [];
         if (!list || list.querySelector('.lr-menu-account')) {
             return items;
         }
+        var client = api();
+        var serverId = client && client.serverId ? client.serverId() : null;
         if (profilesEnabled()) {
-            items.push(accountMenuItem('switch_account', 'Profil wechseln', function () {
+            var others = readProfiles().filter(function (p) {
+                return p.ServerId === serverId && !sameId(p.Id, userId());
+            }).sort(function (a, b) {
+                return (b.LastUsed || 0) - (a.LastUsed || 0);
+            }).slice(0, 5);
+            others.forEach(function (profile) {
+                var item = accountMenuItem(null, profile.Name, function () {
+                    checkToken(profile).then(function (valid) {
+                        if (valid) {
+                            switchToProfile(profile);
+                        } else {
+                            writeProfiles(readProfiles().filter(function (p) {
+                                return !(p.ServerId === profile.ServerId && sameId(p.Id, profile.Id));
+                            }));
+                            showProfilePicker();
+                        }
+                    });
+                });
+                item.classList.add('lr-menu-profile');
+                item.querySelector('.lr-menu-icon').appendChild(profileAvatar(profile, 96));
+                items.push(item);
+            });
+            items.push(accountMenuItem('edit', others.length ? 'Profile verwalten' : 'Profil wechseln', function () {
                 rememberProfile();
-                showProfilePicker();
+                showProfilePicker(others.length ? { manage: true } : {});
             }));
         }
         if (avatarsEnabled() && userId()) {
@@ -3714,6 +3758,18 @@
             list.insertBefore(item, list.firstChild);
         });
         return items;
+    }
+
+    // Abmelden wie bei Netflix abgesetzt ganz unten
+    function markLogout(list) {
+        if (!list) {
+            return;
+        }
+        list.querySelectorAll('.MuiMenuItem-root').forEach(function (item) {
+            if (item.querySelector('[data-testid="LogoutIcon"]')) {
+                item.classList.add('lr-menu-logout');
+            }
+        });
     }
 
     // ---------------------------------------------------------------- Profilbild aus Figur und Farbe
