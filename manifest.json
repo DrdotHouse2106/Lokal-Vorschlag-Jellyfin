@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.30.0.0",
+        "changelog": "Diagnose und iOS-App\n- Neuer Schalter „Diagnose“: Fehler und die letzten Schritte vor einem Absturz kommen ins Serverlog („Quallenkino-Diagnose“)\n- iOS-App: „Quallenkino-Player testen“ im Profilmenü (pro Gerät)\n- Player: beim Laden nur der Ladekreis\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.30.0.zip",
+        "checksum": "7391c3426852a785c0ed5c950c4b9d5d",
+        "timestamp": "2026-10-20T21:15:00Z"
+      },
+      {
         "version": "12.29.4.0",
         "changelog": "Folgennummern\n- Datumsnummern (z. B. YouTube-Kanäle: Staffel 2026, Folge 101799) werden nicht mehr als „S2026:F101799“ gezeigt, nur noch der Folgentitel\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

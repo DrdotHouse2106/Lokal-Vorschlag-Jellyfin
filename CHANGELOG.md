@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.30.0] - 2026-10-20
+
+### Added
+
+- **Diagnostics** (setting „Diagnose: Fehler der Weboberfläche ins Serverlog schreiben“, default off): Jellyfin Web reports script errors, rejected promises and video errors to `POST /LocalRecs/ClientLog`. Steps (view, play request, player start/stop, video events, a heartbeat every 5 s, full-screen switches of the iOS app) are kept in the browser; if a page ended without `pagehide` (the WebView crashed), the next start sends the last 30 steps. Written to the server log as warnings „Quallenkino-Diagnose [user · client version · device]“; access keys are removed, at most 300 lines per user and minute.
+- **iOS app:** „Quallenkino-Player testen“ in the profile menu switches the Quallenkino player on for this device only (back via ⋮ → „Klassischer Player“). If the app plays videos itself (setting „native video player“), the Quallenkino player stays off.
+
+### Fixed
+
+- Player: while loading only the loading circle is shown, no pause symbol inside it.
+
 ## [12.29.4] - 2026-10-20
 
 ### Fixed

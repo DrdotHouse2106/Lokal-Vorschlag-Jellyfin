@@ -219,13 +219,21 @@
                                 <input is="emby-checkbox" type="checkbox" id="webPlayerForAll" />
                                 <span>Quallenkino-Player für alle Benutzer</span>
                             </label>
-                            <div class="fieldDescription checkboxFieldDescription">Eigene Steuerleiste über der Wiedergabe von Jellyfin – im Browser und in den Jellyfin-Apps für iOS und Android. Jeder kann pro Gerät unter ⋮ → „Klassischer Player“ zurückwechseln. Aus = nur die unten ausgewählten Benutzer.</div>
+                            <div class="fieldDescription checkboxFieldDescription">Eigene Steuerleiste über der Wiedergabe von Jellyfin – im Browser und in der Android-App. In der iOS-App vorerst nur zum Testen: dort im Profilmenü „Quallenkino-Player testen“ (pro Gerät). Jeder kann pro Gerät unter ⋮ → „Klassischer Player“ zurückwechseln. Aus = nur die unten ausgewählten Benutzer.</div>
                         </div>
 
                         <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused">Quallenkino-Player nur für diese Benutzer (wenn nicht für alle):</label>
                             <div id="webPlayerUsers" class="checkboxList paperList" style="padding: 0.5em 1em;"></div>
                             <div class="fieldDescription">Eigene Steuerleiste im Quallenkino-Stil für Jellyfin Web und die Handy-Apps: Zurück und Titel oben, große Play/Pause- und ±10-Sekunden-Knöpfe, Zeitleiste mit Vorschaubildern, Ton &amp; Untertitel in einem Menü, Folgenliste, Geschwindigkeit, Überspringen mit Countdown. Abgespielt wird weiter von Jellyfin. Im Player gibt es unter ⋮ „Klassischer Player“ (pro Gerät).</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="webDiagnostics" />
+                                <span>Diagnose: Fehler der Weboberfläche ins Serverlog schreiben</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Zur Fehlersuche (z. B. Abstürze in der iOS-App): Browser und Apps melden Skriptfehler und nach einem Absturz die letzten Schritte davor. Im Serverlog als „Quallenkino-Diagnose“ mit Benutzer und Gerät. Zugangsschlüssel werden entfernt. Danach wieder ausschalten.</div>
                         </div>
 
                         <h2 class="sectionTitle">Live-TV-Erinnerungen (Kalender)</h2>
@@ -913,6 +921,7 @@
                             page.querySelector('#calendarPublicUrl').value = config.CalendarPublicUrl || '';
                             page.querySelector('#calendarAlarmMinutes').value = config.CalendarAlarmMinutes !== undefined ? config.CalendarAlarmMinutes : 10;
                             page.querySelector('#webPlayerForAll').checked = config.WebPlayerForAll !== false;
+                            page.querySelector('#webDiagnostics').checked = !!config.WebDiagnostics;
                             var playerUsers = (config.WebPlayerUserIds || []).map(function (id) { return String(id).replace(/-/g, '').toLowerCase(); });
                             ApiClient.getUsers().then(function (users) {
                                 var list = page.querySelector('#webPlayerUsers');
@@ -1020,6 +1029,7 @@
                             var alarm = parseInt(page.querySelector('#calendarAlarmMinutes').value, 10);
                             config.CalendarAlarmMinutes = isNaN(alarm) ? 10 : Math.min(1440, Math.max(0, alarm));
                             config.WebPlayerForAll = page.querySelector('#webPlayerForAll').checked;
+                            config.WebDiagnostics = page.querySelector('#webDiagnostics').checked;
                             var userBoxes = page.querySelectorAll('#webPlayerUsers .webPlayerUser');
                             if (userBoxes.length) {
                                 config.WebPlayerUserIds = Array.prototype.filter.call(userBoxes, function (box) { return box.checked; }).map(function (box) { return box.value; });

@@ -89,6 +89,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 Avatars = Config.AvatarsEnabled,
                 AvatarCatalogUrl = Avatars.AvatarService.ConfiguredCatalog(),
                 Reminders = true,
+                Diagnostics = Config.WebDiagnostics,
                 Version = WebIntegration.Version
             };
         }
@@ -118,6 +119,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets a value indicating whether live TV reminders and the calendar feed are available (since 12.20.0).</summary>
             public bool Reminders { get; set; }
+
+            /// <summary>Gets or sets a value indicating whether the web module reports errors to /LocalRecs/ClientLog (since 12.30.0).</summary>
+            public bool Diagnostics { get; set; }
 
             /// <summary>Gets or sets the plugin version.</summary>
             public string Version { get; set; } = string.Empty;

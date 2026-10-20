@@ -111,6 +111,154 @@
         return node;
     }
 
+    // ---------------------------------------------------------------- Diagnose (Einstellung „Diagnose“)
+    // Schritte (Ansicht, Abspielen, Player, Video-Ereignisse) landen laufend im localStorage. Endet eine Seite ohne
+    // „pagehide“ (WebView abgestürzt), schickt der nächste Start die letzten Schritte ins Serverlog.
+
+    var diag = { queue: [], timer: null, page: Math.random().toString(36).slice(2, 8), steps: [], beat: -1, previous: null };
+    try {
+        // Vor dem ersten eigenen Schritt lesen – der überschreibt den Eintrag
+        diag.previous = JSON.parse(storageGet('lrWeb.diag') || 'null');
+    } catch (e) {
+        diag.previous = null;
+    }
+
+    function diagOn() {
+        if (state.config) {
+            return !!state.config.Diagnostics;
+        }
+        try {
+            return !!(JSON.parse(storageGet('lrWeb.config') || 'null') || {}).Diagnostics;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function diagTime() {
+        var d = new Date();
+        return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2)
+            + '.' + ('00' + d.getMilliseconds()).slice(-3);
+    }
+
+    function diagSave() {
+        storageSet('lrWeb.diag', JSON.stringify({ page: diag.page, clean: !!diag.clean, at: Date.now(), steps: diag.steps }));
+    }
+
+    // Lebenszeichen ersetzen das vorige, damit die eigentlichen Schritte nicht verdrängt werden
+    function diagStep(text, heartbeat) {
+        if (!diagOn()) {
+            return;
+        }
+        var line = diagTime() + ' ' + text;
+        if (heartbeat && diag.beat >= 0 && diag.beat === diag.steps.length - 1) {
+            diag.steps[diag.beat] = line;
+        } else {
+            diag.steps.push(line);
+            if (diag.steps.length > 30) {
+                diag.steps.shift();
+            }
+            diag.beat = heartbeat ? diag.steps.length - 1 : -1;
+        }
+        diagSave();
+    }
+
+    function diagSend(line) {
+        if (!diagOn()) {
+            return;
+        }
+        diag.queue.push(line);
+        if (diag.queue.length > 60) {
+            diag.queue.shift();
+        }
+        window.clearTimeout(diag.timer);
+        diag.timer = window.setTimeout(diagFlush, 1500);
+    }
+
+    function diagFlush() {
+        if (!diag.queue.length) {
+            return;
+        }
+        if (!api() || !userId()) {
+            diag.timer = window.setTimeout(diagFlush, 3000);
+            return;
+        }
+        var lines = diag.queue.splice(0, diag.queue.length);
+        postJson('LocalRecs/ClientLog', { Lines: lines }).catch(function () {
+            // Diagnose darf nie stören
+        });
+    }
+
+    function diagEnvironment() {
+        var app = window.ExpoAppInfo ? window.ExpoAppInfo.appName + ' ' + window.ExpoAppInfo.appVersion : '-';
+        var nativeVideo = window.ExpoAppSettings ? String(!!window.ExpoAppSettings.isNativeVideoPlayerEnabled) : '-';
+        return 'App: ' + app + ', iOS-App erkannt: ' + isNativeIos + ', NativeShell: ' + !!window.NativeShell
+            + ', nativer Videoplayer der App: ' + nativeVideo + ', Bildschirm ' + window.innerWidth + 'x' + window.innerHeight
+            + ' @' + (window.devicePixelRatio || 1) + ', ' + navigator.userAgent;
+    }
+
+    function diagStart() {
+        if (!diagOn() || diag.started) {
+            return;
+        }
+        diag.started = true;
+        var previous = diag.previous;
+        diagSend('Start Quallenkino ' + ((state.config && state.config.Version) || '?') + ', Player: ' + playerWanted() + ' · ' + diagEnvironment());
+        if (previous && previous.page !== diag.page && previous.steps && previous.steps.length && Date.now() - previous.at < 10 * 60000) {
+            diagSend(previous.clean
+                ? 'Vorherige Seite normal verlassen (Neuladen/Wechsel), letzte Schritte:'
+                : 'Vorherige Seite OHNE pagehide beendet (Absturz bzw. WebView beendet?), letzte Schritte:');
+            previous.steps.slice(previous.clean ? -6 : -30).forEach(function (step) {
+                diagSend('  ' + step);
+            });
+        }
+        diagStep('Diagnose aktiv, ' + window.location.hash);
+        // Vollbild-Umschaltung der iOS-App (verschiebt das Layout, sperrt bzw. erlaubt „Ziehen zum Neuladen“)
+        ['enableFullscreen', 'disableFullscreen'].forEach(function (name) {
+            var shell = window.NativeShell;
+            if (shell && typeof shell[name] === 'function' && !shell[name].lrWrapped) {
+                var original = shell[name];
+                shell[name] = function () {
+                    diagStep('NativeShell.' + name);
+                    return original.apply(this, arguments);
+                };
+                shell[name].lrWrapped = true;
+            }
+        });
+    }
+
+    window.addEventListener('error', function (e) {
+        var where = e.filename ? ' @ ' + e.filename.split('/').pop().split('?')[0] + ':' + e.lineno + ':' + e.colno : '';
+        diagStep('Fehler: ' + e.message + where);
+        diagSend('Fehler: ' + e.message + where);
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+        var reason = e.reason;
+        var text = reason && reason.message ? reason.message : String(reason);
+        if (reason && reason.status) {
+            text = 'HTTP ' + reason.status + ' ' + (reason.url || '');
+        }
+        diagStep('Promise abgelehnt: ' + text);
+        diagSend('Promise abgelehnt: ' + text);
+    });
+    // Sauber verlassen (Neuladen, Wechsel) – bei einem Absturz des WebViews kommt kein pagehide
+    // Jellyfin schickt beim Ansichtswechsel eigene, hochblubbernde pagehide/pageshow-Ereignisse – nur die des Fensters zählen
+    window.addEventListener('pagehide', function (e) {
+        if (e.target !== window && e.target !== document) {
+            return;
+        }
+        diag.clean = true;
+        diagStep('pagehide');
+    });
+    window.addEventListener('pageshow', function (e) {
+        if (e.persisted && (e.target === window || e.target === document)) {
+            diag.clean = false;
+            diagStep('pageshow aus dem Zwischenspeicher');
+        }
+    });
+    document.addEventListener('visibilitychange', function () {
+        diagStep('Sichtbarkeit: ' + document.visibilityState);
+    });
+
     // Langer Text auf wenige Zeilen gekürzt, mit „Mehr“ zum Aufklappen (z. B. Videobeschreibungen voller Links)
     function clampedText(tag, className, text) {
         var box = el('div', 'lr-clamp-box');
@@ -903,6 +1051,7 @@
     }
 
     function play(item) {
+        diagStep('Abspielen: ' + item.Type + ' ' + item.Id);
         resolvePlayable(item).then(function (target) {
             if (!target) {
                 openDetailsPage(item);
@@ -916,6 +1065,7 @@
                 var ticks = target.UserData && target.UserData.PlaybackPositionTicks ? target.UserData.PlaybackPositionTicks : 0;
                 closeOverlays();
                 stopHeroVideo();
+                diagStep('PlayNow an eigene Sitzung: ' + target.Type + ' ' + target.Id);
                 return post('Sessions/' + session.Id + '/Playing?playCommand=PlayNow&itemIds=' + target.Id
                     + (ticks ? '&startPositionTicks=' + ticks : ''));
             });
@@ -2755,15 +2905,20 @@
             list.insertBefore(calendarItem, list.firstChild);
             tucked.push(calendarItem);
         }
-        if (state.config && state.config.PlayerEnabled && !isNativeIos && storageGet('lrWeb.classicPlayer') === '1') {
+        var iosTest = isNativeIos && !appPlaysNatively() && (storageGet('lrWeb.iosPlayer') !== '1' || storageGet('lrWeb.classicPlayer') === '1');
+        if (state.config && state.config.PlayerEnabled && (iosTest || !isNativeIos && storageGet('lrWeb.classicPlayer') === '1')) {
             var playerItem = el('li', 'lr-menu-item MuiButtonBase-root MuiMenuItem-root');
             playerItem.setAttribute('role', 'menuitem');
             var playerIcon = el('span', 'lr-menu-icon');
             playerIcon.appendChild(icon('movie'));
             playerItem.appendChild(playerIcon);
-            playerItem.appendChild(el('span', null, 'Quallenkino-Player einschalten'));
+            playerItem.appendChild(el('span', null, isNativeIos ? 'Quallenkino-Player testen' : 'Quallenkino-Player einschalten'));
             onActivate(playerItem, function () {
                 storageSet('lrWeb.classicPlayer', null);
+                if (isNativeIos) {
+                    storageSet('lrWeb.iosPlayer', '1');
+                    diagStep('Quallenkino-Player in der iOS-App eingeschaltet');
+                }
                 var backdrop = document.querySelector('#app-user-menu .MuiBackdrop-root');
                 if (backdrop) {
                     backdrop.click();
@@ -3037,9 +3192,13 @@
         window.setTimeout(updateTabBar, 0);
         window.setTimeout(tidyHeader, 0);
         var view = e && e.target;
+        if (view && view.nodeType === 1) {
+            diagStep('Ansicht ' + (view.id || String(view.className).split(' ')[0]) + ' ' + window.location.hash);
+        }
         if (view && view.id === 'videoOsdPage') {
             startSkipWatcher();
             startOwnPlayer();
+            diagWatchClassicPlayer();
         } else {
             stopSkipWatcher();
             stopOwnPlayer();
@@ -3066,9 +3225,15 @@
     var SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
     var nf = { root: null, tick: null, hideTimer: null, session: null, sessionAt: 0, itemId: null, item: null, trickplay: null, mediaSourceId: null, dragging: false, lastTap: 0, panel: null };
 
+    // Spielt die iOS-App selbst ab (Einstellung „nativer Videoplayer“), gibt es kein Video im WebView zu steuern
+    function appPlaysNatively() {
+        return !!(window.ExpoAppSettings && window.ExpoAppSettings.isNativeVideoPlayerEnabled);
+    }
+
     function playerWanted() {
-        // In der iOS-App bleibt es beim Player der App (der eigene Player brachte dort den WebView zum Absturz)
-        return !!(state.config && state.config.PlayerEnabled) && !isNativeIos && storageGet('lrWeb.classicPlayer') !== '1';
+        // In der iOS-App nur auf Wunsch pro Gerät (Profilmenü „Quallenkino-Player testen“), bis der Absturz dort geklärt ist
+        return !!(state.config && state.config.PlayerEnabled) && storageGet('lrWeb.classicPlayer') !== '1' && !appPlaysNatively()
+            && (!isNativeIos || storageGet('lrWeb.iosPlayer') === '1');
     }
 
     function osdNode(selector) {
@@ -3398,6 +3563,7 @@
         }
         add('tv_off', 'Klassischer Player', function () {
             storageSet('lrWeb.classicPlayer', '1');
+            storageSet('lrWeb.iosPlayer', null);
             stopOwnPlayer();
         });
     }
@@ -3696,7 +3862,11 @@
         }
         nfRefreshSession(false);
         var video = currentVideo();
+        nfWatchVideo(video);
         var paused = video ? video.paused : false;
+        // Beim Laden nur der Ladekreis, kein Pause-Symbol darin
+        var loading = !video || video.readyState < 2 || !paused && (video.readyState < 3 || video.seeking);
+        root.classList.toggle('lr-nf-loading', loading);
         root.querySelectorAll('.lr-nf-play').forEach(function (b) {
             nfIcon(b, paused ? 'play_arrow' : 'pause');
         });
@@ -3729,6 +3899,49 @@
         root.querySelector('.lr-nf-episodes-btn').classList.toggle('lr-gone', !(nf.item && nf.item.Type === 'Episode'));
     }
 
+    // Diagnose: Video-Ereignisse und alle 5 s ein Lebenszeichen
+    function nfWatchVideo(video) {
+        if (!diagOn()) {
+            return;
+        }
+        if (video && nf.diagVideo !== video) {
+            nf.diagVideo = video;
+            diagStep('Video-Element gefunden (' + (video.className || 'ohne Klasse') + ')');
+            ['loadstart', 'loadedmetadata', 'playing', 'waiting', 'stalled', 'pause', 'ended', 'emptied', 'webkitbeginfullscreen', 'webkitendfullscreen'].forEach(function (name) {
+                video.addEventListener(name, function () {
+                    diagStep('Video ' + name + ' t=' + Math.round(video.currentTime) + ' rs=' + video.readyState
+                        + (name === 'loadedmetadata' ? ' ' + video.videoWidth + 'x' + video.videoHeight : ''));
+                });
+            });
+            video.addEventListener('error', function () {
+                var code = video.error ? video.error.code + ' ' + (video.error.message || '') : '?';
+                diagStep('Video-Fehler ' + code);
+                diagSend('Video-Fehler ' + code);
+            });
+        }
+        if (!nf.diagBeat || Date.now() - nf.diagBeat > 5000) {
+            nf.diagBeat = Date.now();
+            diagStep('Lebenszeichen ' + (video ? 't=' + Math.round(video.currentTime) + ' rs=' + video.readyState + (video.paused ? ' Pause' : '') : 'ohne Video'), true);
+        }
+    }
+
+    // Diagnose auch mit Jellyfins eigenem Player (z. B. in der iOS-App, wo der Quallenkino-Player aus ist)
+    function diagWatchClassicPlayer() {
+        if (!diagOn() || nf.root || nf.diagTimer) {
+            return;
+        }
+        nf.diagTimer = window.setInterval(function () {
+            if (!document.querySelector('#videoOsdPage:not(.hide)')) {
+                window.clearInterval(nf.diagTimer);
+                nf.diagTimer = null;
+                return;
+            }
+            if (!nf.root) {
+                nfWatchVideo(currentVideo());
+            }
+        }, 1000);
+    }
+
     function startOwnPlayer() {
         if (nf.root || !playerWanted()) {
             return;
@@ -3736,6 +3949,7 @@
         nf.itemId = null;
         nf.item = null;
         nf.sessionAt = 0;
+        diagStep('Quallenkino-Player startet');
         nf.root = buildOwnPlayer();
         document.body.appendChild(nf.root);
         document.documentElement.classList.add('lr-player');
@@ -3745,6 +3959,9 @@
     }
 
     function stopOwnPlayer() {
+        if (nf.root) {
+            diagStep('Quallenkino-Player beendet');
+        }
         window.clearInterval(nf.tick);
         window.clearTimeout(nf.hideTimer);
         nf.tick = null;
@@ -4535,6 +4752,7 @@
         loadConfig().catch(function () {
             // Plugin-Endpunkt nicht erreichbar – dann bleibt alles wie in Jellyfin
         }).then(function () {
+            diagStart();
             lastUser = userId();
             rememberProfile();
             patchUpcomingPrograms();

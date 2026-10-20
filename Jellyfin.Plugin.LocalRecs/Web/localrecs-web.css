@@ -2152,6 +2152,11 @@ html.lr-nf-idle .lr-nf-surface {
     font-size: 2.6em;
 }
 
+/* Beim Laden steht nur Jellyfins Ladekreis in der Mitte */
+.lr-nf-loading .lr-nf-center .lr-nf-bigplay {
+    visibility: hidden;
+}
+
 .lr-nf-center .lr-nf-bigplay {
     width: 5.6em;
     height: 5.6em;

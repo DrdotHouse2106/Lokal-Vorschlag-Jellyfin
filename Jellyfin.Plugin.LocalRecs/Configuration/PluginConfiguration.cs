@@ -58,6 +58,7 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             EpgSportsChannels = "Sky Sport, Sport1, Eurosport, DAZN, sportdigital, MagentaSport";
             WebPlayerUserIds = System.Array.Empty<string>();
             WebPlayerForAll = true;
+            WebDiagnostics = false;
             CalendarPublicUrl = string.Empty;
             CalendarAlarmMinutes = 10;
             MovieSectionTitle = "Empfohlene Filme für dich";
@@ -350,6 +351,11 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Gets or sets a value indicating whether every user gets the Quallenkino player (default since 12.29.0; otherwise only the listed users).
         /// </summary>
         public bool WebPlayerForAll { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether Jellyfin Web reports errors and the last steps before a crash to the server log (since 12.30.0).
+        /// </summary>
+        public bool WebDiagnostics { get; set; }
 
         /// <summary>
         /// Gets or sets the public address of the server for calendar links (e.g. https://jellyfin.example.org).
