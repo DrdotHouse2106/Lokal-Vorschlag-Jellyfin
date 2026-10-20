@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.31.2.0",
+        "changelog": "Quallenkino-Player auf dem iPhone\n- Keine Vollbild-Taste mehr, wo sie das Video in den iOS-Vollbild-Player schiebt; in der App wird dieser sofort wieder verlassen\n- Video ohne eigene Bedienelemente, Taps gehen an die Quallenkino-Leiste\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.31.2.zip",
+        "checksum": "902977898c1c646375c70d3700cd206d",
+        "timestamp": "2026-10-20T23:00:00Z"
+      },
+      {
         "version": "12.31.1.0",
         "changelog": "Quallenkino-Player\n- Tasten (Pause, ±10 s, Zeitleiste, Ton/Untertitel) steuern Jellyfins Player direkt – funktionieren jetzt auch in der iOS-App\n- Diagnose: jeder Tastendruck im Player\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

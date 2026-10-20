@@ -3930,6 +3930,7 @@
         // Fläche zum Antippen/Klicken (Steuerung zeigen, am PC Pause, Doppeltipp ±10 s)
         var surface = el('div', 'lr-nf-surface');
         surface.addEventListener('click', function (e) {
+            diagStep('Tippen: Player-Fläche');
             if (nf.panel) {
                 nfClosePanel();
                 return;
@@ -4161,6 +4162,7 @@
         }
         nfRefreshSession(false);
         var video = currentVideo();
+        nfPrepareVideo(video);
         nfWatchVideo(video);
         var paused = video ? video.paused : false;
         // Beim Laden nur der Ladekreis, kein Pause-Symbol darin
@@ -4194,8 +4196,37 @@
             }
         }
         root.querySelector('.lr-nf-next').classList.toggle('lr-gone', !nativeVisible('.btnNextTrack'));
-        root.querySelector('.lr-nf-fullscreen').classList.toggle('lr-gone', !nativeVisible('.btnFullscreen'));
+        // iPhone kennt kein Vollbild für Seitenelemente – Jellyfin schöbe das Video in den nativen Vollbild-Player (ohne diese Leiste)
+        var canFullscreen = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+        root.querySelector('.lr-nf-fullscreen').classList.toggle('lr-gone', !canFullscreen || !nativeVisible('.btnFullscreen'));
         root.querySelector('.lr-nf-episodes-btn').classList.toggle('lr-gone', !(nf.item && nf.item.Type === 'Episode'));
+    }
+
+    // Video im Seitenfluss halten: keine nativen Bedienelemente, inline abspielen; in der iOS-App den nativen
+    // Vollbild-Player sofort wieder verlassen (dort wäre die Quallenkino-Leiste weg)
+    function nfPrepareVideo(video) {
+        if (!video || nf.preparedVideo === video) {
+            return;
+        }
+        nf.preparedVideo = video;
+        video.controls = false;
+        video.removeAttribute('controls');
+        video.playsInline = true;
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
+        video.addEventListener('webkitbeginfullscreen', function () {
+            if (!nf.root || !isNativeIos || typeof video.webkitExitFullscreen !== 'function') {
+                return;
+            }
+            diagStep('Nativer Vollbild-Player geöffnet – wird verlassen', false, true);
+            window.setTimeout(function () {
+                try {
+                    video.webkitExitFullscreen();
+                } catch (e) {
+                    diagStep('Vollbild verlassen fehlgeschlagen: ' + errorText(e), false, true);
+                }
+            }, 50);
+        });
     }
 
     // Diagnose: Video-Ereignisse und alle 5 s ein Lebenszeichen

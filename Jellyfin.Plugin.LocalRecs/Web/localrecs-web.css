@@ -2044,10 +2044,18 @@ html.lr-nf-idle .lr-nf-surface {
     cursor: none !important;
 }
 
+/* Taps gehören der Quallenkino-Leiste, nicht dem Video (iOS-WebView) */
+html.lr-player .videoPlayerContainer video {
+    pointer-events: none !important;
+}
+
 .lr-nf {
     position: fixed;
     inset: 0;
     z-index: 1050;
+    /* eigene Ebene über dem (teils nativ gezeichneten) Video */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
     color: #fff;
     font-size: 16px;
     -webkit-user-select: none;

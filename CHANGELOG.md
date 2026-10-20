@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.31.2] - 2026-10-20
+
+### Fixed
+
+- **Quallenkino player on iPhone (iOS app and Safari):** the full-screen key is hidden where the browser cannot show page elements in full screen (iPhone) – Jellyfin would move the video into iOS's native full-screen player, without the Quallenkino controls. In the iOS app the native full-screen player is left again right away if it opens anyway. The video gets `playsinline` and no native controls; it no longer takes taps (they belong to the Quallenkino controls), and the controls get their own layer above the video.
+
+### Added
+
+- Diagnostics: taps on the player surface are recorded as steps; opening of the native full-screen player is sent immediately.
+
 ## [12.31.1] - 2026-10-20
 
 ### Fixed
