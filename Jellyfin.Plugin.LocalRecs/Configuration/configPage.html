@@ -644,6 +644,9 @@
                     ApiClient.getJSON(ApiClient.getUrl('LocalRecs/Epg/Test', query)).then(function(r) {
                         var html = '<p><b>' + r.Programmes + ' Sendungen</b> auf ' + r.Channels + ' Sendern: ' + r.Series + ' Serienfolgen (' + r.SeriesWithEpisodeNumber + ' mit Folgennummer), '
                             + r.Movies + ' Filme, ' + r.Other + ' Sonstiges (davon ' + r.LongWithoutMovieEvidence + ' lang ohne Film-Merkmal). Kinder ' + r.Kids + ', Nachrichten ' + r.News + ', Sport ' + r.Sports + '. Merkmale aus der Darsteller-Quelle: ' + (r.Enriched || 0) + '.</p>';
+                        if (r.Rules) {
+                            html += '<p style="opacity:.75;font-size:.9em;">Aktive Regeln: ' + Object.keys(r.Rules).map(function (k) { return self.escapeHtml(k) + ': ' + self.escapeHtml(r.Rules[k] || '–'); }).join(' · ') + '</p>';
+                        }
                         html += '<div style="overflow-x:auto;"><table style="border-collapse:collapse;width:100%;font-size:.9em;"><tr style="text-align:left;"><th>Titel</th><th>Sender</th><th>Beginn</th><th>Min.</th><th>Art</th><th>Begründung</th></tr>';
                         (r.Examples || []).forEach(function(e) {
                             var episode = (e.Season ? 'S' + ('0' + e.Season).slice(-2) : '') + (e.Episode ? 'E' + ('0' + e.Episode).slice(-2) : '');

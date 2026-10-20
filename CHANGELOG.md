@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.29.1] - 2026-10-20
+
+### Fixed
+
+- **Settings were reset to defaults** when two plugin versions were loaded at the same time (e.g. during a rename): Jellyfin writes a default configuration over the file as soon as it cannot read it. The plugin now refuses to write plain defaults over an existing, different file, reloads the file shortly after, and keeps a backup before every save (`plugins/configurations/Jellyfin.Plugin.LocalRecs.sicherungen/`, last 10).
+- LocalRecs EPG: sports programmes no longer become series through their sub-title („UEFA Champions League: Highlights“).
+
+### Added
+
+- „Regeln testen“ shows the active rule lists (never movie, neither movie nor series, movie categories, minimum length, movie hints) – to check the saved settings.
+
 ## [12.29.0] - 2026-10-20
 
 ### Changed

@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.29.1.0",
+        "changelog": "Schutz der Einstellungen / settings protection\n- Nie mehr Standardwerte über vorhandene Einstellungen schreiben (passierte, wenn zwei Versionen gleichzeitig liefen), Sicherung vor jedem Speichern\n- LocalRecs EPG: Sport wird nicht mehr über den Folgentitel zur Serie, Test zeigt die aktiven Regeln\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.29.1.zip",
+        "checksum": "34b79164076cb1aa737c5394d8afa682",
+        "timestamp": "2026-10-20T14:00:00Z"
+      },
+      {
         "version": "12.29.0.0",
         "changelog": "Name in Jellyfin: „Quallenkino“ / new name\n- Räumt alte Plugin-Ordner (auch unter früherem Namen) beim Start selbst weg – beim Umstieg den alten Ordner vor dem Neustart entfernen\n- Quallenkino-Player standardmäßig für alle (auch iOS-/Android-App)\n- LocalRecs EPG: Dokus nie Film, Teleshopping weder Film noch Serie, Anreicherung auch bei <url>, Test mit Diagnose\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

@@ -44,7 +44,7 @@ Das **Quallenkinoplugin** (bis 12.27 „Local Recommendations“) erweitert Jell
 
 Für Jellyfin 10.11.x bitte die Original-Version 0.6.1 verwenden.
 
-**Name:** In Jellyfin heißt das Plugin **„Quallenkino“**, außerhalb (Repository, Suche) „Quallenkinoplugin für Jellyfin“. Frühere Namen: „Local Recommendations“ (bis 12.27), „Quallenkinoplugin für Jellyfin“ (12.28). Jellyfin legt Plugins in Ordnern `Name_Version` an und räumt alte Versionen nur bei gleichem Namen weg. Ab 12.29.0 entfernt das Plugin beim Start selbst ältere Ordner mit derselben Plugin-ID. Beim ersten Umstieg auf 12.29.0 nach dem Update **vor dem Neustart** den alten Ordner löschen (Dashboard → Plugins → alte Version deinstallieren bzw. `DELETE /Plugins/{id}/{version}`). Sonst laden beide Versionen, und alle `/LocalRecs`-Adressen melden einen Fehler 500, bis Jellyfin noch einmal neu gestartet ist.
+**Name:** In Jellyfin heißt das Plugin **„Quallenkino“**, außerhalb (Repository, Suche) „Quallenkinoplugin für Jellyfin“. Frühere Namen: „Local Recommendations“ (bis 12.27), „Quallenkinoplugin für Jellyfin“ (12.28). Jellyfin legt Plugins in Ordnern `Name_Version` an und räumt alte Versionen nur bei gleichem Namen weg. Ab 12.29.0 entfernt das Plugin beim Start selbst ältere Ordner mit derselben Plugin-ID. Beim ersten Umstieg auf 12.29.0 nach dem Update **vor dem Neustart** den alten Ordner löschen (Dashboard → Plugins → alte Version deinstallieren bzw. `DELETE /Plugins/{id}/{version}`). Sonst laden beide Versionen, und alle `/LocalRecs`-Adressen melden einen Fehler 500, bis Jellyfin noch einmal neu gestartet ist. **Achtung bei Versionen vor 12.29.1:** Laufen zwei Versionen gleichzeitig, kann Jellyfin die Einstellungsdatei nicht lesen und überschreibt sie mit Standardwerten. Vorher `plugins/configurations/Jellyfin.Plugin.LocalRecs.xml` sichern. Ab 12.29.1 verhindert das Plugin das und legt vor jedem Speichern eine Sicherung an (`plugins/configurations/Jellyfin.Plugin.LocalRecs.sicherungen/`, die letzten 10).
 
 **Versionsnummer:** Die Versionen dieses Forks sind an Jellyfin angelehnt (12.x). Jellyfin prüft nur, ob ein Plugin eine *mindestens* passende Server-Version verlangt. Durch die höhere Versionsnummer werden 10.11-Versionen des Originals auf Jellyfin 12 nie als Update angeboten.
 
@@ -223,7 +223,7 @@ Der eingebaute XMLTV-Anbieter von Jellyfin entscheidet nur über die Liste „Fi
 |---|---|
 | **Serie: Folgennummer** | `episode-num` (xmltv_ns oder onscreen wie `S02E02`, „Staffel 2, Folge 2“, `2x02`) → Serienfolge mit Staffel, Folge und Folgentitel (`sub-title`), egal welche Kategorie |
 | **Film** | ohne Folgennummer, mindestens 75 Minuten (einstellbar) **und** ein Film-Merkmal: Regie (`credits/director`), IMDb-Link (`url`) oder eine Film-Kategorie (Standard „Spielfilm“). Das Produktionsjahr (`date`) allein zählt ab 12.27.0 nur, wenn ausdrücklich eingeschaltet, weil Shows und Teleshopping oft eins haben. Nie bei Sport oder Nachrichten. Lange Sendungen ohne Merkmal bleiben „Sonstiges“ |
-| **Serie: Folgentitel** | kein Film, aber ein `sub-title` → Serienfolge |
+| **Serie: Folgentitel** | kein Film und kein Sport, aber ein `sub-title` → Serienfolge |
 | **Nie Film** (ab 12.29.0) | Kategorien wie Dokumentation, Doku, Reportage, Magazin – auch mit Regie und Überlänge |
 | **Weder Film noch Serie** (ab 12.29.0) | Teleshopping über Kategorie (Teleshopping, Shopping …) oder Sender (HSE, QVC, 1-2-3.tv, Juwelo …) |
 | **Kinder / Nachrichten / Sport** | über Kategorie (als ganzes Wort) **oder** Sender (z. B. KiKA = immer Kinder, Sky Sport = Sport) |

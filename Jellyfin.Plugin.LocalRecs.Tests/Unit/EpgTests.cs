@@ -299,5 +299,24 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             c.IsMovie.Should().BeFalse();
             c.Reasons.Should().Contain("Sonstiges: Sender „HSE“");
         }
+
+        [Fact]
+        public void Sports_WithSubTitle_IsNoSeries()
+        {
+            var programme = new EpgProgramme
+            {
+                ChannelId = "dazn",
+                Title = "UEFA Champions League",
+                SubTitle = "Highlights",
+                Start = new DateTimeOffset(2026, 10, 20, 23, 0, 0, TimeSpan.Zero),
+                Stop = new DateTimeOffset(2026, 10, 20, 23, 45, 0, TimeSpan.Zero)
+            };
+            programme.Categories.Add("Fußball");
+
+            var c = EpgClassifier.Classify(programme, "DAZN 1", Defaults());
+
+            c.IsSports.Should().BeTrue();
+            c.IsSeries.Should().BeFalse();
+        }
     }
 }

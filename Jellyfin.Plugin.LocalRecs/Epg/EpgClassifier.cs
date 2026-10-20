@@ -94,8 +94,8 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
                 }
             }
 
-            // 3. Serie über Folgentitel
-            if (settings.SeriesBySubTitle && !string.IsNullOrWhiteSpace(programme.SubTitle))
+            // 3. Serie über Folgentitel – nicht bei Sport („Champions League: Highlights“ ist keine Serienfolge)
+            if (settings.SeriesBySubTitle && !result.IsSports && !string.IsNullOrWhiteSpace(programme.SubTitle))
             {
                 result.IsSeries = true;
                 result.EpisodeTitle = programme.SubTitle;

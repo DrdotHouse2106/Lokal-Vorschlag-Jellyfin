@@ -177,7 +177,20 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             var settings = EpgRuleSettings.From(Config);
             await _provider.WaitForExtraSourceAsync(cancellationToken).ConfigureAwait(false);
             var names = file.Channels.GroupBy(c => c.Id).ToDictionary(g => g.Key, g => g.First().Name, StringComparer.Ordinal);
-            var result = new TestResult { Source = info.Path, Channels = file.Channels.Count };
+            var result = new TestResult
+            {
+                Source = info.Path,
+                Channels = file.Channels.Count,
+                Rules = new Dictionary<string, string>
+                {
+                    ["Nie Film"] = string.Join(", ", settings.NoMovieCategories),
+                    ["Weder Film noch Serie (Kategorien)"] = string.Join(", ", settings.OtherCategories),
+                    ["Weder Film noch Serie (Sender)"] = string.Join(", ", settings.OtherChannels),
+                    ["Film-Kategorien"] = string.Join(", ", settings.MovieCategories),
+                    ["Mindestlänge Film"] = settings.MovieMinMinutes.ToString(CultureInfo.InvariantCulture),
+                    ["Merkmale"] = string.Join(", ", new[] { settings.MovieByDirector ? "Regie" : null, settings.MovieByImdb ? "IMDb" : null, settings.MovieByYear ? "Jahr allein" : null }.Where(x => x != null))
+                }
+            };
             var examples = new List<TestProgramme>();
             foreach (var programme in file.Programmes)
             {
@@ -321,6 +334,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets the examples.</summary>
             public IReadOnlyList<TestProgramme> Examples { get; set; } = Array.Empty<TestProgramme>();
+
+            /// <summary>Gets or sets the active rule lists (to check the saved settings).</summary>
+            public IReadOnlyDictionary<string, string> Rules { get; set; } = new Dictionary<string, string>();
         }
 
         /// <summary>
