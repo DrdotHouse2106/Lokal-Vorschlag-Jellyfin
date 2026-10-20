@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.29.2] - 2026-10-20
+
+### Fixed
+
+- **iOS app:** The Quallenkino player stays off in the Jellyfin iOS app for now (the app's WebView crashed and reloaded when playback started). The app's own player is used there; Safari, browsers and the Android app keep the Quallenkino player.
+- Detail view on phones: long overviews (e.g. YouTube channels full of links) are clamped to 4 lines with „Mehr“/„Weniger“, long URLs wrap, and the episode list no longer runs off the right edge of the screen.
+
 ## [12.29.1] - 2026-10-20
 
 ### Fixed

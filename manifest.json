@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.29.2.0",
+        "changelog": "iPhone / iOS-App\n- Quallenkino-Player in der iOS-App vorerst aus (Absturz beim Abspielen), dort spielt der Player der App\n- Detailansicht: lange Beschreibungen auf 4 Zeilen mit „Mehr“, lange Links brechen um, Folgenliste bleibt in der Bildschirmbreite\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.29.2.zip",
+        "checksum": "084cf995ca17a0c48d7268edb2f0d70f",
+        "timestamp": "2026-10-20T19:30:00Z"
+      },
+      {
         "version": "12.29.1.0",
         "changelog": "Schutz der Einstellungen / settings protection\n- Nie mehr Standardwerte über vorhandene Einstellungen schreiben (passierte, wenn zwei Versionen gleichzeitig liefen), Sicherung vor jedem Speichern\n- LocalRecs EPG: Sport wird nicht mehr über den Folgentitel zur Serie, Test zeigt die aktiven Regeln\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

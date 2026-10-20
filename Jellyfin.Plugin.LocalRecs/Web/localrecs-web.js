@@ -28,7 +28,9 @@
     var isTouch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
     var isPhone = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || isTouch;
     var phoneQuery = window.matchMedia('(max-width: 700px)');
-    var isNativeIos = !!window.NativeShell && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    // Jellyfin-iOS-App (WKWebView mit eigener NativeShell). Safari selbst hat weder NativeShell noch webkit.messageHandlers.
+    var isAppleMobile = /iPhone|iPad|iPod/i.test(navigator.userAgent) || /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1;
+    var isNativeIos = isAppleMobile && !!(window.NativeShell || window.ReactNativeWebView || window.webkit && window.webkit.messageHandlers);
 
     // Handy-Ansicht wie in Streaming-Apps: Hochformat-Poster, Hero als Karte, Tab-Leiste unten
     function phoneLayout() {
@@ -107,6 +109,30 @@
             node.textContent = text;
         }
         return node;
+    }
+
+    // Langer Text auf wenige Zeilen gekürzt, mit „Mehr“ zum Aufklappen (z. B. Videobeschreibungen voller Links)
+    function clampedText(tag, className, text) {
+        var box = el('div', 'lr-clamp-box');
+        var node = el(tag, className + ' lr-clamp', text);
+        box.appendChild(node);
+        var more = el('button', 'lr-clamp-more', 'Mehr');
+        more.type = 'button';
+        more.hidden = true;
+        more.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open = node.classList.toggle('lr-clamp-open');
+            more.textContent = open ? 'Weniger' : 'Mehr';
+        });
+        box.appendChild(more);
+        // Erst nach dem Einhängen messbar
+        window.requestAnimationFrame(function () {
+            window.requestAnimationFrame(function () {
+                more.hidden = node.scrollHeight <= node.clientHeight + 2;
+            });
+        });
+        return box;
     }
 
     function icon(name) {
@@ -1612,7 +1638,7 @@
             left.appendChild(el('div', 'lr-info-tagline', item.Taglines[0]));
         }
         if (item.Overview) {
-            left.appendChild(el('p', 'lr-info-overview', item.Overview));
+            left.appendChild(clampedText('p', 'lr-info-overview', item.Overview));
         }
         body.appendChild(left);
         var side = el('div', 'lr-info-side');
@@ -2715,7 +2741,7 @@
             list.insertBefore(calendarItem, list.firstChild);
             tucked.push(calendarItem);
         }
-        if (state.config && state.config.PlayerEnabled && storageGet('lrWeb.classicPlayer') === '1') {
+        if (state.config && state.config.PlayerEnabled && !isNativeIos && storageGet('lrWeb.classicPlayer') === '1') {
             var playerItem = el('li', 'lr-menu-item MuiButtonBase-root MuiMenuItem-root');
             playerItem.setAttribute('role', 'menuitem');
             var playerIcon = el('span', 'lr-menu-icon');
@@ -3027,7 +3053,8 @@
     var nf = { root: null, tick: null, hideTimer: null, session: null, sessionAt: 0, itemId: null, item: null, trickplay: null, mediaSourceId: null, dragging: false, lastTap: 0, panel: null };
 
     function playerWanted() {
-        return !!(state.config && state.config.PlayerEnabled) && storageGet('lrWeb.classicPlayer') !== '1';
+        // In der iOS-App bleibt es beim Player der App (der eigene Player brachte dort den WebView zum Absturz)
+        return !!(state.config && state.config.PlayerEnabled) && !isNativeIos && storageGet('lrWeb.classicPlayer') !== '1';
     }
 
     function osdNode(selector) {

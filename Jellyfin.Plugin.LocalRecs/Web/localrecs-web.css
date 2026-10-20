@@ -209,6 +209,7 @@ body.lr-home.lr-scrolled header.MuiAppBar-root {
 }
 
 .lr-hero-overview {
+    overflow-wrap: anywhere;
     font-size: clamp(0.95em, 1.15vw, 1.25em);
     line-height: 1.45;
     margin: 0 0 1.3em;
@@ -734,7 +735,7 @@ html.lr-noscroll body {
 
 .lr-info-body {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
     gap: 2em;
     padding: 0 2.5em;
 }
@@ -761,6 +762,36 @@ html.lr-noscroll body {
 .lr-info-overview {
     line-height: 1.55;
     margin: 0;
+    overflow-wrap: anywhere;
+}
+
+/* Lange Beschreibungen: 4 Zeilen, „Mehr“ klappt auf */
+.lr-clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.lr-clamp.lr-clamp-open {
+    display: block;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+}
+
+.lr-clamp-more {
+    margin-top: 0.3em;
+    padding: 0.2em 0;
+    border: 0;
+    background: none;
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.lr-clamp-more[hidden] {
+    display: none;
 }
 
 .lr-info-line {
@@ -775,6 +806,8 @@ html.lr-noscroll body {
 
 .lr-info-section {
     padding: 1.5em 2.5em 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .lr-info-heading {
@@ -805,9 +838,10 @@ html.lr-noscroll body {
 
 .lr-episode {
     display: grid;
-    grid-template-columns: 2.2em 11em 1fr;
+    grid-template-columns: 2.2em 11em minmax(0, 1fr);
     gap: 1em;
     align-items: center;
+    min-width: 0;
     padding: 1em 0.8em;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 6px;
@@ -850,12 +884,21 @@ html.lr-noscroll body {
     opacity: 1;
 }
 
+.lr-episode-text {
+    min-width: 0;
+}
+
 .lr-episode-title {
     display: flex;
     justify-content: space-between;
     gap: 1em;
     font-weight: 700;
     margin-bottom: 0.3em;
+    overflow-wrap: anywhere;
+}
+
+.lr-episode-title > span:first-child {
+    min-width: 0;
 }
 
 .lr-episode-runtime {
@@ -872,6 +915,7 @@ html.lr-noscroll body {
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    overflow-wrap: anywhere;
 }
 
 .lr-info-episode {
@@ -1101,7 +1145,7 @@ body:has(#itemDetailPage.lr-detail-active:not(.hide)) .mdl-spinner {
     }
 
     .lr-info-body {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
         gap: 1em;
         padding: 0 1.2em;
     }
@@ -1132,9 +1176,20 @@ body:has(#itemDetailPage.lr-detail-active:not(.hide)) .mdl-spinner {
         padding: 1.2em 1.2em 0;
     }
 
+    /* Handy: Bild klein links, Text daneben – nie breiter als der Bildschirm */
     .lr-episode {
-        grid-template-columns: 8em 1fr;
+        grid-template-columns: 7.5em minmax(0, 1fr);
+        gap: 0.7em;
         padding: 0.8em 0;
+    }
+
+    .lr-episode-overview {
+        -webkit-line-clamp: 2;
+    }
+
+    .lr-episode-title {
+        flex-direction: column;
+        gap: 0.15em;
     }
 
     .lr-episode-number {
