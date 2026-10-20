@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.LocalRecs.Configuration;
+using Jellyfin.Plugin.LocalRecs.LiveTv;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Controller.LiveTv;
 using MediaBrowser.Model.Dto;
@@ -30,6 +31,7 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
 
         private readonly IApplicationPaths _paths;
         private readonly IHttpClientFactory? _httpClientFactory;
+        private readonly XmltvSource? _extraSource;
         private readonly ILogger<EpgListingsProvider> _logger;
         private readonly ConcurrentDictionary<string, DateTime> _failures = new ConcurrentDictionary<string, DateTime>(StringComparer.Ordinal);
         private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
@@ -41,11 +43,13 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
         /// <param name="paths">Application paths (cache folder).</param>
         /// <param name="logger">Logger instance.</param>
         /// <param name="httpClientFactory">HTTP client factory, optional.</param>
-        public EpgListingsProvider(IApplicationPaths paths, ILogger<EpgListingsProvider> logger, IHttpClientFactory? httpClientFactory = null)
+        /// <param name="extraSource">The „XMLTV-Quelle für Darsteller“ for movie hints (director, IMDb, year), optional.</param>
+        public EpgListingsProvider(IApplicationPaths paths, ILogger<EpgListingsProvider> logger, IHttpClientFactory? httpClientFactory = null, XmltvSource? extraSource = null)
         {
             _paths = paths ?? throw new ArgumentNullException(nameof(paths));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _httpClientFactory = httpClientFactory;
+            _extraSource = extraSource;
         }
 
         /// <inheritdoc />
@@ -99,6 +103,7 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
             var file = await GetFileAsync(info, cancellationToken).ConfigureAwait(false);
             var channelName = file.Channels.FirstOrDefault(c => string.Equals(c.Id, channelId, StringComparison.Ordinal))?.Name;
             var settings = EpgRuleSettings.From(Config);
+            await WaitForExtraSourceAsync(cancellationToken).ConfigureAwait(false);
             if (!file.ByChannel.TryGetValue(channelId, out var programmes))
             {
                 return Array.Empty<ProgramInfo>();
@@ -106,8 +111,54 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
 
             return programmes
                 .Where(p => p.Stop.UtcDateTime > startDateUtc && p.Start.UtcDateTime < endDateUtc)
-                .Select(p => EpgMapper.ToProgramInfo(p, EpgClassifier.Classify(p, channelName, settings)))
+                .Select(p => EpgMapper.ToProgramInfo(p, EpgClassifier.Classify(p, channelName, settings, Extra(p, channelName))))
                 .ToList();
+        }
+
+        /// <summary>
+        /// Gets movie hints for a programme from the „XMLTV-Quelle für Darsteller“ – only if the programme itself has
+        /// no director and no IMDb link (e.g. m3u-editor passes on a reduced XMLTV). Match: start ±15 min and title.
+        /// </summary>
+        /// <param name="programme">The programme.</param>
+        /// <param name="channelName">Channel name (preferred when several match).</param>
+        /// <returns>The hints, or null.</returns>
+        public EpgExtra? Extra(EpgProgramme programme, string? channelName)
+        {
+            ArgumentNullException.ThrowIfNull(programme);
+            if (_extraSource == null || programme.Directors.Count > 0 || programme.Urls.Count > 0)
+            {
+                return null;
+            }
+
+            var match = _extraSource.Lookup(programme.Start.UtcDateTime, programme.Title, programme.SubTitle, channelName);
+            if (match == null || (match.Directors.Count == 0 && match.Year == null && string.IsNullOrEmpty(match.ImdbId)))
+            {
+                return null;
+            }
+
+            var extra = new EpgExtra { Year = match.Year, ImdbId = match.ImdbId };
+            extra.Directors.AddRange(match.Directors);
+            return extra;
+        }
+
+        /// <summary>
+        /// Waits (at most 2 minutes) until the „XMLTV-Quelle für Darsteller“ is loaded, so the first guide refresh
+        /// after a restart already has the movie hints.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task.</returns>
+        public async Task WaitForExtraSourceAsync(CancellationToken cancellationToken)
+        {
+            if (_extraSource == null || string.IsNullOrWhiteSpace(Config.LiveTvXmltvSource))
+            {
+                return;
+            }
+
+            _extraSource.EnsureFresh();
+            for (var i = 0; i < 120 && _extraSource.LastLoaded == null && _extraSource.LastError == null; i++)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
+            }
         }
 
         /// <inheritdoc />

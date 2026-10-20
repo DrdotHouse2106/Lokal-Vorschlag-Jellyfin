@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.27.0] - 2026-10-20
+
+### Changed
+
+- **LocalRecs EPG: movie hints from the second source.** Programmes and channel IDs still come from the programme source (e.g. m3u-editor, whose IDs match the tuner); director, year and IMDb are taken from the „XMLTV-Quelle für Darsteller“ when the programme itself has none (match by start ±15 min and title, channel IDs may differ). The first guide load after a start waits up to 2 minutes for that file. „Regeln testen“ shows how many programmes got hints.
+- **The production year alone no longer makes a movie** (shows and teleshopping often have a `date`): new switch „Produktionsjahr allein“ (`EpgMovieByYear`, default off) replaces `EpgMovieByDate`.
+
 ## [12.26.1] - 2026-10-20
 
 ### Changed

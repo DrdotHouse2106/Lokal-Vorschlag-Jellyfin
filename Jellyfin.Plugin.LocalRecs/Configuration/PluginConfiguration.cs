@@ -44,7 +44,7 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             EpgMovieRule = true;
             EpgMovieMinMinutes = 75;
             EpgMovieByDirector = true;
-            EpgMovieByDate = true;
+            EpgMovieByYear = false;
             EpgMovieByImdb = true;
             EpgMovieCategories = "Spielfilm";
             EpgKidsCategories = "Kinder, Kindersendung, Kinderserie, Kinderfilm, Kids, Children, Zeichentrick";
@@ -301,8 +301,8 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// <summary>Gets or sets a value indicating whether a director counts as movie evidence.</summary>
         public bool EpgMovieByDirector { get; set; }
 
-        /// <summary>Gets or sets a value indicating whether a date counts as movie evidence.</summary>
-        public bool EpgMovieByDate { get; set; }
+        /// <summary>Gets or sets a value indicating whether a production year alone counts as movie evidence (off by default; replaces EpgMovieByDate of 12.26.0).</summary>
+        public bool EpgMovieByYear { get; set; }
 
         /// <summary>Gets or sets a value indicating whether an IMDb link counts as movie evidence.</summary>
         public bool EpgMovieByImdb { get; set; }

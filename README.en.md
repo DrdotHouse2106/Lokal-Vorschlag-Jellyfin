@@ -167,7 +167,7 @@ API: `GET /LocalRecs/Avatars` (catalog, image URLs via the plugin, `Current` = l
 Jellyfin's built-in XMLTV provider marks a programme as a movie as soon as one category is in its „movie categories“ list. With e.g. „Komödie“ there, comedy series become movies: season/episode/episode title are dropped and recordings end up under `Movies/`. **LocalRecs EPG** is an own listings provider for XMLTV sources (URL or path, also `.gz`) that replaces it, keeping the channel mapping. Switchable rule blocks decide instead (tab „Fernsehprogramm“):
 
 - **Series by episode number** – `episode-num` (xmltv_ns or on-screen like `S02E02`) → series episode with season, episode and episode title, whatever the categories.
-- **Movie** – no episode number, at least 75 minutes (configurable) and one movie hint: director, `date`, IMDb link or a movie category (default „Spielfilm“). Never for sports or news.
+- **Movie** – no episode number, at least 75 minutes (configurable) and one movie hint: director, IMDb link or a movie category (default „Spielfilm“); the production year alone only if switched on (shows and teleshopping often have one). Never for sports or news. If the programme source is a reduced XMLTV (e.g. m3u-editor) without director/year/IMDb, these come from the „XMLTV-Quelle für Darsteller“ (match by start ±15 min and title, channel IDs may differ) – since 12.27.0.
 - **Series by sub-title** – no movie but a `sub-title` → series episode.
 - **Kids / news / sports** – by category (whole word) or channel (e.g. KiKA = always kids).
 

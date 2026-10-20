@@ -175,13 +175,16 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             }
 
             var settings = EpgRuleSettings.From(Config);
+            await _provider.WaitForExtraSourceAsync(cancellationToken).ConfigureAwait(false);
             var names = file.Channels.GroupBy(c => c.Id).ToDictionary(g => g.Key, g => g.First().Name, StringComparer.Ordinal);
             var result = new TestResult { Source = info.Path, Channels = file.Channels.Count };
             var examples = new List<TestProgramme>();
             foreach (var programme in file.Programmes)
             {
                 names.TryGetValue(programme.ChannelId, out var channelName);
-                var c = EpgClassifier.Classify(programme, channelName, settings);
+                var extra = _provider.Extra(programme, channelName);
+                var c = EpgClassifier.Classify(programme, channelName, settings, extra);
+                result.Enriched += extra != null ? 1 : 0;
                 result.Programmes++;
                 result.Series += c.IsSeries ? 1 : 0;
                 result.Movies += c.IsMovie ? 1 : 0;
@@ -302,6 +305,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets the number of long programmes without movie evidence (teleshopping, sports, shows).</summary>
             public int LongWithoutMovieEvidence { get; set; }
+
+            /// <summary>Gets or sets the number of programmes with movie hints from the „XMLTV-Quelle für Darsteller“.</summary>
+            public int Enriched { get; set; }
 
             /// <summary>Gets or sets the number of kids programmes.</summary>
             public int Kids { get; set; }

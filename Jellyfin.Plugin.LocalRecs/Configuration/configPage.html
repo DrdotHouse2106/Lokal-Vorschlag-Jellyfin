@@ -394,7 +394,7 @@
                                 <input is="emby-checkbox" type="checkbox" id="epgMovieRule" />
                                 <span>Film: lang und mit Film-Merkmal</span>
                             </label>
-                            <div class="fieldDescription checkboxFieldDescription">Ohne Folgennummer, mindestens so lang wie unten angegeben und mit einem der gewählten Merkmale. Nie bei Sport oder Nachrichten.</div>
+                            <div class="fieldDescription checkboxFieldDescription">Ohne Folgennummer, mindestens so lang wie unten angegeben und mit einem der gewählten Merkmale. Nie bei Sport oder Nachrichten. Fehlen Regie und IMDb in der Programmquelle (z. B. m3u-editor), kommen sie aus der „XMLTV-Quelle für Darsteller“ (Reiter Startseite) – Abgleich über Startzeit ±15 Min. und Titel.</div>
                         </div>
                         <div class="inputContainer">
                             <input is="emby-input" type="number" id="epgMovieMinMinutes" min="1" max="600" label="Mindestlänge eines Films (Minuten):" />
@@ -407,8 +407,8 @@
                         </div>
                         <div class="checkboxContainer">
                             <label>
-                                <input is="emby-checkbox" type="checkbox" id="epgMovieByDate" />
-                                <span>Merkmal: Produktionsjahr (date)</span>
+                                <input is="emby-checkbox" type="checkbox" id="epgMovieByYear" />
+                                <span>Merkmal: Produktionsjahr allein (date) – schwach, Shows und Teleshopping haben oft eins</span>
                             </label>
                         </div>
                         <div class="checkboxContainer">
@@ -626,7 +626,7 @@
                     if (kind) { query.kind = kind; }
                     ApiClient.getJSON(ApiClient.getUrl('LocalRecs/Epg/Test', query)).then(function(r) {
                         var html = '<p><b>' + r.Programmes + ' Sendungen</b> auf ' + r.Channels + ' Sendern: ' + r.Series + ' Serienfolgen (' + r.SeriesWithEpisodeNumber + ' mit Folgennummer), '
-                            + r.Movies + ' Filme, ' + r.Other + ' Sonstiges (davon ' + r.LongWithoutMovieEvidence + ' lang ohne Film-Merkmal). Kinder ' + r.Kids + ', Nachrichten ' + r.News + ', Sport ' + r.Sports + '.</p>';
+                            + r.Movies + ' Filme, ' + r.Other + ' Sonstiges (davon ' + r.LongWithoutMovieEvidence + ' lang ohne Film-Merkmal). Kinder ' + r.Kids + ', Nachrichten ' + r.News + ', Sport ' + r.Sports + '. Merkmale aus der Darsteller-Quelle: ' + (r.Enriched || 0) + '.</p>';
                         html += '<div style="overflow-x:auto;"><table style="border-collapse:collapse;width:100%;font-size:.9em;"><tr style="text-align:left;"><th>Titel</th><th>Sender</th><th>Beginn</th><th>Min.</th><th>Art</th><th>Begründung</th></tr>';
                         (r.Examples || []).forEach(function(e) {
                             var episode = (e.Season ? 'S' + ('0' + e.Season).slice(-2) : '') + (e.Episode ? 'E' + ('0' + e.Episode).slice(-2) : '');
@@ -875,7 +875,7 @@
                             page.querySelector('#epgSeriesByEpisodeNumber').checked = config.EpgSeriesByEpisodeNumber !== false;
                             page.querySelector('#epgMovieRule').checked = config.EpgMovieRule !== false;
                             page.querySelector('#epgMovieByDirector').checked = config.EpgMovieByDirector !== false;
-                            page.querySelector('#epgMovieByDate').checked = config.EpgMovieByDate !== false;
+                            page.querySelector('#epgMovieByYear').checked = config.EpgMovieByYear === true;
                             page.querySelector('#epgMovieByImdb').checked = config.EpgMovieByImdb !== false;
                             page.querySelector('#epgSeriesBySubTitle').checked = config.EpgSeriesBySubTitle !== false;
                             page.querySelector('#epgMovieMinMinutes').value = config.EpgMovieMinMinutes || 75;
@@ -976,7 +976,7 @@
                             config.EpgSeriesByEpisodeNumber = page.querySelector('#epgSeriesByEpisodeNumber').checked;
                             config.EpgMovieRule = page.querySelector('#epgMovieRule').checked;
                             config.EpgMovieByDirector = page.querySelector('#epgMovieByDirector').checked;
-                            config.EpgMovieByDate = page.querySelector('#epgMovieByDate').checked;
+                            config.EpgMovieByYear = page.querySelector('#epgMovieByYear').checked;
                             config.EpgMovieByImdb = page.querySelector('#epgMovieByImdb').checked;
                             config.EpgSeriesBySubTitle = page.querySelector('#epgSeriesBySubTitle').checked;
                             var epgMinutes = parseInt(page.querySelector('#epgMovieMinMinutes').value, 10);

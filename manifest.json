@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.27.0.0",
+        "changelog": "LocalRecs EPG: Film-Merkmale aus der Darsteller-Quelle / movie hints from the second XMLTV source\n- Sender und Sendungen aus der Programmquelle, Regie/Jahr/IMDb aus der „XMLTV-Quelle für Darsteller“\n- Produktionsjahr allein macht keinen Film mehr (schaltbar)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.27.0.zip",
+        "checksum": "f960e995b5cb9d9ffe35c1482325dcf4",
+        "timestamp": "2026-10-20T11:00:00Z"
+      },
+      {
         "version": "12.26.1.0",
         "changelog": "Texte: „Quallenkino-Stil“ statt Verweisen auf andere Streaming-Dienste / wording\n- Einstellungen, Web-Modul, README und Katalogtexte angepasst\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

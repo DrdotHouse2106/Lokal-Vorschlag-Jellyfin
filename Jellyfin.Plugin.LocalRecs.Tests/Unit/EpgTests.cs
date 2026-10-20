@@ -48,6 +48,10 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
     <sub-title>Lach- und Sachgeschichten</sub-title>
     <category>Magazin</category>
   </programme>
+  <programme start=""20261020060000 +0200"" stop=""20261020071500 +0200"" channel=""hse.de"">
+    <title>premiumshopping.tv</title>
+    <date>2026</date>
+  </programme>
   <programme start=""20261020150000 +0200"" stop=""20261020170000 +0200"" channel=""sixx.de"">
     <title>Tennis: ATP Wien</title>
     <date>20261020</date>
@@ -75,7 +79,7 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             file.Channels.Select(c => c.Name).Should().Equal("sixx", "KiKA", "HSE");
             file.Channels[1].Number.Should().Be("28");
             file.Channels[0].IconUrl.Should().Be("http://logo/sixx.png");
-            file.Programmes.Should().HaveCount(5);
+            file.Programmes.Should().HaveCount(6);
             var betty = file.Programmes.First(p => p.Title == "Ugly Betty");
             betty.SubTitle.Should().Be("Die neue Chefin");
             betty.Categories.Should().Equal("Komödie", "Serie");
@@ -172,7 +176,6 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             var settings = Defaults();
             settings.SeriesByEpisodeNumber = false;
             settings.MovieByDirector = false;
-            settings.MovieByDate = false;
             settings.MovieByImdb = false;
 
             Classify("Ugly Betty", settings).Season.Should().BeNull();
@@ -208,6 +211,41 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             movieInfo.ProviderIds["Imdb"].Should().Be("tt0123456");
             movieInfo.SeriesId.Should().BeNull();
             movieInfo.Etag.Should().NotBe(info.Etag);
+        }
+
+        [Fact]
+        public void YearAlone_IsNoMovie_UnlessSwitchedOn()
+        {
+            var c = Classify("premiumshopping.tv");
+            c.IsMovie.Should().BeFalse();
+            c.Year.Should().Be(2026);
+
+            var settings = Defaults();
+            settings.MovieByYear = true;
+            Classify("premiumshopping.tv", settings).IsMovie.Should().BeTrue();
+        }
+
+        [Fact]
+        public void DirectorFromSecondSource_MakesMovie()
+        {
+            var programme = new EpgProgramme
+            {
+                ChannelId = "ZDF",
+                Title = "Lautlose Morde",
+                Start = new DateTimeOffset(2026, 10, 20, 20, 15, 0, TimeSpan.FromHours(2)),
+                Stop = new DateTimeOffset(2026, 10, 20, 22, 0, 0, TimeSpan.FromHours(2))
+            };
+            programme.Categories.Add("Thriller");
+
+            EpgClassifier.Classify(programme, "ZDF", Defaults()).IsMovie.Should().BeFalse();
+
+            var extra = new EpgExtra { Year = 2004, ImdbId = "tt0123456" };
+            extra.Directors.Add("Jane Doe");
+            var c = EpgClassifier.Classify(programme, "ZDF", Defaults(), extra);
+            c.IsMovie.Should().BeTrue();
+            c.Year.Should().Be(2004);
+            c.ImdbId.Should().Be("tt0123456");
+            c.Reasons.Should().Contain(r => r.Contains("Darsteller-Quelle", StringComparison.Ordinal));
         }
     }
 }

@@ -25,8 +25,8 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
         /// <summary>Gets or sets a value indicating whether a director counts as movie evidence.</summary>
         public bool MovieByDirector { get; set; } = true;
 
-        /// <summary>Gets or sets a value indicating whether a &lt;date&gt; counts as movie evidence.</summary>
-        public bool MovieByDate { get; set; } = true;
+        /// <summary>Gets or sets a value indicating whether a production year (&lt;date&gt;) alone counts as movie evidence (weak, off by default).</summary>
+        public bool MovieByYear { get; set; }
 
         /// <summary>Gets or sets a value indicating whether an IMDb link counts as movie evidence.</summary>
         public bool MovieByImdb { get; set; } = true;
@@ -67,7 +67,7 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
                 MovieRule = config.EpgMovieRule,
                 MovieMinMinutes = Math.Clamp(config.EpgMovieMinMinutes, 1, 600),
                 MovieByDirector = config.EpgMovieByDirector,
-                MovieByDate = config.EpgMovieByDate,
+                MovieByYear = config.EpgMovieByYear,
                 MovieByImdb = config.EpgMovieByImdb,
                 MovieCategories = SplitList(config.EpgMovieCategories),
                 KidsCategories = SplitList(config.EpgKidsCategories),

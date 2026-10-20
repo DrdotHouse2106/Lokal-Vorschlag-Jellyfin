@@ -22,8 +22,9 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
         /// <param name="programme">The programme.</param>
         /// <param name="channelName">Display name of the channel (for channel rules).</param>
         /// <param name="settings">Rule settings.</param>
+        /// <param name="extra">Movie hints from the second XMLTV file, optional.</param>
         /// <returns>The classification with reasons.</returns>
-        public static EpgClassification Classify(EpgProgramme programme, string? channelName, EpgRuleSettings settings)
+        public static EpgClassification Classify(EpgProgramme programme, string? channelName, EpgRuleSettings settings, EpgExtra? extra = null)
         {
             ArgumentNullException.ThrowIfNull(programme);
             ArgumentNullException.ThrowIfNull(settings);
@@ -31,6 +32,8 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
             var year = programme.Date == null ? null : Year.Match(programme.Date);
             result.Year = year != null && year.Success ? int.Parse(year.Value, CultureInfo.InvariantCulture) : null;
             result.ImdbId = programme.Urls.Select(u => ImdbId.Match(u)).Where(m => m.Success).Select(m => m.Groups[1].Value).FirstOrDefault();
+            result.Year ??= extra?.Year;
+            result.ImdbId ??= string.IsNullOrWhiteSpace(extra?.ImdbId) ? null : extra.ImdbId;
 
             // Kinder, Nachrichten, Sport: Kategorie oder Sender
             result.IsKids = Flag(programme, channelName, settings.KidsCategories, settings.KidsChannels, "Kinder", result.Reasons);
@@ -58,7 +61,7 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
             // 2. Film: lang genug und ein Film-Merkmal – nicht bei Sport und Nachrichten
             if (settings.MovieRule && !result.IsSports && !result.IsNews)
             {
-                var evidence = MovieEvidence(programme, result, settings);
+                var evidence = MovieEvidence(programme, result, settings, extra);
                 if (programme.Minutes >= settings.MovieMinMinutes && evidence != null)
                 {
                     result.IsMovie = true;
@@ -72,7 +75,7 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
                 }
                 else if (programme.Minutes >= settings.MovieMinMinutes)
                 {
-                    result.Reasons.Add("kein Film: lang, aber ohne Regie, date, IMDb oder Film-Kategorie");
+                    result.Reasons.Add("kein Film: lang, aber ohne Regie, IMDb oder Film-Kategorie");
                 }
             }
 
@@ -87,11 +90,16 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
             return result;
         }
 
-        private static string? MovieEvidence(EpgProgramme programme, EpgClassification result, EpgRuleSettings settings)
+        private static string? MovieEvidence(EpgProgramme programme, EpgClassification result, EpgRuleSettings settings, EpgExtra? extra)
         {
             if (settings.MovieByDirector && programme.Directors.Count > 0)
             {
                 return "Regie (" + programme.Directors[0] + ")";
+            }
+
+            if (settings.MovieByDirector && extra != null && extra.Directors.Count > 0)
+            {
+                return "Regie (" + extra.Directors[0] + ", aus der Darsteller-Quelle)";
             }
 
             if (settings.MovieByImdb && result.ImdbId != null)
@@ -99,13 +107,19 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
                 return "IMDb " + result.ImdbId;
             }
 
-            if (settings.MovieByDate && !string.IsNullOrWhiteSpace(programme.Date))
+            var category = programme.Categories.FirstOrDefault(c => Matches(c, settings.MovieCategories));
+            if (category != null)
             {
-                return "date " + programme.Date;
+                return "Kategorie „" + category + "“";
             }
 
-            var category = programme.Categories.FirstOrDefault(c => Matches(c, settings.MovieCategories));
-            return category != null ? "Kategorie „" + category + "“" : null;
+            // Jahr allein ist schwach (Shows und Teleshopping haben oft eins) – nur wenn ausdrücklich eingeschaltet
+            if (settings.MovieByYear && result.Year != null)
+            {
+                return "Jahr " + result.Year.Value.ToString(CultureInfo.InvariantCulture);
+            }
+
+            return null;
         }
 
         private static bool Flag(EpgProgramme programme, string? channelName, IReadOnlyList<string> categories, IReadOnlyList<string> channels, string label, List<string> reasons)

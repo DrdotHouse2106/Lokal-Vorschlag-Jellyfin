@@ -220,10 +220,11 @@ Der eingebaute XMLTV-Anbieter von Jellyfin entscheidet nur über die Liste „Fi
 | Baustein | Wirkung |
 |---|---|
 | **Serie: Folgennummer** | `episode-num` (xmltv_ns oder onscreen wie `S02E02`, „Staffel 2, Folge 2“, `2x02`) → Serienfolge mit Staffel, Folge und Folgentitel (`sub-title`), egal welche Kategorie |
-| **Film** | ohne Folgennummer, mindestens 75 Minuten (einstellbar) **und** ein Film-Merkmal: Regie (`credits/director`), Produktionsjahr (`date`), IMDb-Link (`url`) oder eine Film-Kategorie (Standard „Spielfilm“). Nie bei Sport oder Nachrichten. Lange Sendungen ohne Merkmal (Teleshopping, Shows, Sport) bleiben „Sonstiges“ |
+| **Film** | ohne Folgennummer, mindestens 75 Minuten (einstellbar) **und** ein Film-Merkmal: Regie (`credits/director`), IMDb-Link (`url`) oder eine Film-Kategorie (Standard „Spielfilm“). Das Produktionsjahr (`date`) allein zählt ab 12.27.0 nur, wenn ausdrücklich eingeschaltet, weil Shows und Teleshopping oft eins haben. Nie bei Sport oder Nachrichten. Lange Sendungen ohne Merkmal bleiben „Sonstiges“ |
 | **Serie: Folgentitel** | kein Film, aber ein `sub-title` → Serienfolge |
 | **Kinder / Nachrichten / Sport** | über Kategorie (als ganzes Wort) **oder** Sender (z. B. KiKA = immer Kinder, Sky Sport = Sport) |
 
+- **Film-Merkmale aus der zweiten Quelle (ab 12.27.0):** Viele EPG-Werkzeuge (z. B. m3u-editor) geben ein abgespecktes XMLTV ohne Regie, Jahr und IMDb weiter, ihre Sender-IDs passen aber zur Tuner-Liste. Deshalb kommen Sendungen und Sender-IDs aus der Programmquelle, Regie, Jahr und IMDb dagegen aus der **„XMLTV-Quelle für Darsteller“** (Reiter „Startseite“). Der Abgleich läuft über Startzeit (±15 Minuten) und Titel, die Sender-IDs dürfen sich unterscheiden. Beim ersten Laden nach dem Start wartet der Anbieter bis zu 2 Minuten auf diese Datei.
 - **Genres bleiben vollständig erhalten**, sie schalten nur nicht mehr „Film“ ein.
 - Filme bekommen das Jahr aus `date` und die IMDb-ID aus der URL. Serien bekommen eine Serien-Kennung, damit „Serie aufnehmen“ funktioniert.
 - Die Kennungen der Sendungen (Id, ShowId, SeriesId) sind dieselben wie beim eingebauten Anbieter. Geplante Aufnahmen und Serienaufnahmen bleiben beim Umstieg erhalten.
@@ -231,7 +232,7 @@ Der eingebaute XMLTV-Anbieter von Jellyfin entscheidet nur über die Liste „Fi
 **Einrichten (Reiter „Fernsehprogramm“):**
 1. Unter „Senderzuordnung, Tuner und Quelle übernehmen von“ den bisherigen XMLTV-Anbieter wählen. Die Quelle nur eintragen, wenn sie sich ändern soll.
 2. **„LocalRecs EPG einrichten“**: Der Anbieter wird angelegt, steht an erster Stelle (Jellyfin nutzt ihn vor dem alten) und die Aufgabe „Fernsehprogramm aktualisieren“ startet.
-3. Mit **„Regeln testen“** prüfen. Der Test zeigt Anzahl Serien, Filme und Sonstiges sowie Beispiele mit Begründung, z. B. „Serie: Folgennummer S02E02“ oder „Film: 105 Min. und Regie (…)“. Mit Titel-Filter und Auswahl wie „nur Filme“.
+3. Mit **„Regeln testen“** prüfen. Der Test zeigt Anzahl Serien, Filme und Sonstiges, wie viele Sendungen Merkmale aus der Darsteller-Quelle bekommen haben, sowie Beispiele mit Begründung, z. B. „Serie: Folgennummer S02E02“ oder „Film: 105 Min. und Regie (…)“. Mit Titel-Filter und Auswahl wie „nur Filme“.
 4. Passt alles, den alten XMLTV-Anbieter unter Dashboard → Live-TV entfernen.
 
 Nach geänderten Regeln: **„Speichern“** und **„Fernsehprogramm neu laden“**. Jellyfin übernimmt dann die neue Einordnung für alle Sendungen.
