@@ -128,6 +128,48 @@ Damit jede Person ihre eigenen Vorschläge bekommt, zeigt Jellyfin Web beim Öff
 - Ohne Profilbild erscheint der Anfangsbuchstabe auf einer Farbe.
 - `/LocalRecs/Web/Config` meldet `"ProfilesEnabled": true|false` – so können auch eigene Apps die Einstellung übernehmen.
 
+### Profilbilder aus Figuren (ab 12.22.0)
+
+Jeder Benutzer kann sich ein Profilbild aus einer **Figur** und einer **Hintergrundfarbe** zusammenstellen. In Jellyfin Web geht das im Profilmenü unter **„Profilbild wählen“** oder in „Wer schaut?“ → **„Profile verwalten“** → Profil antippen. Der Server erzeugt daraus ein rundes PNG (512 × 512) und setzt es als Jellyfin-Profilbild. Jeder ändert nur sein eigenes Bild, an den Benutzerrechten ändert sich nichts. Wem in Jellyfin „Benutzereinstellungen ändern“ verboten ist, der darf auch hier nichts ändern. Quallenkino nutzt dieselbe Schnittstelle.
+
+Einstellungen unter **Jellyfin Web**:
+- **„Profilbilder aus Figuren wählen“** (Standard: an).
+- **Katalog der Profilbilder:** leer bedeutet der Standard aus [Jellyfin-Welten/icons](https://github.com/DrdotHouse2106/Jellyfin-Welten/tree/main/icons) mit rund 85 Figuren von OpenMoji (CC BY-SA 4.0). Von diesem Katalog kommt auch die Farbpalette.
+- **Weitere Kataloge** (eine Adresse pro Zeile): Deren Kategorien werden ergänzt, z. B. aus einem eigenen Icon-Repository.
+
+Format der `icons.json`:
+
+```json
+{
+  "format": 1,
+  "name": "Meine Profilbilder",
+  "license": "Lizenz-/Quellenhinweis",
+  "colors": ["#e50914", "#2e96e0"],
+  "categories": [
+    { "id": "tiere", "name": "Tiere", "icons": [
+      { "id": "katze", "name": "Katze", "file": "tiere/katze.png" },
+      { "id": "hund", "name": "Hund", "url": "https://example.org/hund.png", "fit": "cover" }
+    ] }
+  ]
+}
+```
+
+- **IDs:** nur `a–z`, `0–9`, `-` und `_`.
+- **`file`** steht relativ zur Katalog-Adresse, **`url`** ist absolut (http/https).
+- **Bilder:** PNG, JPEG oder WebP, quadratisch, höchstens 2 MB. Für Figuren am besten PNG mit transparentem Hintergrund (z. B. 256 × 256).
+- **`fit`:** `contain` (Standard) setzt die Figur mit 80 % Größe auf die Farbe, `cover` füllt den Kreis.
+- **Zwischenspeicher:** Der Server hält den Katalog 6 Stunden und die Bilder 7 Tage vor. Ist die Quelle nicht erreichbar, nutzt er den letzten Stand.
+
+Schnittstelle:
+
+```
+GET  /LocalRecs/Avatars                    → { Name, License, Colors, Categories: [{ Id, Name, Icons: [{ Id: "tiere/katze", Name, Fit, ImageUrl }] }], Current? }
+GET  /LocalRecs/Avatars/Icons/{kat}/{icon} → Bild (ohne Anmeldung)
+POST /LocalRecs/Avatars/Me  { "Icon": "tiere/katze", "Color": "#2e96e0" } → { PrimaryImageTag }   (400: nicht im Katalog, 503: Katalog/Bild nicht erreichbar)
+```
+
+`/LocalRecs/Web/Config` meldet `"Avatars": true|false` und `"AvatarCatalogUrl"`.
+
 ### Live-TV-Erinnerungen und Kalender (ab 12.20.0)
 
 Sendungen aus dem Programmführer lassen sich merken – einzeln oder als ganze Serie (alle künftigen Ausstrahlungen mit gleichem Titel, gleiche Folgen nur einmal). Gemerktes erscheint in einem **Kalender-Abo (iCal)** pro Benutzer, mit Erinnerung vor Beginn (Standard 10 Minuten). So erinnert das Handy über den eigenen Kalender, ganz ohne zusätzliche App. In Jellyfin Web: Glocke an Live-TV-Kacheln und auf der Sendungsseite („Merken“, „Serie merken“), im Profilmenü „Erinnerungen im Kalender“ (Abonnieren, Link kopieren, QR-Code, Link erneuern).

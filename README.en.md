@@ -142,6 +142,16 @@ So that every person gets their own recommendations, Jellyfin Web shows a profil
 - „Profile verwalten“ removes a profile from this browser only. Signing out via Jellyfin's „Abmelden“ invalidates the stored sign-in; the profile is then removed on the next click with a hint and can be added again.
 - `/LocalRecs/Web/Config` reports `"ProfilesEnabled": true|false`.
 
+### Profile images from figures (since 12.22.0)
+
+Every user can build a profile image from a **figure** and a **background color**: in Jellyfin Web via „Profilbild wählen“ in the profile menu or „Wer schaut?“ → „Profile verwalten“. The server renders a round 512×512 PNG and sets it as the user's Jellyfin profile image. Users only change their own image; permissions stay unchanged (users without „change user preferences“ cannot change it). Quallenkino uses the same API.
+
+Settings (Jellyfin Web): „Profilbilder aus Figuren wählen“ (default on), catalog (`icons.json`; empty = default from [Jellyfin-Welten/icons](https://github.com/DrdotHouse2106/Jellyfin-Welten/tree/main/icons), about 85 OpenMoji figures, CC BY-SA 4.0, also provides the color palette) and additional catalogs (one address per line, their categories are added).
+
+Catalog format: `{ "format": 1, "name", "license", "colors": ["#RRGGBB"], "categories": [{ "id", "name", "icons": [{ "id", "name", "file" | "url", "fit": "contain" | "cover" }] }] }` – IDs `a–z0–9-_`, `file` relative to the catalog, PNG/JPEG/WebP up to 2 MB, transparent square PNGs recommended. The catalog is cached for 6 hours, images for 7 days.
+
+API: `GET /LocalRecs/Avatars` (catalog, image URLs via the plugin, `Current` = last choice), `GET /LocalRecs/Avatars/Icons/{category}/{icon}` (image, no sign-in), `POST /LocalRecs/Avatars/Me {"Icon":"tiere/katze","Color":"#2e96e0"}` → `{ PrimaryImageTag }`. `/LocalRecs/Web/Config` reports `"Avatars"` and `"AvatarCatalogUrl"`.
+
 ### Live TV reminders and calendar (since 12.20.0)
 
 Remember single programmes or whole series (all future broadcasts with the same title, episodes once). Remembered programmes appear in a per-user **iCal subscription** with an alarm before the start (default 10 min) – phones remind through their own calendar. Jellyfin Web: bell on live TV tiles and on the programme page („Merken“, „Serie merken“), profile menu „Erinnerungen im Kalender“ (subscribe, copy link, QR code, renew link).

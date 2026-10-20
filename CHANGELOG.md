@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.22.0] - 2026-10-20
+
+### Added
+
+- **Profile images from figures and a background color**: the server renders a round 512×512 PNG and sets it as the Jellyfin profile image of the signed-in user (own image only, honours „change user preferences“). Jellyfin Web: „Profilbild wählen“ in the profile menu and in „Wer schaut?“ → „Profile verwalten“ (also for saved profiles before sign-in). API for apps: `GET /LocalRecs/Avatars`, `GET /LocalRecs/Avatars/Icons/{category}/{icon}`, `POST /LocalRecs/Avatars/Me`; `/LocalRecs/Web/Config` reports `Avatars` and `AvatarCatalogUrl`.
+- Settings: on/off (default on), catalog URL (default: Jellyfin-Welten/icons, about 85 OpenMoji figures, CC BY-SA 4.0) and additional catalogs whose categories are added. Catalog and images are cached (6 h / 7 days), only PNG, JPEG and WebP are accepted.
+
+### Changed
+
+- „Wer schaut?“ → „Profile verwalten“: tapping a profile opens the image picker with „Aus diesem Browser entfernen“.
+- No second „Wer schaut?“ after a reload in a tab that is already signed in.
+
 ## [12.21.0] - 2026-10-20
 
 ### Added

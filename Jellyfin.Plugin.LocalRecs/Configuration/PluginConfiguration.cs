@@ -36,6 +36,9 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             WebHomeEnabled = false;
             WebThemeEnabled = false;
             WebProfilesEnabled = false;
+            AvatarsEnabled = true;
+            AvatarCatalogUrl = Avatars.AvatarService.DefaultCatalogUrl;
+            AvatarExtraCatalogUrls = string.Empty;
             WebPlayerUserIds = System.Array.Empty<string>();
             CalendarPublicUrl = string.Empty;
             CalendarAlarmMinutes = 10;
@@ -253,6 +256,21 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Gets or sets a value indicating whether Jellyfin Web shows the "Wer schaut?" profile picker (logins stay in the browser, no PIN).
         /// </summary>
         public bool WebProfilesEnabled { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether users can choose a profile image from figure icons and a color.
+        /// </summary>
+        public bool AvatarsEnabled { get; set; }
+
+        /// <summary>
+        /// Gets or sets the catalog of the profile images (icons.json, URL or local path; empty = default in Jellyfin-Welten).
+        /// </summary>
+        public string AvatarCatalogUrl { get; set; }
+
+        /// <summary>
+        /// Gets or sets additional catalogs of profile images (one URL or path per line); their categories are added.
+        /// </summary>
+        public string AvatarExtraCatalogUrls { get; set; }
 
         /// <summary>
         /// Gets or sets the users (IDs without dashes) who get the Netflix-style player in Jellyfin Web (test, opt-in).

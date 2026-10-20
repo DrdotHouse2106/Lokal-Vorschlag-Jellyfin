@@ -2369,10 +2369,9 @@
             list.insertBefore(playerItem, list.firstChild);
             tucked.push(playerItem);
         }
-        var profilesItem = addProfileMenuItem(list);
-        if (profilesItem) {
-            tucked.push(profilesItem);
-        }
+        addAccountMenuItems(list).forEach(function (item) {
+            tucked.push(item);
+        });
         if (tucked.length) {
             var divider = el('li', 'lr-menu-divider');
             divider.setAttribute('role', 'separator');
@@ -2387,7 +2386,7 @@
             return;
         }
         var tidy = document.body.classList.contains('lr-tidy-header');
-        if (!tidy && !profilesEnabled()) {
+        if (!tidy && !profilesEnabled() && !avatarsEnabled()) {
             return;
         }
         var tries = 0;
@@ -2399,10 +2398,10 @@
                 if (tidy) {
                     extendUserMenu(list);
                 } else if (list) {
-                    list.querySelectorAll('.lr-menu-profiles').forEach(function (node) {
+                    list.querySelectorAll('.lr-menu-account').forEach(function (node) {
                         node.remove();
                     });
-                    addProfileMenuItem(list);
+                    addAccountMenuItems(list);
                 }
             }
         }, 25);
@@ -3433,6 +3432,12 @@
         }
         var serverId = client.serverId ? client.serverId() : null;
         var token = client.accessToken();
+        // Angemeldet in diesem Tab = Profil gewählt (z. B. kein erneutes „Wer schaut?“ nach dem Neuladen)
+        try {
+            window.sessionStorage.setItem(PROFILE_PICKED_KEY, '1');
+        } catch (e) {
+            // ohne Sitzungsspeicher erscheint die Auswahl eben öfter
+        }
         client.getCurrentUser().then(function (user) {
             if (!user || !serverId) {
                 return;
@@ -3466,6 +3471,9 @@
             img.alt = '';
             img.decoding = 'async';
             img.onload = function () {
+                // Eigene (oft runde) Profilbilder ohne farbiges Quadrat dahinter
+                box.style.background = 'transparent';
+                box.textContent = '';
                 box.appendChild(img);
             };
             img.src = basePath() + '/Users/' + encodeURIComponent(profile.Id) + '/Images/Primary?tag='
@@ -3569,13 +3577,26 @@
                 tile.appendChild(profileAvatar(profile, 320));
                 if (editing) {
                     var remove = el('span', 'lr-profile-remove');
-                    remove.appendChild(icon('close'));
+                    remove.appendChild(icon(avatarsEnabled() ? 'edit' : 'close'));
                     tile.appendChild(remove);
                 }
                 tile.appendChild(el('span', 'lr-profile-name', profile.Name));
-                tile.setAttribute('aria-label', editing ? profile.Name + ' entfernen' : profile.Name);
+                tile.setAttribute('aria-label', editing ? profile.Name + (avatarsEnabled() ? ' bearbeiten' : ' entfernen') : profile.Name);
                 tile.addEventListener('click', function (e) {
                     e.preventDefault();
+                    if (editing && avatarsEnabled()) {
+                        openAvatarEditor({
+                            profile: profile,
+                            onDone: draw,
+                            onRemove: function () {
+                                writeProfiles(readProfiles().filter(function (p) {
+                                    return !(p.ServerId === profile.ServerId && sameId(p.Id, profile.Id));
+                                }));
+                                draw();
+                            }
+                        });
+                        return;
+                    }
                     if (editing) {
                         writeProfiles(readProfiles().filter(function (p) {
                             return !(p.ServerId === profile.ServerId && sameId(p.Id, profile.Id));
@@ -3633,7 +3654,9 @@
             e.preventDefault();
             editing = !editing;
             title.textContent = editing ? 'Profile verwalten' : 'Wer schaut?';
-            hint.textContent = editing ? 'Entfernt das Profil nur aus diesem Browser.' : '';
+            hint.textContent = !editing ? '' : avatarsEnabled()
+                ? 'Profil antippen, um das Profilbild zu ändern oder es aus diesem Browser zu entfernen.'
+                : 'Entfernt das Profil nur aus diesem Browser.';
             draw();
         });
         inner.appendChild(title);
@@ -3652,27 +3675,317 @@
         draw();
     }
 
-    function addProfileMenuItem(list) {
-        if (!list || !profilesEnabled() || list.querySelector('.lr-menu-profiles')) {
-            return null;
-        }
-        var item = el('li', 'lr-menu-item lr-menu-profiles MuiButtonBase-root MuiMenuItem-root');
+    function accountMenuItem(iconName, label, handler) {
+        var item = el('li', 'lr-menu-item lr-menu-account MuiButtonBase-root MuiMenuItem-root');
         item.setAttribute('role', 'menuitem');
         item.tabIndex = 0;
         var itemIcon = el('span', 'lr-menu-icon');
-        itemIcon.appendChild(icon('switch_account'));
+        itemIcon.appendChild(icon(iconName));
         item.appendChild(itemIcon);
-        item.appendChild(el('span', null, 'Profil wechseln'));
+        item.appendChild(el('span', null, label));
         onActivate(item, function () {
             var backdrop = document.querySelector('#app-user-menu .MuiBackdrop-root');
             if (backdrop) {
                 backdrop.click();
             }
-            rememberProfile();
-            window.setTimeout(showProfilePicker, 150);
+            window.setTimeout(handler, 150);
         });
-        list.insertBefore(item, list.firstChild);
         return item;
+    }
+
+    // „Profilbild wählen“ und „Profil wechseln“ oben im Profilmenü
+    function addAccountMenuItems(list) {
+        var items = [];
+        if (!list || list.querySelector('.lr-menu-account')) {
+            return items;
+        }
+        if (profilesEnabled()) {
+            items.push(accountMenuItem('switch_account', 'Profil wechseln', function () {
+                rememberProfile();
+                showProfilePicker();
+            }));
+        }
+        if (avatarsEnabled() && userId()) {
+            items.push(accountMenuItem('face', 'Profilbild wählen', function () {
+                openAvatarEditor({});
+            }));
+        }
+        items.slice().reverse().forEach(function (item) {
+            list.insertBefore(item, list.firstChild);
+        });
+        return items;
+    }
+
+    // ---------------------------------------------------------------- Profilbild aus Figur und Farbe
+
+    // Einstellungen auch vor der Anmeldung (für „Wer schaut?“) aus dem Zwischenspeicher
+    function webConfig() {
+        if (state.config) {
+            return state.config;
+        }
+        try {
+            return JSON.parse(storageGet('lrWeb.config') || 'null') || {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function avatarsEnabled() {
+        return !!webConfig().Avatars;
+    }
+
+    function avatarFetch(token, path, options) {
+        options = options || {};
+        var headers = { Authorization: 'MediaBrowser Token="' + token + '"' };
+        if (options.body) {
+            headers['Content-Type'] = 'application/json';
+        }
+        return window.fetch(basePath() + '/' + path, {
+            method: options.method || 'GET',
+            headers: headers,
+            body: options.body ? JSON.stringify(options.body) : undefined,
+            cache: 'no-store'
+        }).then(function (response) {
+            if (!response.ok) {
+                var error = new Error('HTTP ' + response.status);
+                error.status = response.status;
+                throw error;
+            }
+            return response.json();
+        });
+    }
+
+    // Vorschau wie das fertige Bild: Kreis in der Farbe, Figur darauf (bzw. randfüllend bei „cover“)
+    function avatarPreview(className, iconEntry, color) {
+        var box = el('span', 'lr-avatar-circle ' + (className || ''));
+        box.style.background = color || '#4a4a55';
+        if (iconEntry) {
+            var img = el('img', iconEntry.Fit === 'cover' ? 'lr-avatar-cover' : null);
+            img.alt = '';
+            img.loading = 'lazy';
+            img.src = basePath() + '/' + iconEntry.ImageUrl;
+            box.appendChild(img);
+        }
+        return box;
+    }
+
+    function updateAvatarImages(id, tag) {
+        var found = false;
+        document.querySelectorAll('img').forEach(function (img) {
+            var src = img.getAttribute('src') || '';
+            if (src.indexOf('/Users/' + id + '/Images/Primary') >= 0 || src.indexOf('/Users/' + String(id).replace(/-/g, '') + '/Images/Primary') >= 0) {
+                img.src = src.replace(/([?&]tag=)[^&]*/, '$1' + encodeURIComponent(tag));
+                found = true;
+            }
+        });
+        return found;
+    }
+
+    // options: { profile } für ein gespeichertes Profil aus „Wer schaut?“, sonst der angemeldete Benutzer
+    function openAvatarEditor(options) {
+        options = options || {};
+        var profile = options.profile;
+        var client = api();
+        var token = profile ? profile.Token : (client && client.accessToken ? client.accessToken() : null);
+        var id = profile ? profile.Id : userId();
+        if (!token || !id) {
+            return;
+        }
+        var old = document.querySelector('.lr-avatar-editor');
+        if (old) {
+            old.remove();
+        }
+        var root = el('div', 'lr-avatar-editor');
+        root.setAttribute('role', 'dialog');
+        root.setAttribute('aria-modal', 'true');
+        root.setAttribute('aria-label', 'Profilbild wählen');
+        var inner = el('div', 'lr-avatar-inner');
+        var head = el('div', 'lr-avatar-head');
+        var back = button('lr-round lr-avatar-back', 'arrow_back', null, close);
+        back.setAttribute('aria-label', 'Zurück');
+        head.appendChild(back);
+        var titleBox = el('div', 'lr-avatar-titles');
+        titleBox.appendChild(el('h1', 'lr-avatar-title', 'Profilbild wählen'));
+        titleBox.appendChild(el('div', 'lr-avatar-sub', profile ? profile.Name : ''));
+        head.appendChild(titleBox);
+        inner.appendChild(head);
+        var body = el('div', 'lr-avatar-body');
+        body.appendChild(el('div', 'lr-avatar-status', 'Lade Figuren …'));
+        inner.appendChild(body);
+        root.appendChild(inner);
+        root.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                close();
+            }
+        });
+        (document.body || document.documentElement).appendChild(root);
+        back.focus();
+
+        function close() {
+            root.remove();
+        }
+
+        if (!profile && client && client.getCurrentUser) {
+            client.getCurrentUser().then(function (user) {
+                titleBox.querySelector('.lr-avatar-sub').textContent = user && user.Name ? user.Name : '';
+            }).catch(function () {
+                return null;
+            });
+        }
+
+        avatarFetch(token, 'LocalRecs/Avatars').then(function (catalog) {
+            var all = {};
+            (catalog.Categories || []).forEach(function (category) {
+                (category.Icons || []).forEach(function (entry) {
+                    all[entry.Id] = entry;
+                });
+            });
+            var colors = catalog.Colors || [];
+            var current = catalog.Current && all[catalog.Current.Icon] ? catalog.Current : null;
+            var choice = {
+                icon: current ? current.Icon : null,
+                color: current && colors.indexOf(current.Color) >= 0 ? current.Color : colors[Math.floor(Math.random() * colors.length)]
+            };
+            var category = current ? current.Icon.split('/')[0] : ((catalog.Categories || [])[0] || {}).Id;
+            body.textContent = '';
+
+            var top = el('div', 'lr-avatar-top');
+            var preview = el('div', 'lr-avatar-preview');
+            top.appendChild(preview);
+            var side = el('div', 'lr-avatar-side');
+            side.appendChild(el('div', 'lr-avatar-label', 'Hintergrund'));
+            var swatches = el('div', 'lr-avatar-colors');
+            side.appendChild(swatches);
+            var actions = el('div', 'lr-avatar-actions');
+            var status = el('div', 'lr-avatar-status');
+            var save = button('lr-btn-play lr-avatar-save', 'check', 'Speichern', onSave);
+            actions.appendChild(save);
+            if (options.onRemove) {
+                actions.appendChild(button('lr-btn-info lr-avatar-remove', 'delete', 'Aus diesem Browser entfernen', function () {
+                    close();
+                    options.onRemove();
+                }));
+            }
+            side.appendChild(actions);
+            side.appendChild(status);
+            top.appendChild(side);
+            body.appendChild(top);
+
+            var chips = el('div', 'lr-avatar-chips');
+            body.appendChild(chips);
+            var grid = el('div', 'lr-avatar-grid');
+            body.appendChild(grid);
+            if (catalog.License) {
+                body.appendChild(el('div', 'lr-avatar-license', catalog.License));
+            }
+
+            function drawPreview() {
+                preview.textContent = '';
+                preview.appendChild(avatarPreview('lr-avatar-big', all[choice.icon], choice.color));
+                save.disabled = !choice.icon;
+            }
+
+            function drawColors() {
+                swatches.textContent = '';
+                colors.forEach(function (color) {
+                    var swatch = el('button', 'lr-avatar-swatch' + (color === choice.color ? ' lr-avatar-selected' : ''));
+                    swatch.type = 'button';
+                    swatch.style.background = color;
+                    swatch.setAttribute('aria-label', 'Farbe ' + color);
+                    swatch.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        choice.color = color;
+                        drawColors();
+                        drawPreview();
+                        drawGrid();
+                    });
+                    swatches.appendChild(swatch);
+                });
+            }
+
+            function drawChips() {
+                chips.textContent = '';
+                (catalog.Categories || []).forEach(function (c) {
+                    var chip = el('button', 'lr-avatar-chip' + (c.Id === category ? ' lr-avatar-selected' : ''), c.Name);
+                    chip.type = 'button';
+                    chip.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        category = c.Id;
+                        drawChips();
+                        drawGrid();
+                    });
+                    chips.appendChild(chip);
+                });
+            }
+
+            function drawGrid() {
+                grid.textContent = '';
+                var c = (catalog.Categories || []).filter(function (x) {
+                    return x.Id === category;
+                })[0];
+                ((c && c.Icons) || []).forEach(function (entry) {
+                    var tile = el('button', 'lr-avatar-tile' + (entry.Id === choice.icon ? ' lr-avatar-selected' : ''));
+                    tile.type = 'button';
+                    tile.title = entry.Name;
+                    tile.setAttribute('aria-label', entry.Name);
+                    tile.appendChild(avatarPreview(null, entry, choice.color));
+                    tile.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        choice.icon = entry.Id;
+                        grid.querySelectorAll('.lr-avatar-selected').forEach(function (n) {
+                            n.classList.remove('lr-avatar-selected');
+                        });
+                        tile.classList.add('lr-avatar-selected');
+                        drawPreview();
+                    });
+                    grid.appendChild(tile);
+                });
+            }
+
+            function onSave() {
+                if (!choice.icon) {
+                    return;
+                }
+                save.disabled = true;
+                status.textContent = 'Wird gespeichert …';
+                avatarFetch(token, 'LocalRecs/Avatars/Me', { method: 'POST', body: { Icon: choice.icon, Color: choice.color } }).then(function (result) {
+                    var tag = result && result.PrimaryImageTag;
+                    var list = readProfiles();
+                    list.forEach(function (p) {
+                        if (sameId(p.Id, id)) {
+                            p.Tag = tag || p.Tag;
+                        }
+                    });
+                    writeProfiles(list);
+                    close();
+                    if (options.onDone) {
+                        options.onDone();
+                    }
+                    if (tag && sameId(userId(), id) && !updateAvatarImages(id, tag) && !profile) {
+                        // Bisher ohne Bild (nur Anfangsbuchstabe) – neu laden, damit Jellyfin das Bild zeigt
+                        window.location.reload();
+                    }
+                }).catch(function (error) {
+                    save.disabled = false;
+                    status.textContent = error && error.status === 401
+                        ? 'Dieses Profil ist abgemeldet – bitte neu anmelden.'
+                        : error && error.status === 403
+                            ? 'Für dieses Profil ist das Ändern des Profilbilds nicht erlaubt.'
+                            : 'Speichern hat nicht geklappt – bitte später noch einmal versuchen.';
+                });
+            }
+
+            drawPreview();
+            drawColors();
+            drawChips();
+            drawGrid();
+        }).catch(function (error) {
+            body.textContent = '';
+            body.appendChild(el('div', 'lr-avatar-status', error && error.status === 401
+                ? 'Dieses Profil ist abgemeldet – bitte neu anmelden.'
+                : 'Die Figuren konnten nicht geladen werden.'));
+        });
     }
 
     // Beim Öffnen der App (einmal pro Tab) die Auswahl zeigen – auch vor der Anmeldung, wenn Profile gespeichert sind

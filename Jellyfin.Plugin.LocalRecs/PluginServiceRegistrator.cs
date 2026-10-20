@@ -44,6 +44,11 @@ namespace Jellyfin.Plugin.LocalRecs
                     Path.Combine(GetPluginDataPath(sp), "welten-logos"),
                     sp.GetService<System.Net.Http.IHttpClientFactory>()));
             serviceCollection.AddSingleton<Worlds.WorldService>();
+            serviceCollection.AddSingleton(sp =>
+                new Avatars.AvatarService(
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Avatars.AvatarService>>(),
+                    Path.Combine(GetPluginDataPath(sp), "avatars"),
+                    sp.GetService<System.Net.Http.IHttpClientFactory>()));
             serviceCollection.AddSingleton<RecommendationRefreshService>();
 
             // Phase 7: Home screen sections (via the "Home Screen Sections" plugin)

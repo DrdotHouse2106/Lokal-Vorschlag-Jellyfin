@@ -195,6 +195,24 @@
                             <div class="fieldDescription checkboxFieldDescription">Zeigt beim Öffnen von Jellyfin Web die Profile mit Profilbild. Jedes Profil meldet sich einmal an, danach genügt ein Klick zum Wechseln – ohne PIN. Die Anmeldungen bleiben nur im jeweiligen Browser gespeichert. So bekommt jede Person ihre eigenen Vorschläge.</div>
                         </div>
 
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="avatarsEnabled" name="avatarsEnabled" />
+                                <span>Profilbilder aus Figuren wählen</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Jeder Benutzer kann im Profilmenü („Profilbild wählen“) und in „Wer schaut?“ → „Profile verwalten“ eine Figur und eine Hintergrundfarbe wählen. Der Server erzeugt daraus ein rundes Bild und setzt es als Jellyfin-Profilbild – nur für sich selbst, an den Rechten ändert sich nichts. Auch für Apps wie Quallenkino.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <input is="emby-input" type="text" id="avatarCatalogUrl" label="Katalog der Profilbilder (icons.json):" />
+                            <div class="fieldDescription">Leer = Standard aus dem Repository Jellyfin-Welten. Eigener Katalog: URL oder Pfad auf dem Server zu einer icons.json (Format siehe README). Von hier kommt die Farbpalette.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <textarea is="emby-textarea" id="avatarExtraCatalogUrls" rows="2" label="Weitere Kataloge (eine Adresse pro Zeile):"></textarea>
+                            <div class="fieldDescription">Optional. Die Kategorien dieser Kataloge werden ergänzt, z. B. ein eigenes Icon-Repository.</div>
+                        </div>
+
                         <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused">Netflix-Player (Test) für diese Benutzer:</label>
                             <div id="webPlayerUsers" class="checkboxList paperList" style="padding: 0.5em 1em;"></div>
@@ -685,6 +703,9 @@
                             page.querySelector('#webHomeEnabled').checked = config.WebHomeEnabled === true;
                             page.querySelector('#webThemeEnabled').checked = config.WebThemeEnabled === true;
                             page.querySelector('#webProfilesEnabled').checked = config.WebProfilesEnabled === true;
+                            page.querySelector('#avatarsEnabled').checked = config.AvatarsEnabled !== false;
+                            page.querySelector('#avatarCatalogUrl').value = config.AvatarCatalogUrl || '';
+                            page.querySelector('#avatarExtraCatalogUrls').value = config.AvatarExtraCatalogUrls || '';
                             page.querySelector('#calendarPublicUrl').value = config.CalendarPublicUrl || '';
                             page.querySelector('#calendarAlarmMinutes').value = config.CalendarAlarmMinutes !== undefined ? config.CalendarAlarmMinutes : 10;
                             var playerUsers = (config.WebPlayerUserIds || []).map(function (id) { return String(id).replace(/-/g, '').toLowerCase(); });
@@ -769,6 +790,9 @@
                             config.WebHomeEnabled = page.querySelector('#webHomeEnabled').checked;
                             config.WebThemeEnabled = page.querySelector('#webThemeEnabled').checked;
                             config.WebProfilesEnabled = page.querySelector('#webProfilesEnabled').checked;
+                            config.AvatarsEnabled = page.querySelector('#avatarsEnabled').checked;
+                            config.AvatarCatalogUrl = page.querySelector('#avatarCatalogUrl').value.trim();
+                            config.AvatarExtraCatalogUrls = page.querySelector('#avatarExtraCatalogUrls').value.trim();
                             config.CalendarPublicUrl = page.querySelector('#calendarPublicUrl').value.trim();
                             var alarm = parseInt(page.querySelector('#calendarAlarmMinutes').value, 10);
                             config.CalendarAlarmMinutes = isNaN(alarm) ? 10 : Math.min(1440, Math.max(0, alarm));
