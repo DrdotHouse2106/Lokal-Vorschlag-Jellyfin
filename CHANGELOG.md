@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.32.0] - 2026-10-20
+
+### Changed
+
+- **The Quallenkino player is on again in the Jellyfin iOS app** (like in the browser and the Android app), now that it controls Jellyfin's player directly (12.31.1/12.31.2). Back to the classic player per device via ⋮ → „Klassischer Player“; the profile menu item „Quallenkino-Player testen“ is gone. If the app plays videos itself (setting „native video player“), the Quallenkino player stays off.
+- World page: the filters „Alle | Filme | Serien“ are only shown if the world has both movies and series; otherwise only the sort order.
+
 ## [12.31.2] - 2026-10-20
 
 ### Fixed

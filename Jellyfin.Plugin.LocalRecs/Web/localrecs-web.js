@@ -2328,6 +2328,21 @@
             chips.appendChild(chip);
         });
         controls.appendChild(chips);
+        // Filter nur für Typen, die es in der Welt gibt; nur ein Typ = keine Filter, nur die Sortierung
+        var typesChecked = false;
+        function showTypeChips(items) {
+            var present = {
+                movies: items.some(function (i) {
+                    return i.Type === 'Movie';
+                }),
+                series: items.some(function (i) {
+                    return i.Type === 'Series';
+                })
+            };
+            if (!(present.movies && present.series)) {
+                chips.remove();
+            }
+        }
         var select = el('select', 'lr-select');
         [['year', 'Neueste zuerst'], ['year-asc', 'Älteste zuerst'], ['added', 'Neu hinzugefügt'], ['rating', 'Bewertung'], ['name', 'Name']].forEach(function (pair) {
             var option = el('option', null, pair[1]);
@@ -2368,6 +2383,10 @@
                 grid.innerHTML = '';
                 if (!items.length) {
                     grid.appendChild(el('div', 'lr-empty', 'Keine Titel gefunden.'));
+                }
+                if (filter === 'all' && !typesChecked) {
+                    typesChecked = true;
+                    showTypeChips(items);
                 }
                 items.forEach(function (item) {
                     grid.appendChild(posterCard(item));
@@ -3104,20 +3123,15 @@
             list.insertBefore(calendarItem, list.firstChild);
             tucked.push(calendarItem);
         }
-        var iosTest = isNativeIos && !appPlaysNatively() && (storageGet('lrWeb.iosPlayer') !== '1' || storageGet('lrWeb.classicPlayer') === '1');
-        if (state.config && state.config.PlayerEnabled && (iosTest || !isNativeIos && storageGet('lrWeb.classicPlayer') === '1')) {
+        if (state.config && state.config.PlayerEnabled && !appPlaysNatively() && storageGet('lrWeb.classicPlayer') === '1') {
             var playerItem = el('li', 'lr-menu-item MuiButtonBase-root MuiMenuItem-root');
             playerItem.setAttribute('role', 'menuitem');
             var playerIcon = el('span', 'lr-menu-icon');
             playerIcon.appendChild(icon('movie'));
             playerItem.appendChild(playerIcon);
-            playerItem.appendChild(el('span', null, isNativeIos ? 'Quallenkino-Player testen' : 'Quallenkino-Player einschalten'));
+            playerItem.appendChild(el('span', null, 'Quallenkino-Player einschalten'));
             onActivate(playerItem, function () {
                 storageSet('lrWeb.classicPlayer', null);
-                if (isNativeIos) {
-                    storageSet('lrWeb.iosPlayer', '1');
-                    diagStep('Quallenkino-Player in der iOS-App eingeschaltet');
-                }
                 var backdrop = document.querySelector('#app-user-menu .MuiBackdrop-root');
                 if (backdrop) {
                     backdrop.click();
@@ -3451,9 +3465,7 @@
     }
 
     function playerWanted() {
-        // In der iOS-App nur auf Wunsch pro Gerät (Profilmenü „Quallenkino-Player testen“), bis der Absturz dort geklärt ist
-        return !!(state.config && state.config.PlayerEnabled) && storageGet('lrWeb.classicPlayer') !== '1' && !appPlaysNatively()
-            && (!isNativeIos || storageGet('lrWeb.iosPlayer') === '1');
+        return !!(state.config && state.config.PlayerEnabled) && storageGet('lrWeb.classicPlayer') !== '1' && !appPlaysNatively();
     }
 
     function osdNode(selector) {
@@ -3871,7 +3883,6 @@
         }
         add('tv_off', 'Klassischer Player', function () {
             storageSet('lrWeb.classicPlayer', '1');
-            storageSet('lrWeb.iosPlayer', null);
             stopOwnPlayer();
         });
     }
