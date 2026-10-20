@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.21.0] - 2026-10-20
+
+### Added
+
+- **„Wer schaut?“ profile picker for Jellyfin Web** (setting „Wer schaut?“ – Profilauswahl, default off): avatars when the app opens (once per tab), switch with one click without PIN, „Profil hinzufügen“ signs in another person without signing out the others, „Profile verwalten“ removes a profile from this browser. Sign-ins stay in the browser's local storage; invalid ones (after „Abmelden“) are removed with a hint. Profile menu: „Profil wechseln“. `/LocalRecs/Web/Config` reports `ProfilesEnabled`.
+
 ## [12.20.0] - 2026-10-20
 
 ### Added

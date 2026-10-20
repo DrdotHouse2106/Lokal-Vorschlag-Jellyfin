@@ -35,6 +35,7 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             FanartApiKey = string.Empty;
             WebHomeEnabled = false;
             WebThemeEnabled = false;
+            WebProfilesEnabled = false;
             WebPlayerUserIds = System.Array.Empty<string>();
             CalendarPublicUrl = string.Empty;
             CalendarAlarmMinutes = 10;
@@ -247,6 +248,11 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Gets or sets a value indicating whether Jellyfin Web uses the Quallenkino colors (dark blue, violet-blue gradient).
         /// </summary>
         public bool WebThemeEnabled { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether Jellyfin Web shows the "Wer schaut?" profile picker (logins stay in the browser, no PIN).
+        /// </summary>
+        public bool WebProfilesEnabled { get; set; }
 
         /// <summary>
         /// Gets or sets the users (IDs without dashes) who get the Netflix-style player in Jellyfin Web (test, opt-in).

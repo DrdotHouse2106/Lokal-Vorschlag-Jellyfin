@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/local-recommendations.png",
     "versions": [
       {
+        "version": "12.21.0.0",
+        "changelog": "„Wer schaut?“ – Profilauswahl für Jellyfin Web / profile picker\n- Profilbilder beim Öffnen, Wechsel per Klick ohne PIN, Anmeldungen bleiben im Browser\n- Profil hinzufügen, Profile verwalten, „Profil wechseln“ im Profilmenü\n- Schalter in der Plugin-Einstellung (Standard: aus)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.21.0.zip",
+        "checksum": "328f689f7d08a5bdece3aa91aabbd688",
+        "timestamp": "2026-10-20T03:00:00Z"
+      },
+      {
         "version": "12.20.0.0",
         "changelog": "Live-TV-Erinnerungen per Kalender / Live TV reminders via calendar\n- Sendungen und Serien merken, Kalender-Abo (iCal) mit Erinnerung 10 Minuten vorher, QR-Code\n- Schnittstelle für Apps: /LocalRecs/Reminders, /LocalRecs/Calendar\n- Netflix-Player: neues Symbol für Ton & Untertitel\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

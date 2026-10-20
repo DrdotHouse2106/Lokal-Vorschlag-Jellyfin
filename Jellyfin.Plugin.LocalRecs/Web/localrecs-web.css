@@ -2460,3 +2460,176 @@ html.lr-player .lr-skip {
         align-items: flex-start;
     }
 }
+
+/* ------------------------------------------------------------------ „Wer schaut?“ – Profilauswahl */
+
+html.lr-profiles-open,
+html.lr-profiles-open body {
+    overflow: hidden;
+}
+
+.lr-profiles {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    overflow-y: auto;
+    background: #0b0e14;
+    color: #fff;
+    font-family: inherit;
+    animation: lr-profiles-in 0.25s ease-out;
+}
+
+@keyframes lr-profiles-in {
+    from {
+        opacity: 0;
+        transform: scale(1.04);
+    }
+}
+
+.lr-profiles-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 1100px;
+    width: 100%;
+}
+
+.lr-profiles-title {
+    margin: 0 0 1.4em;
+    font-size: clamp(1.8rem, 4vw, 3.4rem);
+    font-weight: 500;
+    text-align: center;
+}
+
+.lr-profiles-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: clamp(14px, 2.4vw, 32px);
+}
+
+.lr-profile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.7em;
+    width: clamp(92px, 12vw, 160px);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #9a9aa6;
+    font: inherit;
+    cursor: pointer;
+    outline: none;
+}
+
+.lr-profile-avatar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 3px solid transparent;
+    box-sizing: border-box;
+    transition: border-color 0.15s, transform 0.15s;
+}
+
+.lr-profile-avatar img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.lr-profile-initial {
+    font-size: clamp(2.4rem, 5vw, 4.4rem);
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.lr-profile-name {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    text-align: center;
+    line-height: 1.25;
+    font-size: clamp(0.9rem, 1.3vw, 1.2rem);
+}
+
+.lr-profile:hover,
+.lr-profile:focus-visible {
+    color: #fff;
+}
+
+.lr-profile:hover .lr-profile-avatar,
+.lr-profile:focus-visible .lr-profile-avatar {
+    border-color: #fff;
+    transform: scale(1.04);
+}
+
+.lr-profile-add .lr-profile-avatar {
+    background: transparent;
+    border: 3px solid #4a4a55;
+}
+
+.lr-profile-add .lr-profile-avatar .lr-icon {
+    font-size: clamp(2.6rem, 5vw, 4.6rem);
+    color: #9a9aa6;
+}
+
+.lr-profile-busy .lr-profile-avatar {
+    opacity: 0.5;
+}
+
+.lr-profile-remove {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+}
+
+.lr-profile-remove .lr-icon {
+    font-size: 2.6rem;
+}
+
+.lr-profiles-hint {
+    min-height: 1.4em;
+    margin: 1.6em 0 0;
+    color: #c7c7d1;
+    text-align: center;
+}
+
+.lr-profiles-manage {
+    margin-top: 1.6em;
+    padding: 0.5em 1.6em;
+    border: 1px solid #8a8a96;
+    background: transparent;
+    color: #8a8a96;
+    font: inherit;
+    font-size: 1.05rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.lr-profiles-manage:hover,
+.lr-profiles-manage:focus-visible {
+    border-color: #fff;
+    color: #fff;
+    outline: none;
+}

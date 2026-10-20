@@ -117,6 +117,17 @@ Im Browser und in den Jellyfin-Apps für iOS und Android kann die Startseite wie
 - „Abspielen“ startet die Wiedergabe im selben Browser bzw. in derselben App. Ganz unten auf der Startseite kann jeder Benutzer zur klassischen Ansicht zurückwechseln.
 - Skript und Stylesheet werden mit der Plugin-Version im Link geladen (`?v=…`). So kommen Updates auch in Apps mit Web-Zwischenspeicher (z. B. der iOS-App) sofort an.
 
+### „Wer schaut?“ – Profilauswahl (ab 12.21.0)
+
+Damit jede Person ihre eigenen Vorschläge bekommt, zeigt Jellyfin Web beim Öffnen eine Profilauswahl mit Profilbildern – wie bei Netflix. Einschalten unter **Einstellungen → Jellyfin Web → „Wer schaut?“ – Profilauswahl** (Standard: aus; benötigt ebenfalls **File Transformation**).
+
+- **Ohne PIN:** Jedes Profil meldet sich einmal über **„Profil hinzufügen“** an, danach genügt ein Klick zum Wechseln. Die anderen Profile bleiben dabei angemeldet.
+- Die Anmeldungen werden **nur im jeweiligen Browser** gespeichert (wie Jellyfin selbst seine Anmeldung speichert) – nicht auf dem Server und nicht in anderen Geräten.
+- Die Auswahl erscheint einmal pro geöffnetem Tab bzw. App-Start, jederzeit erreichbar über **„Profil wechseln“** im Profilmenü. Esc schließt sie.
+- **„Profile verwalten“** entfernt ein Profil nur aus diesem Browser. Wer sich in Jellyfin über „Abmelden“ abmeldet, macht den gespeicherten Zugang ungültig; das Profil verschwindet dann beim nächsten Klick mit einem Hinweis und kann neu hinzugefügt werden.
+- Ohne Profilbild erscheint der Anfangsbuchstabe auf einer Farbe.
+- `/LocalRecs/Web/Config` meldet `"ProfilesEnabled": true|false` – so können auch eigene Apps die Einstellung übernehmen.
+
 ### Live-TV-Erinnerungen und Kalender (ab 12.20.0)
 
 Sendungen aus dem Programmführer lassen sich merken – einzeln oder als ganze Serie (alle künftigen Ausstrahlungen mit gleichem Titel, gleiche Folgen nur einmal). Gemerktes erscheint in einem **Kalender-Abo (iCal)** pro Benutzer, mit Erinnerung vor Beginn (Standard 10 Minuten). So erinnert das Handy über den eigenen Kalender, ganz ohne zusätzliche App. In Jellyfin Web: Glocke an Live-TV-Kacheln und auf der Sendungsseite („Merken“, „Serie merken“), im Profilmenü „Erinnerungen im Kalender“ (Abonnieren, Link kopieren, QR-Code, Link erneuern).

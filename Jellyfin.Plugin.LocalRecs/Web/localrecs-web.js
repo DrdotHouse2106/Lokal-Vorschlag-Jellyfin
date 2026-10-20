@@ -2369,6 +2369,10 @@
             list.insertBefore(playerItem, list.firstChild);
             tucked.push(playerItem);
         }
+        var profilesItem = addProfileMenuItem(list);
+        if (profilesItem) {
+            tucked.push(profilesItem);
+        }
         if (tucked.length) {
             var divider = el('li', 'lr-menu-divider');
             divider.setAttribute('role', 'separator');
@@ -2379,7 +2383,11 @@
     // Beim Öffnen des Profilmenüs (Klick auf das Profilbild) die Einträge ergänzen
     document.addEventListener('click', function (e) {
         var target = e.target && e.target.closest ? e.target.closest('header.MuiAppBar-root button') : null;
-        if (!target || !target.querySelector('.MuiAvatar-root') || !document.body.classList.contains('lr-tidy-header')) {
+        if (!target || !target.querySelector('.MuiAvatar-root')) {
+            return;
+        }
+        var tidy = document.body.classList.contains('lr-tidy-header');
+        if (!tidy && !profilesEnabled()) {
             return;
         }
         var tries = 0;
@@ -2388,7 +2396,14 @@
             tries++;
             if (list || tries > 20) {
                 window.clearInterval(timer);
-                extendUserMenu(list);
+                if (tidy) {
+                    extendUserMenu(list);
+                } else if (list) {
+                    list.querySelectorAll('.lr-menu-profiles').forEach(function (node) {
+                        node.remove();
+                    });
+                    addProfileMenuItem(list);
+                }
             }
         }, 25);
     }, true);
@@ -3354,6 +3369,326 @@
         nfShow();
     }, true);
 
+    // ---------------------------------------------------------------- „Wer schaut?“ – Profilauswahl ohne PIN
+
+    // Die Zugänge der Profile bleiben nur in diesem Browser (wie Jellyfin selbst seine Anmeldung speichert).
+    // Ein Wechsel schreibt den gespeicherten Zugang in die Anmeldedaten von Jellyfin Web und lädt neu.
+    var PROFILES_KEY = 'lrWeb.profiles';
+    var PROFILE_PICKED_KEY = 'lrWeb.profilePicked';
+    var CREDENTIALS_KEY = 'jellyfin_credentials';
+    var PROFILE_COLORS = ['#e50914', '#2e96e0', '#7f76d6', '#f5a623', '#21a179', '#d94f9c', '#00a8a8', '#8a6d3b'];
+
+    function profilesEnabled() {
+        return !!(state.config && state.config.ProfilesEnabled);
+    }
+
+    function basePath() {
+        var p = window.location.pathname;
+        var i = p.indexOf('/web/');
+        return i >= 0 ? p.slice(0, i) : '';
+    }
+
+    function readProfiles() {
+        try {
+            var list = JSON.parse(storageGet(PROFILES_KEY) || '[]');
+            return Array.isArray(list) ? list.filter(function (p) {
+                return p && p.Id && p.Token && p.ServerId;
+            }) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function writeProfiles(list) {
+        storageSet(PROFILES_KEY, list.length ? JSON.stringify(list) : null);
+    }
+
+    function readCredentials() {
+        try {
+            var credentials = JSON.parse(storageGet(CREDENTIALS_KEY) || '{}') || {};
+            credentials.Servers = Array.isArray(credentials.Servers) ? credentials.Servers : [];
+            return credentials;
+        } catch (e) {
+            return { Servers: [] };
+        }
+    }
+
+    function signedInUserId(serverId) {
+        var server = readCredentials().Servers.filter(function (s) {
+            return s && s.Id === serverId;
+        })[0];
+        return server && server.AccessToken ? server.UserId : null;
+    }
+
+    function sameId(a, b) {
+        return !!a && !!b && String(a).replace(/-/g, '').toLowerCase() === String(b).replace(/-/g, '').toLowerCase();
+    }
+
+    // Merkt sich das angemeldete Profil (Name, Bild, Zugang) für den Wechsel per Klick
+    function rememberProfile() {
+        var client = api();
+        var uid = userId();
+        if (!profilesEnabled() || !client || !uid || !client.accessToken || !client.accessToken()) {
+            return;
+        }
+        var serverId = client.serverId ? client.serverId() : null;
+        var token = client.accessToken();
+        client.getCurrentUser().then(function (user) {
+            if (!user || !serverId) {
+                return;
+            }
+            var list = readProfiles().filter(function (p) {
+                return !(p.ServerId === serverId && sameId(p.Id, user.Id));
+            });
+            list.push({
+                Id: user.Id,
+                Name: user.Name,
+                Tag: user.PrimaryImageTag || null,
+                Token: token,
+                ServerId: serverId,
+                LastUsed: Date.now()
+            });
+            writeProfiles(list);
+        }).catch(function () {
+            // ohne Benutzerdaten nichts merken
+        });
+    }
+
+    function profileAvatar(profile, size) {
+        var box = el('span', 'lr-profile-avatar');
+        var color = PROFILE_COLORS[Math.abs((profile.Name || '?').split('').reduce(function (h, c) {
+            return (h * 31 + c.charCodeAt(0)) | 0;
+        }, 7)) % PROFILE_COLORS.length];
+        box.style.background = color;
+        box.appendChild(el('span', 'lr-profile-initial', (profile.Name || '?').charAt(0).toUpperCase()));
+        if (profile.Tag) {
+            var img = new Image();
+            img.alt = '';
+            img.decoding = 'async';
+            img.onload = function () {
+                box.appendChild(img);
+            };
+            img.src = basePath() + '/Users/' + encodeURIComponent(profile.Id) + '/Images/Primary?tag='
+                + encodeURIComponent(profile.Tag) + '&maxHeight=' + size + '&quality=90';
+        }
+        return box;
+    }
+
+    // Prüft den gespeicherten Zugang (z. B. nach „Abmelden“ ist er serverseitig ungültig)
+    function checkToken(profile) {
+        return window.fetch(basePath() + '/Users/Me', {
+            headers: { Authorization: 'MediaBrowser Token="' + profile.Token + '"' },
+            cache: 'no-store'
+        }).then(function (response) {
+            if (response.status === 401 || response.status === 403) {
+                return false;
+            }
+            return true;
+        }, function () {
+            // Server nicht erreichbar – trotzdem versuchen, Jellyfin zeigt dann seine Meldung
+            return true;
+        });
+    }
+
+    function switchToProfile(profile) {
+        var credentials = readCredentials();
+        var server = credentials.Servers.filter(function (s) {
+            return s && s.Id === profile.ServerId;
+        })[0];
+        if (!server) {
+            server = { Id: profile.ServerId, ManualAddress: window.location.origin + basePath(), LastConnectionMode: 2 };
+            credentials.Servers.push(server);
+        }
+        server.UserId = profile.Id;
+        server.AccessToken = profile.Token;
+        server.DateLastAccessed = Date.now();
+        storageSet(CREDENTIALS_KEY, JSON.stringify(credentials));
+        // Sonst meldet Jellyfin Web trotz Zugang nicht automatisch an („Angemeldet bleiben“ war aus)
+        storageSet('enableAutoLogin', 'true');
+        var list = readProfiles();
+        list.forEach(function (p) {
+            if (p.ServerId === profile.ServerId && sameId(p.Id, profile.Id)) {
+                p.LastUsed = Date.now();
+            }
+        });
+        writeProfiles(list);
+        window.location.replace(window.location.pathname + '#/home');
+        window.location.reload();
+    }
+
+    // Neues Profil: nur hier im Browser abmelden (der Zugang der anderen bleibt gültig), dann zur Anmeldung
+    function addProfile() {
+        var credentials = readCredentials();
+        credentials.Servers.forEach(function (s) {
+            if (s) {
+                s.UserId = null;
+                s.AccessToken = null;
+            }
+        });
+        storageSet(CREDENTIALS_KEY, JSON.stringify(credentials));
+        window.location.replace(window.location.pathname + '#/login');
+        window.location.reload();
+    }
+
+    function closeProfilePicker() {
+        var picker = document.querySelector('.lr-profiles');
+        if (picker) {
+            picker.remove();
+        }
+        document.documentElement.classList.remove('lr-profiles-open');
+    }
+
+    function showProfilePicker(options) {
+        options = options || {};
+        closeProfilePicker();
+        try {
+            window.sessionStorage.setItem(PROFILE_PICKED_KEY, '1');
+        } catch (e) {
+            // ohne Sitzungsspeicher erscheint die Auswahl eben öfter
+        }
+        var picker = el('div', 'lr-profiles');
+        picker.setAttribute('role', 'dialog');
+        picker.setAttribute('aria-modal', 'true');
+        picker.setAttribute('aria-label', 'Wer schaut?');
+        var inner = el('div', 'lr-profiles-inner');
+        var title = el('h1', 'lr-profiles-title', 'Wer schaut?');
+        var hint = el('p', 'lr-profiles-hint');
+        var grid = el('div', 'lr-profiles-grid');
+        var editing = false;
+        var manage;
+
+        function draw() {
+            grid.textContent = '';
+            var list = readProfiles().sort(function (a, b) {
+                return (a.Name || '').localeCompare(b.Name || '', 'de');
+            });
+            list.forEach(function (profile) {
+                var current = sameId(signedInUserId(profile.ServerId), profile.Id);
+                var tile = el('button', 'lr-profile' + (current ? ' lr-profile-current' : ''));
+                tile.type = 'button';
+                tile.appendChild(profileAvatar(profile, 320));
+                if (editing) {
+                    var remove = el('span', 'lr-profile-remove');
+                    remove.appendChild(icon('close'));
+                    tile.appendChild(remove);
+                }
+                tile.appendChild(el('span', 'lr-profile-name', profile.Name));
+                tile.setAttribute('aria-label', editing ? profile.Name + ' entfernen' : profile.Name);
+                tile.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    if (editing) {
+                        writeProfiles(readProfiles().filter(function (p) {
+                            return !(p.ServerId === profile.ServerId && sameId(p.Id, profile.Id));
+                        }));
+                        draw();
+                        return;
+                    }
+                    if (current && window.ApiClient && sameId(userId(), profile.Id)) {
+                        closeProfilePicker();
+                        return;
+                    }
+                    tile.classList.add('lr-profile-busy');
+                    hint.textContent = '';
+                    checkToken(profile).then(function (valid) {
+                        tile.classList.remove('lr-profile-busy');
+                        if (valid) {
+                            switchToProfile(profile);
+                            return;
+                        }
+                        writeProfiles(readProfiles().filter(function (p) {
+                            return !(p.ServerId === profile.ServerId && sameId(p.Id, profile.Id));
+                        }));
+                        hint.textContent = profile.Name + ' wurde abgemeldet – bitte über „Profil hinzufügen“ neu anmelden.';
+                        draw();
+                    });
+                });
+                grid.appendChild(tile);
+            });
+            if (!editing) {
+                var add = el('button', 'lr-profile lr-profile-add');
+                add.type = 'button';
+                var plus = el('span', 'lr-profile-avatar');
+                plus.appendChild(icon('add'));
+                add.appendChild(plus);
+                add.appendChild(el('span', 'lr-profile-name', 'Profil hinzufügen'));
+                add.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    addProfile();
+                });
+                grid.appendChild(add);
+            }
+            if (manage) {
+                manage.textContent = editing ? 'Fertig' : 'Profile verwalten';
+                manage.hidden = !list.length;
+            }
+            var first = grid.querySelector('.lr-profile-current') || grid.querySelector('.lr-profile');
+            if (first && !options.noFocus) {
+                first.focus();
+            }
+        }
+
+        manage = el('button', 'lr-profiles-manage');
+        manage.type = 'button';
+        manage.addEventListener('click', function (e) {
+            e.preventDefault();
+            editing = !editing;
+            title.textContent = editing ? 'Profile verwalten' : 'Wer schaut?';
+            hint.textContent = editing ? 'Entfernt das Profil nur aus diesem Browser.' : '';
+            draw();
+        });
+        inner.appendChild(title);
+        inner.appendChild(grid);
+        inner.appendChild(hint);
+        inner.appendChild(manage);
+        picker.appendChild(inner);
+        picker.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && window.ApiClient && userId()) {
+                e.stopPropagation();
+                closeProfilePicker();
+            }
+        });
+        document.documentElement.classList.add('lr-profiles-open');
+        (document.body || document.documentElement).appendChild(picker);
+        draw();
+    }
+
+    function addProfileMenuItem(list) {
+        if (!list || !profilesEnabled() || list.querySelector('.lr-menu-profiles')) {
+            return null;
+        }
+        var item = el('li', 'lr-menu-item lr-menu-profiles MuiButtonBase-root MuiMenuItem-root');
+        item.setAttribute('role', 'menuitem');
+        item.tabIndex = 0;
+        var itemIcon = el('span', 'lr-menu-icon');
+        itemIcon.appendChild(icon('switch_account'));
+        item.appendChild(itemIcon);
+        item.appendChild(el('span', null, 'Profil wechseln'));
+        onActivate(item, function () {
+            var backdrop = document.querySelector('#app-user-menu .MuiBackdrop-root');
+            if (backdrop) {
+                backdrop.click();
+            }
+            rememberProfile();
+            window.setTimeout(showProfilePicker, 150);
+        });
+        list.insertBefore(item, list.firstChild);
+        return item;
+    }
+
+    // Beim Öffnen der App (einmal pro Tab) die Auswahl zeigen – auch vor der Anmeldung, wenn Profile gespeichert sind
+    function maybeShowProfilePicker(enabled) {
+        var picked = null;
+        try {
+            picked = window.sessionStorage.getItem(PROFILE_PICKED_KEY);
+        } catch (e) {
+            picked = '1';
+        }
+        if (picked || !enabled || !readProfiles().length) {
+            return;
+        }
+        showProfilePicker();
+    }
+
     // ---------------------------------------------------------------- Einstellungen und Start
 
     function applyTheme() {
@@ -3399,6 +3734,7 @@
         if (early && early.ThemeEnabled) {
             document.documentElement.classList.add('lr-theme');
         }
+        maybeShowProfilePicker(!!(early && early.ProfilesEnabled));
     } catch (e) {
         // ignorieren
     }
@@ -3439,6 +3775,7 @@
             // Plugin-Endpunkt nicht erreichbar – dann bleibt alles wie in Jellyfin
         }).then(function () {
             lastUser = userId();
+            rememberProfile();
             api().getCurrentUser().then(function (user) {
                 state.liveTv = !!(user && user.Policy && user.Policy.EnableLiveTvAccess);
                 updateTabBar();
@@ -3469,7 +3806,10 @@
                 }
                 loadConfig().catch(function () {
                     return null;
-                }).then(activate);
+                }).then(function () {
+                    rememberProfile();
+                    activate();
+                });
             }
         }, 2000);
     });

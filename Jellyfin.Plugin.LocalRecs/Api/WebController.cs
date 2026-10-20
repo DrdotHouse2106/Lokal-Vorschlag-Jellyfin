@@ -85,6 +85,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 HomeEnabled = Config.WebHomeEnabled,
                 ThemeEnabled = Config.WebThemeEnabled,
                 PlayerEnabled = IsPlayerUser(Config.WebPlayerUserIds, userId),
+                ProfilesEnabled = Config.WebProfilesEnabled,
                 Reminders = true,
                 Version = WebIntegration.Version
             };
@@ -103,6 +104,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets a value indicating whether the signed-in user gets the Netflix-style player.</summary>
             public bool PlayerEnabled { get; set; }
+
+            /// <summary>Gets or sets a value indicating whether the "Wer schaut?" profile picker is on (since 12.21.0).</summary>
+            public bool ProfilesEnabled { get; set; }
 
             /// <summary>Gets or sets a value indicating whether live TV reminders and the calendar feed are available (since 12.20.0).</summary>
             public bool Reminders { get; set; }
