@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.31.0.0",
+        "changelog": "Direkt abspielen\n- „Abspielen“ startet direkt über Jellyfins Wiedergabe (ohne Umweg über Server oder Detailseite) – schneller und in der iOS-App ohne Holpern\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.31.0.zip",
+        "checksum": "e9a69d3b6bcb1d78bff06b16637ffb14",
+        "timestamp": "2026-10-20T22:00:00Z"
+      },
+      {
         "version": "12.30.1.0",
         "changelog": "Abspielen in der iOS-App\n- „Abspielen“ startet wieder (lokal über Jellyfins Abspielknopf, wenn die eigene Sitzung nicht gefunden wird oder nichts startet)\n- Diagnose: Schritte rund ums Abspielen sofort, „Diagnose senden“ im Profilmenü\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

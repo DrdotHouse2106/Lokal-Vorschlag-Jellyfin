@@ -1077,9 +1077,65 @@
         return Promise.resolve(item);
     }
 
-    // Abspielen über die eigene Sitzung (PlayNow vom Server, wie eine Fernbedienung). Kommt danach keine Wiedergabe
-    // in Gang (z. B. in der iOS-App), startet Jellyfins eigener Abspielknopf der Detailseite lokal.
-    var playState = { osdAt: 0 };
+    // Abspielen direkt mit Jellyfins playbackManager (wie dessen eigene Knöpfe). Jellyfin Web stellt ihn nicht global
+    // bereit – er wird einmal aus den Webpack-Modulen gesucht (das bereits geladene Modul mit isPlayingVideo/_currentPlayer).
+    // Ersatzwege: PlayNow über die eigene Sitzung, zuletzt Jellyfins Abspielknopf auf der Detailseite.
+    var playState = { osdAt: 0, manager: null, searches: 0 };
+
+    function playbackManager() {
+        if (playState.manager || playState.searches >= 3) {
+            return playState.manager;
+        }
+        playState.searches++;
+        try {
+            var chunks = window.webpackChunk;
+            var req = null;
+            if (!chunks || typeof chunks.push !== 'function') {
+                return null;
+            }
+            chunks.push([['lr-pm-' + playState.searches + '-' + Date.now()], {}, function (r) {
+                req = r;
+            }]);
+            if (!req || !req.m) {
+                return null;
+            }
+            Object.keys(req.m).some(function (key) {
+                var source = Function.prototype.toString.call(req.m[key]);
+                if (source.indexOf('isPlayingVideo=function') < 0 || source.indexOf('_currentPlayer') < 0) {
+                    return false;
+                }
+                var exported = req(key);
+                Object.keys(exported || {}).some(function (name) {
+                    var candidate = exported[name];
+                    if (candidate && typeof candidate.play === 'function' && typeof candidate.isPlayingVideo === 'function'
+                        && typeof candidate.getCurrentPlayer === 'function') {
+                        playState.manager = candidate;
+                        return true;
+                    }
+                    return false;
+                });
+                return !!playState.manager;
+            });
+        } catch (e) {
+            diagStep('playbackManager nicht gefunden: ' + errorText(e), false, true);
+        }
+        return playState.manager;
+    }
+
+    // Spielt ein Element sofort ab; Promise endet, wenn der Start angestoßen ist
+    function playNow(target, ticks) {
+        var manager = playbackManager();
+        if (manager) {
+            diagStep('Direktstart über Jellyfins playbackManager: ' + target.Type + ' ' + target.Id, false, true);
+            return Promise.resolve(manager.play({ ids: [target.Id], serverId: api().serverId(), startPositionTicks: ticks || 0 }))
+                .catch(function (err) {
+                    diagStep('playbackManager.play fehlgeschlagen: ' + errorText(err) + ' – über die Sitzung', false, true);
+                    return playViaSession(target, ticks);
+                });
+        }
+        diagStep('playbackManager nicht verfügbar – über die Sitzung', false, true);
+        return playViaSession(target, ticks);
+    }
 
     function play(item) {
         diagStep('Abspielen: ' + item.Type + ' ' + item.Id, false, true);
@@ -1089,31 +1145,35 @@
                 openDetailsPage(item);
                 return null;
             }
-            return ownSession(true).then(function (session) {
-                closeOverlays();
-                stopHeroVideo();
-                if (!session) {
-                    diagStep('Keine fernsteuerbare eigene Sitzung – lokaler Start', false, true);
-                    playLocally(target);
-                    return null;
-                }
-                var ticks = target.UserData && target.UserData.PlaybackPositionTicks ? target.UserData.PlaybackPositionTicks : 0;
-                var client = api();
-                var socket = client && typeof client.isWebSocketOpen === 'function' ? String(client.isWebSocketOpen()) : '?';
-                diagStep('PlayNow an eigene Sitzung ' + session.Id.slice(0, 8) + ': ' + target.Type + ' ' + target.Id + ' (Fernsteuerung '
-                    + session.SupportsRemoteControl + ', WebSocket offen ' + socket + ')', false, true);
-                var sentAt = Date.now();
-                return post('Sessions/' + session.Id + '/Playing?playCommand=PlayNow&itemIds=' + target.Id
-                    + (ticks ? '&startPositionTicks=' + ticks : '')).then(function () {
-                    diagStep('PlayNow angenommen', false, true);
-                    window.setTimeout(function () {
-                        checkPlaybackStarted(target, sentAt);
-                    }, 6000);
-                });
-            });
+            closeOverlays();
+            stopHeroVideo();
+            var ticks = target.UserData && target.UserData.PlaybackPositionTicks ? target.UserData.PlaybackPositionTicks : 0;
+            return playNow(target, ticks);
         }).catch(function (err) {
             diagStep('Abspielen fehlgeschlagen: ' + errorText(err) + ' – lokaler Start', false, true);
             playLocally(item);
+        });
+    }
+
+    function playViaSession(target, ticks) {
+        return ownSession(true).then(function (session) {
+            if (!session) {
+                diagStep('Keine fernsteuerbare eigene Sitzung – lokaler Start', false, true);
+                playLocally(target);
+                return null;
+            }
+            var client = api();
+            var socket = client && typeof client.isWebSocketOpen === 'function' ? String(client.isWebSocketOpen()) : '?';
+            diagStep('PlayNow an eigene Sitzung ' + session.Id.slice(0, 8) + ': ' + target.Type + ' ' + target.Id + ' (Fernsteuerung '
+                + session.SupportsRemoteControl + ', WebSocket offen ' + socket + ')', false, true);
+            var sentAt = Date.now();
+            return post('Sessions/' + session.Id + '/Playing?playCommand=PlayNow&itemIds=' + target.Id
+                + (ticks ? '&startPositionTicks=' + ticks : '')).then(function () {
+                diagStep('PlayNow angenommen', false, true);
+                window.setTimeout(function () {
+                    checkPlaybackStarted(target, sentAt);
+                }, 6000);
+            });
         });
     }
 
@@ -3739,8 +3799,8 @@
                 return c.Id;
             }).indexOf(item.Id);
             var next = channels[(index + step + channels.length) % channels.length];
-            if (next && nf.session) {
-                post('Sessions/' + nf.session.Id + '/Playing?playCommand=PlayNow&itemIds=' + next.Id);
+            if (next) {
+                playNow({ Id: next.Id, Type: 'TvChannel' }, 0);
             }
         });
     }

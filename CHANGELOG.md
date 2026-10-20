@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.31.0] - 2026-10-20
+
+### Changed
+
+- **Playing starts directly in the browser/app** through Jellyfin Web's own playback manager (like Jellyfin's play buttons), at the saved position – no round trip via the server (PlayNow to the own session) and no detour via the detail page. Faster everywhere and works in the Jellyfin iOS app, whose session does not support remote control. Jellyfin Web does not expose the playback manager globally; it is looked up once among the loaded Webpack modules. Fallbacks stay: PlayNow via the own session, then Jellyfin's play button on the detail page.
+- Quallenkino player: switching live TV channels also starts directly.
+
 ## [12.30.1] - 2026-10-20
 
 ### Fixed
