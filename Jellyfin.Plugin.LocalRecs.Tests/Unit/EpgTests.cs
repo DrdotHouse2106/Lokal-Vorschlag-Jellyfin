@@ -144,7 +144,10 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
         [Fact]
         public void LongProgrammeWithoutEvidence_IsNoMovie()
         {
-            var c = Classify("Schmuck-Highlights");
+            var settings = Defaults();
+            settings.OtherChannels = Array.Empty<string>();
+            settings.OtherCategories = Array.Empty<string>();
+            var c = Classify("Schmuck-Highlights", settings);
 
             c.IsMovie.Should().BeFalse();
             c.IsSeries.Should().BeFalse();
@@ -216,11 +219,12 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
         [Fact]
         public void YearAlone_IsNoMovie_UnlessSwitchedOn()
         {
-            var c = Classify("premiumshopping.tv");
+            var settings = Defaults();
+            settings.OtherChannels = Array.Empty<string>();
+            var c = Classify("premiumshopping.tv", settings);
             c.IsMovie.Should().BeFalse();
             c.Year.Should().Be(2026);
 
-            var settings = Defaults();
             settings.MovieByYear = true;
             Classify("premiumshopping.tv", settings).IsMovie.Should().BeTrue();
         }
@@ -246,6 +250,54 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             c.Year.Should().Be(2004);
             c.ImdbId.Should().Be("tt0123456");
             c.Reasons.Should().Contain(r => r.Contains("Darsteller-Quelle", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void Documentary_WithDirectorAndLength_IsNoMovie()
+        {
+            var programme = new EpgProgramme
+            {
+                ChannelId = "3sat",
+                Title = "50 Gründe, die Emilia-Romagna zu lieben",
+                Start = new DateTimeOffset(2026, 10, 20, 20, 15, 0, TimeSpan.Zero),
+                Stop = new DateTimeOffset(2026, 10, 20, 21, 45, 0, TimeSpan.Zero)
+            };
+            programme.Categories.Add("Dokumentation");
+            programme.Directors.Add("Jane Doe");
+
+            var c = EpgClassifier.Classify(programme, "3sat", Defaults());
+
+            c.IsMovie.Should().BeFalse();
+            c.Reasons.Should().Contain("kein Film: Kategorie „Dokumentation“");
+        }
+
+        [Fact]
+        public void ShoppingChannel_IsNeitherMovieNorSeries()
+        {
+            var programme = new EpgProgramme
+            {
+                ChannelId = "123tv",
+                Title = "mediform",
+                SubTitle = "Gesundheit & Wohlbefinden",
+                EpisodeNumOnscreen = "Folge 12",
+                Start = new DateTimeOffset(2026, 10, 20, 10, 0, 0, TimeSpan.Zero),
+                Stop = new DateTimeOffset(2026, 10, 20, 12, 0, 0, TimeSpan.Zero)
+            };
+
+            var c = EpgClassifier.Classify(programme, "1-2-3.tv", Defaults());
+
+            c.IsSeries.Should().BeFalse();
+            c.IsMovie.Should().BeFalse();
+            c.Reasons.Should().ContainSingle(r => r.StartsWith("Sonstiges", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void ShoppingChannelRule_KeepsTeleshoppingOutOfMoviesAndSeries()
+        {
+            var c = Classify("premiumshopping.tv");
+
+            c.IsMovie.Should().BeFalse();
+            c.Reasons.Should().Contain("Sonstiges: Sender „HSE“");
         }
     }
 }

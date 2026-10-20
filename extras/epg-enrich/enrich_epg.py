@@ -27,6 +27,10 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 
 SOURCE_URL = "https://epgshare01.online/epgshare01/epg_ripper_DE1.xml.gz"
+# Laengeres EPG (14 Tage) von MagentaTV, geholt vom Container epg-grabber (iptv-org/epg).
+# Die Sender-IDs darin sind schon die von DE1; fuer diese Sender ersetzt es die DE1-Sendungen.
+MERGE_FILE = os.environ.get("EPG_MERGE_FILE", "/opt/media-stack/epg-grabber/magenta.xml")
+MERGE_MAX_AGE_H = 48
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) mediastack-epg-enrich/1.0"
 
 # Stadion (Teilstring der Beschreibung) -> Suchwort fuer die Heimmannschaft
@@ -84,6 +88,7 @@ PAIR_RE = re.compile(
     r"([A-ZÄÖÜ0-9][\w.'ÄÖÜäöüß-]*(?: [\w.'ÄÖÜäöüß-]+){0,4}?)(?=,| \(|:|$| und |\.)"
 )
 LIVE_RE = re.compile(r"^(?:Live: )?(2\. )?BL$")
+MAGENTA_RE = re.compile(r"^Live (2\. )?BL: (?!.*Konferenz)([^:,]+?) - ([^:,]+?)(?:,|$)")
 
 
 def log(msg):
@@ -104,6 +109,11 @@ def collect_pairs(root):
     pairs = []
     for p in root.iter("programme"):
         title = text(p, "title")
+        # MagentaTV: "Live BL: FC Augsburg - 1. FC Union Berlin, 7. Spieltag"
+        m = MAGENTA_RE.match(title)
+        if m:
+            pairs.append(("2" if m.group(1) else "1", m.group(2).strip(), m.group(3).strip(), ts(p.get("start"))))
+            continue
         if "Bundesliga" not in title or "Frauen" in title or "U19" in title:
             continue
         league = "2" if "2. Bundesliga" in title else "1"
@@ -148,12 +158,36 @@ def home_keyword(desc):
     return None, None
 
 
-def main(source_url, out_file):
+def merge(root, merge_file):
+    """Sendungen aus merge_file uebernehmen: fuer jeden Sender, der dort Sendungen hat, ersetzen
+    sie die aus DE1. Doppelte (gleicher Sender, gleicher Beginn) zaehlen nur einmal. Fehlt die
+    Datei oder ist sie aelter als MERGE_MAX_AGE_H, bleibt es bei DE1."""
+    if not merge_file or not os.path.exists(merge_file):
+        return "ohne MagentaTV (keine Datei)"
+    age_h = (datetime.now().timestamp() - os.path.getmtime(merge_file)) / 3600
+    if age_h > MERGE_MAX_AGE_H:
+        return f"ohne MagentaTV (Datei {age_h:.0f} h alt)"
+    extra = ET.parse(merge_file).getroot()
+    programmes, seen = [], set()
+    for p in extra.iter("programme"):
+        key = (p.get("channel"), p.get("start"))
+        if key not in seen:
+            seen.add(key)
+            programmes.append(p)
+    channels = {ch for ch, _ in seen}
+    for p in [p for p in root.findall("programme") if p.get("channel") in channels]:
+        root.remove(p)
+    root.extend(programmes)
+    return f"MagentaTV: {len(channels)} Sender, {len(programmes)} Sendungen"
+
+
+def main(source_url, out_file, merge_file=MERGE_FILE):
     req = urllib.request.Request(source_url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=180) as r:
         raw = r.read()
     data = gzip.decompress(raw) if raw[:2] == b"\x1f\x8b" else raw
     root = ET.fromstring(data)
+    merged = merge(root, merge_file)
 
     pairs = collect_pairs(root)
     changed = unmatched = 0
@@ -189,16 +223,17 @@ def main(source_url, out_file):
         gz.write(ET.tostring(root, encoding="utf-8"))
     os.chmod(tmp, 0o644)
     os.replace(tmp, out_file)
-    log(f"OK: {changed} Spiele benannt, {unmatched} ohne Paarung, {len(pairs)} Paarungen gefunden")
+    log(f"OK: {merged}; {changed} Spiele benannt, {unmatched} ohne Paarung, {len(pairs)} Paarungen gefunden")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Reichert das epgshare01-DE1-EPG mit Bundesliga-Paarungen an.")
     parser.add_argument("--out", required=True, help="Zieldatei (.xml.gz)")
     parser.add_argument("--source", default=SOURCE_URL, help="XMLTV-Quelle (URL, .xml oder .xml.gz)")
+    parser.add_argument("--merge", default=MERGE_FILE, help="Zusaetzliches XMLTV (z. B. MagentaTV), leer = ohne")
     args = parser.parse_args()
     try:
-        main(args.source, args.out)
+        main(args.source, args.out, args.merge)
     except Exception as e:
         log(f"FEHLER: {e!r} - letzte Datei bleibt bestehen")
         sys.exit(1)

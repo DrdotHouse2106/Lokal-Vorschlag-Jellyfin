@@ -84,7 +84,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             {
                 HomeEnabled = Config.WebHomeEnabled,
                 ThemeEnabled = Config.WebThemeEnabled,
-                PlayerEnabled = IsPlayerUser(Config.WebPlayerUserIds, userId),
+                PlayerEnabled = Config.WebPlayerForAll || IsPlayerUser(Config.WebPlayerUserIds, userId),
                 ProfilesEnabled = Config.WebProfilesEnabled,
                 Avatars = Config.AvatarsEnabled,
                 AvatarCatalogUrl = Avatars.AvatarService.ConfiguredCatalog(),

@@ -73,6 +73,9 @@ namespace Jellyfin.Plugin.LocalRecs
             // Startseite im Quallenkino-Stil für Jellyfin Web (über das Plugin „File Transformation“)
             serviceCollection.AddHostedService<Web.WebIntegration>();
 
+            // Alte Ordner dieses Plugins (auch unter früherem Namen) beim Start entfernen
+            serviceCollection.AddHostedService<PluginFolderCleanup>();
+
             // Empfehlungen für TV-Apps ohne Home Screen Sections (GET /LocalRecs/Recommendations)
             serviceCollection.AddSingleton<RecommendationSectionHandler>();
             serviceCollection.AddSingleton<LiveTvSectionHandler>();

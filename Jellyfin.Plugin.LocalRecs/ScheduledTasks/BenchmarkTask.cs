@@ -67,7 +67,7 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
         public string Description => "Misst die Rechenzeit der Empfehlungen (Wortschatz, Vektoren, Bewertung)";
 
         /// <inheritdoc />
-        public string Category => "Quallenkinoplugin";
+        public string Category => "Quallenkino";
 
         /// <inheritdoc />
         public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)

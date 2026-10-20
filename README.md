@@ -44,6 +44,8 @@ Das **Quallenkinoplugin** (bis 12.27 „Local Recommendations“) erweitert Jell
 
 Für Jellyfin 10.11.x bitte die Original-Version 0.6.1 verwenden.
 
+**Name:** In Jellyfin heißt das Plugin **„Quallenkino“**, außerhalb (Repository, Suche) „Quallenkinoplugin für Jellyfin“. Frühere Namen: „Local Recommendations“ (bis 12.27), „Quallenkinoplugin für Jellyfin“ (12.28). Jellyfin legt Plugins in Ordnern `Name_Version` an und räumt alte Versionen nur bei gleichem Namen weg. Ab 12.29.0 entfernt das Plugin beim Start selbst ältere Ordner mit derselben Plugin-ID. Beim ersten Umstieg auf 12.29.0 nach dem Update **vor dem Neustart** den alten Ordner löschen (Dashboard → Plugins → alte Version deinstallieren bzw. `DELETE /Plugins/{id}/{version}`). Sonst laden beide Versionen, und alle `/LocalRecs`-Adressen melden einen Fehler 500, bis Jellyfin noch einmal neu gestartet ist.
+
 **Versionsnummer:** Die Versionen dieses Forks sind an Jellyfin angelehnt (12.x). Jellyfin prüft nur, ob ein Plugin eine *mindestens* passende Server-Version verlangt. Durch die höhere Versionsnummer werden 10.11-Versionen des Originals auf Jellyfin 12 nie als Update angeboten.
 
 **Umstieg vom Original:** Die Plugin-ID ist gleich geblieben. Ein installiertes Original wird daher direkt aktualisiert, die Einstellungen bleiben erhalten. Seine Empfehlungs-Bibliotheken werden durch die Zeilen auf der Startseite ersetzt und automatisch entfernt. Das Original-Repository kann danach aus den Plugin-Repositories entfernt werden.
@@ -56,7 +58,7 @@ Das Plugin steht im gemeinsamen Plugin-Repository [DrdotHouse2106/Jellyfin-Plugi
 
 1. Dashboard → Plugins → Repositories → Hinzufügen
    `https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/manifest.json`
-2. Dashboard → Plugins → Katalog → „Quallenkinoplugin für Jellyfin“ installieren (bis 12.27 hieß es „Local Recommendations“; ein installiertes Plugin wird einfach aktualisiert)
+2. Dashboard → Plugins → Katalog → **„Quallenkino“** installieren (in Jellyfin heißt das Plugin kurz „Quallenkino“; bis 12.27 „Local Recommendations“, 12.28 „Quallenkinoplugin für Jellyfin“ – ein installiertes Plugin wird einfach aktualisiert, alte Ordner räumt es ab 12.29 beim Start selbst weg)
 3. Jellyfin-Server neu starten
 
 Hast du früher das Repository `https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/manifest.json` eingetragen, funktioniert es weiter. Trag aber besser nur noch das gemeinsame Repository oben ein, damit das Plugin nicht doppelt im Katalog auftaucht.
@@ -76,7 +78,7 @@ Hast du früher das Repository `https://raw.githubusercontent.com/DrdotHouse2106
 2. **Bereiche einschalten:** Dashboard → Plugins → **Home Screen Sections** → Plugin aktivieren und die Bereiche **„Empfohlene Filme für dich“**, **„Empfohlene Serien für dich“** und **„Heute im TV für dich“** für alle Benutzer einschalten. (Alternativ schaltet jeder Benutzer sie selbst über das Menü „Modular Home“ ein.)
 3. **Fertig.** Die erste Berechnung startet automatisch nach dem Serverstart. Danach aktualisiert die geplante Aufgabe „Empfehlungen aktualisieren“ (bis 12.25: „Refresh Local Recommendations“) die Empfehlungen täglich um 4 Uhr (oder sofort über Dashboard → Geplante Aufgaben).
 
-In den Plugin-Einstellungen (Dashboard → Plugins → Quallenkinoplugin für Jellyfin) siehst du im Reiter **„Startseite“**, ob alles verbunden ist, und kannst die Titel der Zeilen ändern. Die Reiter: **Startseite** (Status, Zeilen, Live-TV), **Einstellungen** (Empfehlungen, Jellyfin Web, Kalender, Welten), **Auswertung**, **Welten**, **Fernsehprogramm** (LocalRecs EPG) und **Aktionen**.
+In den Plugin-Einstellungen (Dashboard → Plugins → Quallenkino) siehst du im Reiter **„Startseite“**, ob alles verbunden ist, und kannst die Titel der Zeilen ändern. Die Reiter: **Startseite** (Status, Zeilen, Live-TV), **Einstellungen** (Empfehlungen, Jellyfin Web, Kalender, Welten), **Auswertung**, **Welten**, **Fernsehprogramm** (LocalRecs EPG) und **Aktionen**.
 
 ### Live-TV
 
@@ -122,7 +124,7 @@ Im Browser und in den Jellyfin-Apps für iOS und Android kann die Startseite wie
 - **Profilmenü im Quallenkino-Stil** (ab 12.23.0): oben die anderen gespeicherten Profile mit Bild (ein Klick wechselt) und „Profile verwalten“, dann „Profilbild wählen“, „Erinnerungen im Kalender“, SyncPlay und Knöpfe anderer Plugins (z. B. „Zufälliger Titel“ von Jellyfin Enhanced), danach die Einträge von Jellyfin; „Abmelden“ abgesetzt unten.
 - **Überspringen wie in Quallenkino** (ab 12.18.4): Bei Intro, Abspann, Rückblick oder Vorschau (Media Segments, z. B. von Intro Skipper) erscheint im Player „Intro überspringen“ mit Fortschrittsbalken; nach 5 Sekunden wird automatisch gesprungen. Abbrechen mit ×, Esc oder Zurück. Der Player bekommt mit den Quallenkino-Farben den Quallenkino-Look.
 - **Detailseite** (ab 12.18.5, Folgen und Staffeln ab 12.18.7): Filme, Serien, Folgen und Staffeln zeigen auch über Bibliothek oder Suche die Quallenkino-Ansicht (Staffeln und Folgen, ähnliche Titel, Besetzung). Die Knöpfe von Jellyfin (Gesehen, Trailer, Download, ⋮ mit Löschen, Bearbeiten, Zur Sammlung hinzufügen …) stehen ab 12.18.6 direkt im neuen Design. „Alle Optionen“ führt bei Filmen und Serien zur Jellyfin-Detailseite mit Versionen und Ton/Untertitel. Bei Sendungen stehen ab 12.25.0 Merken, Serie merken, Aufnehmen, Serie aufnehmen und „Sender einschalten“ direkt in der Ansicht – die alte Programmseite wird nicht mehr gebraucht.
-- **Quallenkino-Player (ab 12.19.0)** – für die Benutzer, die im Reiter „Einstellungen“ unter „Quallenkino-Player für diese Benutzer“ ausgewählt sind: eigene Steuerleiste (Zurück und Titel oben, große Play/Pause- und ±10-Sekunden-Knöpfe, Zeitleiste mit Vorschaubildern, Ton & Untertitel in einem Menü, Folgenliste, Geschwindigkeit, Vollbild, ⋮ für Qualität, Kapitel, Bild in Bild). Abgespielt wird weiter von Jellyfin. Live-TV ohne Spulen, mit Senderwechsel; auf dem Handy Doppeltipp links/rechts = ±10 s. Unter ⋮ „Klassischer Player“ (pro Gerät), zurück über „Quallenkino-Player einschalten“ im Profilmenü.
+- **Quallenkino-Player (ab 12.19.0, ab 12.29.0 standardmäßig für alle)** – Schalter „Quallenkino-Player für alle Benutzer“ im Reiter „Einstellungen“ (aus = nur die dort ausgewählten Benutzer), im Browser und in den Jellyfin-Apps für iOS und Android: eigene Steuerleiste (Zurück und Titel oben, große Play/Pause- und ±10-Sekunden-Knöpfe, Zeitleiste mit Vorschaubildern, Ton & Untertitel in einem Menü, Folgenliste, Geschwindigkeit, Vollbild, ⋮ für Qualität, Kapitel, Bild in Bild). Abgespielt wird weiter von Jellyfin. Live-TV ohne Spulen, mit Senderwechsel; auf dem Handy Doppeltipp links/rechts = ±10 s. Unter ⋮ „Klassischer Player“ (pro Gerät), zurück über „Quallenkino-Player einschalten“ im Profilmenü.
 - „Abspielen“ startet die Wiedergabe im selben Browser bzw. in derselben App. Ganz unten auf der Startseite kann jeder Benutzer zur klassischen Ansicht zurückwechseln.
 - Skript und Stylesheet werden mit der Plugin-Version im Link geladen (`?v=…`). So kommen Updates auch in Apps mit Web-Zwischenspeicher (z. B. der iOS-App) sofort an.
 
@@ -222,6 +224,8 @@ Der eingebaute XMLTV-Anbieter von Jellyfin entscheidet nur über die Liste „Fi
 | **Serie: Folgennummer** | `episode-num` (xmltv_ns oder onscreen wie `S02E02`, „Staffel 2, Folge 2“, `2x02`) → Serienfolge mit Staffel, Folge und Folgentitel (`sub-title`), egal welche Kategorie |
 | **Film** | ohne Folgennummer, mindestens 75 Minuten (einstellbar) **und** ein Film-Merkmal: Regie (`credits/director`), IMDb-Link (`url`) oder eine Film-Kategorie (Standard „Spielfilm“). Das Produktionsjahr (`date`) allein zählt ab 12.27.0 nur, wenn ausdrücklich eingeschaltet, weil Shows und Teleshopping oft eins haben. Nie bei Sport oder Nachrichten. Lange Sendungen ohne Merkmal bleiben „Sonstiges“ |
 | **Serie: Folgentitel** | kein Film, aber ein `sub-title` → Serienfolge |
+| **Nie Film** (ab 12.29.0) | Kategorien wie Dokumentation, Doku, Reportage, Magazin – auch mit Regie und Überlänge |
+| **Weder Film noch Serie** (ab 12.29.0) | Teleshopping über Kategorie (Teleshopping, Shopping …) oder Sender (HSE, QVC, 1-2-3.tv, Juwelo …) |
 | **Kinder / Nachrichten / Sport** | über Kategorie (als ganzes Wort) **oder** Sender (z. B. KiKA = immer Kinder, Sky Sport = Sport) |
 
 - **Film-Merkmale aus der zweiten Quelle (ab 12.27.0):** Viele EPG-Werkzeuge (z. B. m3u-editor) geben ein abgespecktes XMLTV ohne Regie, Jahr und IMDb weiter, ihre Sender-IDs passen aber zur Tuner-Liste. Deshalb kommen Sendungen und Sender-IDs aus der Programmquelle, Regie, Jahr und IMDb dagegen aus der **„XMLTV-Quelle für Darsteller“** (Reiter „Startseite“). Der Abgleich läuft über Startzeit (±15 Minuten) und Titel, die Sender-IDs dürfen sich unterscheiden. Beim ersten Laden nach dem Start wartet der Anbieter bis zu 2 Minuten auf diese Datei.
@@ -245,7 +249,7 @@ GET  /LocalRecs/Epg/Test?search=&kind=series|movie|other|kids|news|sports&limit=
                                                      → Zählung und Beispiele mit Begründung (nur Admins)
 ```
 
-**EPG-Quelle:** Die Datei kommt z. B. von m3u-editor oder einem eigenen Skript. [`extras/epg-enrich`](extras/epg-enrich/) enthält die Fassung für epgshare01 mit Bundesliga-Paarungen. Die Fassung mit MagentaTV-Zusammenführung (14 Tage, über iptv-org/epg) liegt im Repository [jellyfin-media-stack](https://github.com/DrdotHouse2106/jellyfin-media-stack) unter `scripts/epg-enrich` und `epg-grabber`.
+**EPG-Quelle:** Die Datei kommt z. B. von m3u-editor oder einem eigenen Skript. [`extras/epg-enrich`](extras/epg-enrich/) enthält die Fassung für epgshare01 mit Bundesliga-Paarungen. Es mischt auf Wunsch 14 Tage MagentaTV ein (über iptv-org/epg, Dateien unter [`extras/epg-enrich/magentatv`](extras/epg-enrich/magentatv/)) und ergänzt Bundesliga-Paarungen.
 
 ### Schnittstelle für TV-Apps
 

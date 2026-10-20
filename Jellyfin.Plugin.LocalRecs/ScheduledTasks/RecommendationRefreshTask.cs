@@ -60,7 +60,7 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
         public string Description => "Berechnet die persönlichen Empfehlungen aller Benutzer aus Sehverlauf und ähnlichen Titeln neu";
 
         /// <inheritdoc />
-        public string Category => "Quallenkinoplugin";
+        public string Category => "Quallenkino";
 
         /// <inheritdoc />
         public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)

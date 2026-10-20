@@ -38,7 +38,7 @@ namespace Jellyfin.Plugin.LocalRecs
         public static Plugin? Instance { get; private set; }
 
         /// <inheritdoc />
-        public override string Name => "Quallenkinoplugin für Jellyfin";
+        public override string Name => "Quallenkino";
 
         /// <inheritdoc />
         public override Guid Id => _id;

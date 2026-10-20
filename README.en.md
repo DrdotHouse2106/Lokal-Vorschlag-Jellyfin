@@ -55,7 +55,7 @@ For Jellyfin 10.11.x use upstream version 0.6.1.
    (the shared plugin repository [DrdotHouse2106/Jellyfin-Plugins](https://github.com/DrdotHouse2106/Jellyfin-Plugins); the old URL `https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/manifest.json` keeps working)
 
 2. **Install plugin:**  
-   Dashboard → Plugins → Catalog → Install "Quallenkinoplugin für Jellyfin" (formerly "Local Recommendations"; an installed copy is simply updated)
+   Dashboard → Plugins → Catalog → Install **"Quallenkino"** (inside Jellyfin the plugin is just called "Quallenkino"; formerly "Local Recommendations" / "Quallenkinoplugin für Jellyfin" – an installed copy is simply updated, since 12.29 it removes its old folders on start)
 
 3. **Restart Jellyfin server**
 
@@ -73,7 +73,7 @@ The plugin's **Startseite** tab shows the connection status and lets you change 
 
 ## Configuration
 
-Access via: **Dashboard → Plugins → Quallenkinoplugin für Jellyfin**. Tabs (German UI): **Startseite** (status, rows, live TV), **Einstellungen** (recommendations, Jellyfin Web, calendar, worlds), **Auswertung** (evaluation), **Welten** (worlds), **Fernsehprogramm** (LocalRecs EPG), **Aktionen** (actions).
+Access via: **Dashboard → Plugins → Quallenkino**. Tabs (German UI): **Startseite** (status, rows, live TV), **Einstellungen** (recommendations, Jellyfin Web, calendar, worlds), **Auswertung** (evaluation), **Welten** (worlds), **Fernsehprogramm** (LocalRecs EPG), **Aktionen** (actions).
 
 ### Key Settings
 
@@ -139,7 +139,7 @@ In the browser and the Jellyfin apps for iOS and Android the start page can look
 - Rows: continue watching, next up, recommended movies and series (with reason), today on TV for you, Top 10 (big numbers), worlds (opens the world page with filter and sorting), on now, "new in …" per library, genre rows and libraries. Loaded in parallel; the last start page is shown immediately from browser storage and refreshed row by row.
 - PCs: arrows at the row edges and a preview card on hover; "More info" opens an overlay with episodes per season, similar titles and cast.
 - Phones like a streaming app: hero as a card with poster, logo and genres, chips, portrait posters, worlds as circles and a tab bar at the bottom.
-- Quallenkino-style player (since 12.19.0) for the users selected under „Quallenkino-Player für diese Benutzer“: own controls (back/title, big play/pause and ±10 s, progress bar with trickplay preview, audio & subtitles in one menu, episode list, speed, fullscreen, ⋮), Jellyfin keeps playing. „Klassischer Player“ under ⋮ per device.
+- Quallenkino player (since 12.19.0, on for everybody by default since 12.29.0 – „Quallenkino-Player für alle Benutzer“, otherwise only the selected users): own controls (back/title, big play/pause and ±10 s, progress bar with trickplay preview, audio & subtitles in one menu, episode list, speed, fullscreen, ⋮), Jellyfin keeps playing. „Klassischer Player“ under ⋮ per device.
 - "Play" starts playback in the same browser/app. Every user can switch back to the classic start page at the bottom of the page. Files are loaded with the plugin version as query (`?v=…`), so apps with a web cache get updates right away.
 
 ### "Wer schaut?" – profile picker (since 12.21.0)
@@ -169,6 +169,8 @@ Jellyfin's built-in XMLTV provider marks a programme as a movie as soon as one c
 - **Series by episode number** – `episode-num` (xmltv_ns or on-screen like `S02E02`) → series episode with season, episode and episode title, whatever the categories.
 - **Movie** – no episode number, at least 75 minutes (configurable) and one movie hint: director, IMDb link or a movie category (default „Spielfilm“); the production year alone only if switched on (shows and teleshopping often have one). Never for sports or news. If the programme source is a reduced XMLTV (e.g. m3u-editor) without director/year/IMDb, these come from the „XMLTV-Quelle für Darsteller“ (match by start ±15 min and title, channel IDs may differ) – since 12.27.0.
 - **Series by sub-title** – no movie but a `sub-title` → series episode.
+- **Never a movie** (since 12.29.0) – documentary/reportage/magazine categories, even with director and length.
+- **Neither movie nor series** (since 12.29.0) – teleshopping by category or channel (HSE, QVC, 1-2-3.tv …).
 - **Kids / news / sports** – by category (whole word) or channel (e.g. KiKA = always kids).
 
 Genres are kept completely. Programme IDs (Id, ShowId, SeriesId) are built exactly like the built-in provider, so scheduled and series recordings survive the switch. Setup: choose the old provider to take over channel mapping, tuners and source, press „LocalRecs EPG einrichten“ (it is put first and the guide is refreshed), check with „Regeln testen“ (counts and examples with reasons), then remove the old provider. API (admins): `GET /LocalRecs/Epg/Providers`, `POST /LocalRecs/Epg/Setup {Path?, FromProviderId?}`, `POST /LocalRecs/Epg/Refresh`, `GET /LocalRecs/Epg/Test?search=&kind=&limit=&path=`.

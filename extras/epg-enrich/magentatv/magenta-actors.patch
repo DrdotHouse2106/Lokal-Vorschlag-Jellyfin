@@ -1,0 +1,27 @@
+diff --git a/sites/web.magentatv.de/web.magentatv.de.config.js b/sites/web.magentatv.de/web.magentatv.de.config.js
+index aef724d..b8bd498 100644
+--- a/sites/web.magentatv.de/web.magentatv.de.config.js
++++ b/sites/web.magentatv.de/web.magentatv.de.config.js
+@@ -53,6 +53,7 @@ module.exports = {
+         sub_title: item.subName,
+         season: item.seasonNum,
+         episode: item.subNum,
++        actors: parseActors(item),
+         directors: parseDirectors(item),
+         producers: parseProducers(item),
+         adapters: parseAdapters(item),
+@@ -110,6 +111,14 @@ function parseCategory(item) {
+     : []
+ }
+ 
++function parseActors(item) {
++  if (!item.cast || !item.cast.actor) return []
++  return item.cast.actor
++    .split(',')
++    .map(i => i.trim())
++    .filter(Boolean)
++}
++
+ function parseDirectors(item) {
+   if (!item.cast || !item.cast.director) return []
+   return item.cast.director

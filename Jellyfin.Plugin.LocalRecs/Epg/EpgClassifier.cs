@@ -40,6 +40,15 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
             result.IsNews = Flag(programme, channelName, settings.NewsCategories, settings.NewsChannels, "Nachrichten", result.Reasons);
             result.IsSports = Flag(programme, channelName, settings.SportsCategories, settings.SportsChannels, "Sport", result.Reasons);
 
+            // 0. Nie Film oder Serie (z. B. Teleshopping), über Kategorie oder Sender
+            var otherCategory = programme.Categories.FirstOrDefault(c => Matches(c, settings.OtherCategories));
+            var otherChannel = string.IsNullOrEmpty(channelName) ? null : settings.OtherChannels.FirstOrDefault(c => channelName.Contains(c, StringComparison.OrdinalIgnoreCase));
+            if (otherCategory != null || otherChannel != null)
+            {
+                result.Reasons.Add("Sonstiges: " + (otherCategory != null ? "Kategorie „" + otherCategory + "“" : "Sender „" + channelName + "“"));
+                return result;
+            }
+
             // 1. Serie über Folgennummer (xmltv_ns oder onscreen)
             var (season, episode) = EpgFile.ParseXmltvNs(programme.EpisodeNumXmltvNs);
             if (season == null && episode == null)
@@ -59,7 +68,13 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
             }
 
             // 2. Film: lang genug und ein Film-Merkmal – nicht bei Sport und Nachrichten
-            if (settings.MovieRule && !result.IsSports && !result.IsNews)
+            var noMovie = programme.Categories.FirstOrDefault(c => Matches(c, settings.NoMovieCategories));
+            if (settings.MovieRule && noMovie != null)
+            {
+                result.Reasons.Add("kein Film: Kategorie „" + noMovie + "“");
+            }
+
+            if (settings.MovieRule && !result.IsSports && !result.IsNews && noMovie == null)
             {
                 var evidence = MovieEvidence(programme, result, settings, extra);
                 if (programme.Minutes >= settings.MovieMinMinutes && evidence != null)

@@ -47,6 +47,9 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             EpgMovieByYear = false;
             EpgMovieByImdb = true;
             EpgMovieCategories = "Spielfilm";
+            EpgNoMovieCategories = "Dokumentation, Doku, Dokumentarfilm, Dokumentarreihe, Reportage, Magazin";
+            EpgOtherCategories = "Teleshopping, Shopping, Dauerwerbesendung, Verkaufssendung";
+            EpgOtherChannels = "HSE, QVC, 1-2-3.tv, 123.tv, Juwelo, mediashop, Channel21, Pearl, Sonnenklar";
             EpgKidsCategories = "Kinder, Kindersendung, Kinderserie, Kinderfilm, Kids, Children, Zeichentrick";
             EpgKidsChannels = "KiKA, Super RTL, Toggo, Disney Channel, Nickelodeon, Nick Jr, Cartoon Network, Boomerang, Junior";
             EpgNewsCategories = "Nachrichten, News, Nachrichtenmagazin";
@@ -54,6 +57,7 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             EpgSportsCategories = "Sport, Fußball, Fussball, Tennis, Handball, Basketball, Eishockey, Motorsport, Formel 1, Radsport, Leichtathletik, Wintersport, Darts, Golf, Boxen";
             EpgSportsChannels = "Sky Sport, Sport1, Eurosport, DAZN, sportdigital, MagentaSport";
             WebPlayerUserIds = System.Array.Empty<string>();
+            WebPlayerForAll = true;
             CalendarPublicUrl = string.Empty;
             CalendarAlarmMinutes = 10;
             MovieSectionTitle = "Empfohlene Filme für dich";
@@ -310,6 +314,15 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// <summary>Gets or sets categories that count as movie evidence (only with the minimum length).</summary>
         public string EpgMovieCategories { get; set; }
 
+        /// <summary>Gets or sets categories that never make a movie (documentaries).</summary>
+        public string EpgNoMovieCategories { get; set; }
+
+        /// <summary>Gets or sets categories that are never movie or series (teleshopping).</summary>
+        public string EpgOtherCategories { get; set; }
+
+        /// <summary>Gets or sets channels whose programmes are never movie or series (shopping channels).</summary>
+        public string EpgOtherChannels { get; set; }
+
         /// <summary>Gets or sets the kids categories.</summary>
         public string EpgKidsCategories { get; set; }
 
@@ -332,6 +345,11 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Gets or sets the users (IDs without dashes) who get the Quallenkino-style player in Jellyfin Web (test, opt-in).
         /// </summary>
         public string[] WebPlayerUserIds { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether every user gets the Quallenkino player (default since 12.29.0; otherwise only the listed users).
+        /// </summary>
+        public bool WebPlayerForAll { get; set; }
 
         /// <summary>
         /// Gets or sets the public address of the server for calendar links (e.g. https://jellyfin.example.org).

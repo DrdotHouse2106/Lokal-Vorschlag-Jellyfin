@@ -34,6 +34,15 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
         /// <summary>Gets or sets categories that count as movie evidence (e.g. "Spielfilm"), only together with the minimum length.</summary>
         public IReadOnlyList<string> MovieCategories { get; set; } = new[] { "Spielfilm" };
 
+        /// <summary>Gets or sets categories that never make a movie (e.g. documentaries, even with director and length).</summary>
+        public IReadOnlyList<string> NoMovieCategories { get; set; } = Array.Empty<string>();
+
+        /// <summary>Gets or sets categories that are never movie or series (e.g. teleshopping).</summary>
+        public IReadOnlyList<string> OtherCategories { get; set; } = Array.Empty<string>();
+
+        /// <summary>Gets or sets channels whose programmes are never movie or series (e.g. shopping channels).</summary>
+        public IReadOnlyList<string> OtherChannels { get; set; } = Array.Empty<string>();
+
         /// <summary>Gets or sets the kids categories.</summary>
         public IReadOnlyList<string> KidsCategories { get; set; } = Array.Empty<string>();
 
@@ -70,6 +79,9 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
                 MovieByYear = config.EpgMovieByYear,
                 MovieByImdb = config.EpgMovieByImdb,
                 MovieCategories = SplitList(config.EpgMovieCategories),
+                NoMovieCategories = SplitList(config.EpgNoMovieCategories),
+                OtherCategories = SplitList(config.EpgOtherCategories),
+                OtherChannels = SplitList(config.EpgOtherChannels),
                 KidsCategories = SplitList(config.EpgKidsCategories),
                 KidsChannels = SplitList(config.EpgKidsChannels),
                 NewsCategories = SplitList(config.EpgNewsCategories),

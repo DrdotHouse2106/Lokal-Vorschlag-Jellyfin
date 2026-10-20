@@ -213,7 +213,8 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                     Episode = c.Episode,
                     Year = c.Year,
                     Categories = programme.Categories.ToList(),
-                    Reasons = c.Reasons.ToList()
+                    Reasons = c.Reasons.ToList(),
+                    ExtraSource = _provider.ExplainExtra(programme, channelName)
                 });
             }
 
@@ -359,6 +360,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets the reasons.</summary>
             public IReadOnlyList<string> Reasons { get; set; } = Array.Empty<string>();
+
+            /// <summary>Gets or sets what the second source („XMLTV-Quelle für Darsteller“) knows about the programme.</summary>
+            public string? ExtraSource { get; set; }
         }
     }
 }

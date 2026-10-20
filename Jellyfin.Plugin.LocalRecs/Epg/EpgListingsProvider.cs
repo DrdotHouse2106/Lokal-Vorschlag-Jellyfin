@@ -36,6 +36,7 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
         private readonly ConcurrentDictionary<string, DateTime> _failures = new ConcurrentDictionary<string, DateTime>(StringComparer.Ordinal);
         private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
         private readonly Dictionary<string, (DateTime Written, EpgFile File)> _parsed = new Dictionary<string, (DateTime, EpgFile)>(StringComparer.Ordinal);
+        private bool _extraStatusLogged;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EpgListingsProvider"/> class.
@@ -82,6 +83,7 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
                 using var stream = File.OpenRead(path);
                 var file = EpgFile.Read(stream, info.PreferredLanguage);
                 _parsed[path] = (written, file);
+                _extraStatusLogged = false;
                 _logger.LogInformation("LocalRecs EPG: {Channels} Sender, {Programmes} Sendungen gelesen ({Path})", file.Channels.Count, file.Programmes.Count, info.Path);
                 return file;
             }
@@ -109,10 +111,17 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
                 return Array.Empty<ProgramInfo>();
             }
 
-            return programmes
-                .Where(p => p.Stop.UtcDateTime > startDateUtc && p.Start.UtcDateTime < endDateUtc)
-                .Select(p => EpgMapper.ToProgramInfo(p, EpgClassifier.Classify(p, channelName, settings, Extra(p, channelName))))
-                .ToList();
+            var result = new List<ProgramInfo>();
+            var enriched = 0;
+            foreach (var programme in programmes.Where(p => p.Stop.UtcDateTime > startDateUtc && p.Start.UtcDateTime < endDateUtc))
+            {
+                var extra = Extra(programme, channelName);
+                enriched += extra != null ? 1 : 0;
+                result.Add(EpgMapper.ToProgramInfo(programme, EpgClassifier.Classify(programme, channelName, settings, extra)));
+            }
+
+            _logger.LogDebug("LocalRecs EPG: {Channel} – {Count} Sendungen, {Enriched} mit Merkmalen aus der Darsteller-Quelle", channelName ?? channelId, result.Count, enriched);
+            return result;
         }
 
         /// <summary>
@@ -125,7 +134,9 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
         public EpgExtra? Extra(EpgProgramme programme, string? channelName)
         {
             ArgumentNullException.ThrowIfNull(programme);
-            if (_extraSource == null || programme.Directors.Count > 0 || programme.Urls.Count > 0)
+
+            // Nur überspringen, wenn die Sendung selbst schon Regie oder einen IMDb-Link hat (andere URLs zählen nicht)
+            if (_extraSource == null || programme.Directors.Count > 0 || programme.Urls.Any(u => u.Contains("imdb.", StringComparison.OrdinalIgnoreCase)))
             {
                 return null;
             }
@@ -139,6 +150,37 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
             var extra = new EpgExtra { Year = match.Year, ImdbId = match.ImdbId };
             extra.Directors.AddRange(match.Directors);
             return extra;
+        }
+
+        /// <summary>
+        /// Explains the lookup in the second source for a programme (for the rule test).
+        /// </summary>
+        /// <param name="programme">The programme.</param>
+        /// <param name="channelName">Channel name.</param>
+        /// <returns>A short German text.</returns>
+        public string ExplainExtra(EpgProgramme programme, string? channelName)
+        {
+            ArgumentNullException.ThrowIfNull(programme);
+            if (_extraSource == null || string.IsNullOrWhiteSpace(Config.LiveTvXmltvSource))
+            {
+                return "Darsteller-Quelle: nicht eingestellt";
+            }
+
+            if (programme.Directors.Count > 0 || programme.Urls.Any(u => u.Contains("imdb.", StringComparison.OrdinalIgnoreCase)))
+            {
+                return "Darsteller-Quelle: nicht nötig (Regie/IMDb in der Programmquelle)";
+            }
+
+            var match = _extraSource.Lookup(programme.Start.UtcDateTime, programme.Title, programme.SubTitle, channelName);
+            if (match == null)
+            {
+                return "Darsteller-Quelle: kein Treffer für „" + programme.Title + "“ um " + programme.Start.UtcDateTime.ToString("dd.MM. HH:mm", System.Globalization.CultureInfo.InvariantCulture)
+                    + " UTC (±15 Min.; " + _extraSource.ProgrammeCount + " Sendungen geladen)";
+            }
+
+            return "Darsteller-Quelle: Treffer „" + match.Title + "“ " + match.Start.ToString("dd.MM. HH:mm", System.Globalization.CultureInfo.InvariantCulture) + " UTC – Regie: "
+                + (match.Directors.Count > 0 ? string.Join(", ", match.Directors) : "keine") + (match.Year != null ? ", Jahr " + match.Year : string.Empty)
+                + (string.IsNullOrEmpty(match.ImdbId) ? string.Empty : ", " + match.ImdbId);
         }
 
         /// <summary>
@@ -158,6 +200,17 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
             for (var i = 0; i < 120 && _extraSource.LastLoaded == null && _extraSource.LastError == null; i++)
             {
                 await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
+            }
+
+            if (!_extraStatusLogged)
+            {
+                _extraStatusLogged = true;
+                _logger.LogInformation(
+                    "LocalRecs EPG: Darsteller-Quelle {Source} – {Count} Sendungen geladen ({Loaded}){Error}",
+                    Config.LiveTvXmltvSource,
+                    _extraSource.ProgrammeCount,
+                    _extraSource.LastLoaded?.ToString("u", System.Globalization.CultureInfo.InvariantCulture) ?? "noch nicht geladen",
+                    _extraSource.LastError == null ? string.Empty : ", Fehler: " + _extraSource.LastError);
             }
         }
 
@@ -236,7 +289,11 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
             return clean.EndsWith(".gz", StringComparison.OrdinalIgnoreCase) || clean.EndsWith(".gzip", StringComparison.OrdinalIgnoreCase);
         }
 
-        private string CachePath(ListingsProviderInfo info) => Path.Combine(_paths.CachePath, "localrecs-epg", (string.IsNullOrEmpty(info.Id) ? "neu" : info.Id) + ".xml");
+        // Je Anbieter UND Quelle eine Datei – sonst überdeckt z. B. ein Test mit einer anderen Quelle den Zwischenspeicher
+        private string CachePath(ListingsProviderInfo info) => Path.Combine(
+            _paths.CachePath,
+            "localrecs-epg",
+            (string.IsNullOrEmpty(info.Id) ? "neu" : info.Id) + "-" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(info.Path ?? string.Empty)))[..12].ToLowerInvariant() + ".xml");
 
         private void TryDelete(string path)
         {

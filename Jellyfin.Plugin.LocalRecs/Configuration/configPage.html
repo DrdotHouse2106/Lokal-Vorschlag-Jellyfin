@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Quallenkinoplugin für Jellyfin</title>
+    <title>Quallenkino</title>
 </head>
 <body>
     <div id="LocalRecsConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
@@ -12,7 +12,7 @@
                 <form id="LocalRecsConfigForm">
                     
                     <!-- Page Title -->
-                    <h1 class="sectionTitle">Quallenkinoplugin für Jellyfin</h1>
+                    <h1 class="sectionTitle">Quallenkino</h1>
                     
                     <!-- Tabs -->
                     <div data-role="controlgroup" data-type="horizontal" class="localnav" data-mini="true">
@@ -214,8 +214,16 @@
                             <div class="fieldDescription">Optional. Die Kategorien dieser Kataloge werden ergänzt, z. B. ein eigenes Icon-Repository.</div>
                         </div>
 
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="webPlayerForAll" />
+                                <span>Quallenkino-Player für alle Benutzer</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Eigene Steuerleiste über der Wiedergabe von Jellyfin – im Browser und in den Jellyfin-Apps für iOS und Android. Jeder kann pro Gerät unter ⋮ → „Klassischer Player“ zurückwechseln. Aus = nur die unten ausgewählten Benutzer.</div>
+                        </div>
+
                         <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused">Quallenkino-Player für diese Benutzer:</label>
+                            <label class="inputLabel inputLabelUnfocused">Quallenkino-Player nur für diese Benutzer (wenn nicht für alle):</label>
                             <div id="webPlayerUsers" class="checkboxList paperList" style="padding: 0.5em 1em;"></div>
                             <div class="fieldDescription">Eigene Steuerleiste im Quallenkino-Stil für Jellyfin Web und die Handy-Apps: Zurück und Titel oben, große Play/Pause- und ±10-Sekunden-Knöpfe, Zeitleiste mit Vorschaubildern, Ton &amp; Untertitel in einem Menü, Folgenliste, Geschwindigkeit, Überspringen mit Countdown. Abgespielt wird weiter von Jellyfin. Im Player gibt es unter ⋮ „Klassischer Player“ (pro Gerät).</div>
                         </div>
@@ -428,6 +436,15 @@
                             <input is="emby-input" type="text" id="epgMovieCategories" label="Merkmal: Film-Kategorien (nur zusammen mit der Mindestlänge):" />
                         </div>
                         <div class="inputContainer">
+                            <input is="emby-input" type="text" id="epgNoMovieCategories" label="Nie Film – Kategorien (z. B. Dokus mit Regie und Überlänge):" />
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="text" id="epgOtherCategories" label="Weder Film noch Serie – Kategorien (z. B. Teleshopping):" />
+                        </div>
+                        <div class="inputContainer">
+                            <input is="emby-input" type="text" id="epgOtherChannels" label="Weder Film noch Serie – Sender (Name enthält):" />
+                        </div>
+                        <div class="inputContainer">
                             <input is="emby-input" type="text" id="epgKidsCategories" label="Kinder – Kategorien:" />
                         </div>
                         <div class="inputContainer">
@@ -633,7 +650,8 @@
                             html += '<tr style="border-top:1px solid rgba(255,255,255,.1);vertical-align:top;"><td>' + self.escapeHtml(e.Title) + (e.SubTitle ? '<br><span style="opacity:.7">' + self.escapeHtml(e.SubTitle) + '</span>' : '')
                                 + '</td><td>' + self.escapeHtml(e.Channel) + '</td><td>' + self.escapeHtml(new Date(e.Start).toLocaleString()) + '</td><td>' + e.Minutes
                                 + '</td><td>' + self.escapeHtml(e.Kind + (episode ? ' ' + episode : '') + (e.Year ? ' (' + e.Year + ')' : '')) + '</td><td>' + self.escapeHtml((e.Reasons || []).join(' · ') || '–')
-                                + '<br><span style="opacity:.6">' + self.escapeHtml((e.Categories || []).join(', ')) + '</span></td></tr>';
+                                + '<br><span style="opacity:.6">' + self.escapeHtml((e.Categories || []).join(', ')) + '</span>'
+                                + (e.ExtraSource ? '<br><span style="opacity:.6">' + self.escapeHtml(e.ExtraSource) + '</span>' : '') + '</td></tr>';
                         });
                         box.innerHTML = html + '</table></div>';
                     }).catch(function(error) {
@@ -880,6 +898,9 @@
                             page.querySelector('#epgSeriesBySubTitle').checked = config.EpgSeriesBySubTitle !== false;
                             page.querySelector('#epgMovieMinMinutes').value = config.EpgMovieMinMinutes || 75;
                             page.querySelector('#epgMovieCategories').value = config.EpgMovieCategories || '';
+                            page.querySelector('#epgNoMovieCategories').value = config.EpgNoMovieCategories || '';
+                            page.querySelector('#epgOtherCategories').value = config.EpgOtherCategories || '';
+                            page.querySelector('#epgOtherChannels').value = config.EpgOtherChannels || '';
                             page.querySelector('#epgKidsCategories').value = config.EpgKidsCategories || '';
                             page.querySelector('#epgKidsChannels').value = config.EpgKidsChannels || '';
                             page.querySelector('#epgNewsCategories').value = config.EpgNewsCategories || '';
@@ -888,6 +909,7 @@
                             page.querySelector('#epgSportsChannels').value = config.EpgSportsChannels || '';
                             page.querySelector('#calendarPublicUrl').value = config.CalendarPublicUrl || '';
                             page.querySelector('#calendarAlarmMinutes').value = config.CalendarAlarmMinutes !== undefined ? config.CalendarAlarmMinutes : 10;
+                            page.querySelector('#webPlayerForAll').checked = config.WebPlayerForAll !== false;
                             var playerUsers = (config.WebPlayerUserIds || []).map(function (id) { return String(id).replace(/-/g, '').toLowerCase(); });
                             ApiClient.getUsers().then(function (users) {
                                 var list = page.querySelector('#webPlayerUsers');
@@ -982,6 +1004,9 @@
                             var epgMinutes = parseInt(page.querySelector('#epgMovieMinMinutes').value, 10);
                             config.EpgMovieMinMinutes = isNaN(epgMinutes) ? 75 : Math.min(600, Math.max(1, epgMinutes));
                             config.EpgMovieCategories = page.querySelector('#epgMovieCategories').value.trim();
+                            config.EpgNoMovieCategories = page.querySelector('#epgNoMovieCategories').value.trim();
+                            config.EpgOtherCategories = page.querySelector('#epgOtherCategories').value.trim();
+                            config.EpgOtherChannels = page.querySelector('#epgOtherChannels').value.trim();
                             config.EpgKidsCategories = page.querySelector('#epgKidsCategories').value.trim();
                             config.EpgKidsChannels = page.querySelector('#epgKidsChannels').value.trim();
                             config.EpgNewsCategories = page.querySelector('#epgNewsCategories').value.trim();
@@ -991,6 +1016,7 @@
                             config.CalendarPublicUrl = page.querySelector('#calendarPublicUrl').value.trim();
                             var alarm = parseInt(page.querySelector('#calendarAlarmMinutes').value, 10);
                             config.CalendarAlarmMinutes = isNaN(alarm) ? 10 : Math.min(1440, Math.max(0, alarm));
+                            config.WebPlayerForAll = page.querySelector('#webPlayerForAll').checked;
                             var userBoxes = page.querySelectorAll('#webPlayerUsers .webPlayerUser');
                             if (userBoxes.length) {
                                 config.WebPlayerUserIds = Array.prototype.filter.call(userBoxes, function (box) { return box.checked; }).map(function (box) { return box.value; });

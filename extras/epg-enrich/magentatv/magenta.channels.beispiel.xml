@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Beispiel: MagentaTV-Sender (site_id) → eigene EPG-ID (xmltv_id, muss zur DE1-Quelle bzw. zum m3u-editor passen).
+     Alle MagentaTV-Sender: iptv-org/epg, sites/web.magentatv.de/web.magentatv.de.channels.xml -->
+<channels>
+  <channel site="web.magentatv.de" site_id="373" lang="de" xmltv_id="Das.Erste.de">Das Erste</channel>
+  <channel site="web.magentatv.de" site_id="408" lang="de" xmltv_id="ZDF.de">ZDF</channel>
+  <channel site="web.magentatv.de" site_id="404" lang="de" xmltv_id="RTL.de">RTL</channel>
+  <channel site="web.magentatv.de" site_id="209" lang="de" xmltv_id="RTL.Passion.de">RTL Passion</channel>
+  <channel site="web.magentatv.de" site_id="387" lang="de" xmltv_id="KIKA.de">KiKA</channel>
+  <channel site="web.magentatv.de" site_id="42" lang="de" xmltv_id="Sky.Sport.Bundesliga.de">Sky Sport Bundesliga</channel>
+  <channel site="web.magentatv.de" site_id="206" lang="de" xmltv_id="Sky.Sport.Bundesliga.1.de">Sky Sport Bundesliga 1</channel>
+</channels>

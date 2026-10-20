@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.29.0] - 2026-10-20
+
+### Changed
+
+- **Name in Jellyfin: „Quallenkino“** (catalog, plugin list, settings page, task category). „Quallenkinoplugin für Jellyfin“ remains the name outside Jellyfin (repository, README). New catalog image.
+- **The Quallenkino player is on for everybody by default** (new switch „Quallenkino-Player für alle Benutzer“; off = only the selected users) – also in the Jellyfin apps for iOS and Android.
+
+### Added
+
+- **Clean-up of old plugin folders:** Jellyfin removes old versions only if the name stayed the same. On start the plugin now deletes older folders with the same plugin ID (e.g. „Local Recommendations_12.26.0.0“, „Quallenkinoplugin für Jellyfin_12.28.0.0“); its data folder is never touched. If an old version was loaded at the same time, restart Jellyfin once.
+- LocalRecs EPG: rule „Nie Film“ (documentary, reportage, magazine categories – even with director and length) and „Weder Film noch Serie“ (teleshopping by category or channel: HSE, QVC, 1-2-3.tv, Juwelo …).
+- „Regeln testen“ shows per example what the „XMLTV-Quelle für Darsteller“ knows (hit with director/year/IMDb or no hit with time window); the guide refresh logs once whether that source is loaded.
+- `extras/epg-enrich`: MagentaTV version (merge with `--merge`/`EPG_MERGE_FILE`, MagentaTV Bundesliga titles) and `magentatv/` with `run.sh`, `merge.mjs`, actors patch and an example channel list.
+
+### Fixed
+
+- LocalRecs EPG: movie hints from the second source were skipped as soon as the programme had any `<url>`; now only an own director or IMDb link skips them.
+- „Regeln testen“ with `path=` used the download cache of a previous test with another source (cache now per provider and source).
+
 ## [12.28.0] - 2026-10-20
 
 ### Changed
