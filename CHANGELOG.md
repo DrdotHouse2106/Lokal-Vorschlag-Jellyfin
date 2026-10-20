@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.31.1] - 2026-10-20
+
+### Fixed
+
+- **Quallenkino player in the Jellyfin iOS app:** play/pause, ±10 s, the progress bar, title and remaining time did not work, because they depended on the own session (not remote-controllable in the app) and on Jellyfin's hidden control bar. The player now controls Jellyfin's local player directly through the playback manager (position, seek, play/pause, audio and subtitle tracks, title of the playing item); session and hidden control bar remain as fallback.
+
+### Added
+
+- Diagnostics: every key press in the Quallenkino player is sent immediately, with whether Jellyfin's player was found, and errors of the action.
+
 ## [12.31.0] - 2026-10-20
 
 ### Changed

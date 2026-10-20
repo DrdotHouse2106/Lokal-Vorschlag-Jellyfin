@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.31.1.0",
+        "changelog": "Quallenkino-Player\n- Tasten (Pause, ±10 s, Zeitleiste, Ton/Untertitel) steuern Jellyfins Player direkt – funktionieren jetzt auch in der iOS-App\n- Diagnose: jeder Tastendruck im Player\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.31.1.zip",
+        "checksum": "875ad6bcaf809191b2e114d7d0539260",
+        "timestamp": "2026-10-20T22:30:00Z"
+      },
+      {
         "version": "12.31.0.0",
         "changelog": "Direkt abspielen\n- „Abspielen“ startet direkt über Jellyfins Wiedergabe (ohne Umweg über Server oder Detailseite) – schneller und in der iOS-App ohne Holpern\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

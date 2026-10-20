@@ -3473,31 +3473,81 @@
         return (h ? h + ':' + ('0' + m).slice(-2) : m) + ':' + ('0' + sec).slice(-2);
     }
 
+    // Jellyfins aktueller lokaler Player (über den playbackManager) – Grundlage der Steuerung, auch ohne fernsteuerbare Sitzung
+    function nfManager() {
+        var manager = playbackManager();
+        var player = null;
+        try {
+            player = manager ? manager.getCurrentPlayer() : null;
+        } catch (e) {
+            player = null;
+        }
+        return manager && player ? { manager: manager, player: player } : null;
+    }
+
     function nfRuntime() {
-        return nf.item && nf.item.RunTimeTicks ? nf.item.RunTimeTicks : 0;
+        if (nf.item && nf.item.RunTimeTicks) {
+            return nf.item.RunTimeTicks;
+        }
+        var pm = nfManager();
+        try {
+            return pm ? pm.manager.duration(pm.player) || 0 : 0;
+        } catch (e) {
+            return 0;
+        }
     }
 
     function nfLive() {
         return !!nf.item && (nf.item.Type === 'TvChannel' || nf.item.Type === 'Program' || nf.item.MediaType === 'Video' && !nf.item.RunTimeTicks);
     }
 
-    function nfPercent() {
+    function nfPositionTicks() {
+        var pm = nfManager();
+        if (pm) {
+            try {
+                return pm.manager.getCurrentTicks(pm.player) || 0;
+            } catch (e) {
+                // weiter mit Jellyfins Regler
+            }
+        }
         var slider = osdNode('.osdPositionSlider');
-        return slider ? parseFloat(slider.value) || 0 : 0;
+        return (slider ? parseFloat(slider.value) || 0 : 0) / 100 * nfRuntime();
     }
 
-    function nfPositionTicks() {
-        return nfPercent() / 100 * nfRuntime();
+    function nfPercent() {
+        var runtime = nfRuntime();
+        return runtime ? Math.max(0, Math.min(100, nfPositionTicks() / runtime * 100)) : 0;
     }
 
     function nfSeekTicks(ticks) {
-        var slider = osdNode('.osdPositionSlider');
         var runtime = nfRuntime();
-        if (!slider || !runtime || nfLive()) {
+        if (!runtime || nfLive()) {
+            diagStep('Spulen nicht möglich (Laufzeit ' + runtime + ', live ' + nfLive() + ')', false, true);
             return;
         }
-        slider.value = Math.max(0, Math.min(100, ticks / runtime * 100));
-        slider.dispatchEvent(new Event('change', { bubbles: true }));
+        ticks = Math.max(0, Math.min(runtime - 10000000, ticks));
+        var pm = nfManager();
+        if (pm) {
+            pm.manager.seek(Math.round(ticks), pm.player);
+            return;
+        }
+        var slider = osdNode('.osdPositionSlider');
+        if (slider) {
+            slider.value = ticks / runtime * 100;
+            slider.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+
+    function nfTogglePause() {
+        var pm = nfManager();
+        if (pm) {
+            pm.manager.playPause(pm.player);
+            return;
+        }
+        var pause = osdNode('.btnPause');
+        if (pause) {
+            pause.click();
+        }
     }
 
     function nfIcon(node, name) {
@@ -3508,7 +3558,14 @@
     }
 
     function nfButton(cls, iconName, title, onClick) {
-        var b = button('lr-nf-btn ' + cls, iconName, null, onClick);
+        var b = button('lr-nf-btn ' + cls, iconName, null, function (e) {
+            diagStep('Player-Taste: ' + title + ' (Jellyfin-Player ' + (nfManager() ? 'gefunden' : 'nicht gefunden') + ')', false, true);
+            try {
+                onClick(e);
+            } catch (err) {
+                diagStep('Fehler bei „' + title + '“: ' + errorText(err), false, true);
+            }
+        });
         b.title = title;
         b.setAttribute('aria-label', title);
         return b;
@@ -3522,12 +3579,23 @@
         ownSession().then(function (session) {
             nf.session = session;
             var item = session && session.NowPlayingItem;
+            var sourceId = session && session.PlayState && session.PlayState.MediaSourceId;
+            var pm = nfManager();
+            if (!item && pm) {
+                // Sitzung nicht fernsteuerbar (iOS-App) – Titel vom lokalen Player
+                try {
+                    item = pm.manager.currentItem(pm.player);
+                    sourceId = (pm.manager.currentMediaSource(pm.player) || {}).Id;
+                } catch (e) {
+                    item = null;
+                }
+            }
             if (!item || item.Id === nf.itemId) {
                 return;
             }
             nf.itemId = item.Id;
             nf.item = item;
-            nf.mediaSourceId = session.PlayState && session.PlayState.MediaSourceId;
+            nf.mediaSourceId = sourceId;
             nf.trickplay = null;
             nfTitle();
             getJson(itemsQuery('Items/' + item.Id).replace('&Fields=' + FIELDS, '&Fields=' + FIELDS + ',Trickplay,MediaSources,MediaStreams,Chapters'))
@@ -3622,6 +3690,15 @@
     }
 
     function nfSendCommand(name, index) {
+        var pm = nfManager();
+        if (pm) {
+            if (name === 'SetAudioStreamIndex') {
+                pm.manager.setAudioStreamIndex(index, pm.player);
+            } else {
+                pm.manager.setSubtitleStreamIndex(index, pm.player);
+            }
+            return Promise.resolve();
+        }
         var session = nf.session;
         if (!session) {
             return Promise.reject(new Error('keine Sitzung'));
@@ -3659,7 +3736,8 @@
         var subs = streams.filter(function (s) {
             return s.Type === 'Subtitle';
         });
-        if (!nf.session || (!audio.length && !subs.length)) {
+        var pmTracks = nfManager();
+        if (!nf.session && !pmTracks || (!audio.length && !subs.length)) {
             // Ohne Sitzung: Jellyfins eigene Menüs
             var nativeButton = nativeVisible('.btnSubtitles') || nativeVisible('.btnAudio');
             if (nativeButton) {
@@ -3667,7 +3745,17 @@
             }
             return;
         }
-        var playState = nf.session.PlayState || {};
+        var playState = nf.session && nf.session.PlayState || {};
+        if (pmTracks) {
+            try {
+                playState = {
+                    AudioStreamIndex: pmTracks.manager.getAudioStreamIndex(pmTracks.player),
+                    SubtitleStreamIndex: pmTracks.manager.getSubtitleStreamIndex(pmTracks.player)
+                };
+            } catch (e) {
+                // Stand aus der Sitzung
+            }
+        }
         var panel = nfPanel('lr-nf-tracks', anchor);
         var column = function (title, list, current, command, offLabel) {
             var col = el('div', 'lr-nf-col');
@@ -3867,10 +3955,7 @@
                 }
                 return;
             }
-            var pause = osdNode('.btnPause');
-            if (pause) {
-                pause.click();
-            }
+            nfTogglePause();
             nfShow();
         });
         surface.addEventListener('dblclick', function () {
@@ -3899,10 +3984,7 @@
             nfShow();
         }));
         center.appendChild(nfButton('lr-nf-play lr-nf-bigplay', 'pause', 'Abspielen/Pause', function () {
-            var pause = osdNode('.btnPause');
-            if (pause) {
-                pause.click();
-            }
+            nfTogglePause();
             nfShow();
         }));
         center.appendChild(nfButton('lr-nf-seek lr-nf-fwd10', 'forward_10', '10 Sekunden vor', function () {
@@ -3991,10 +4073,7 @@
         var row = el('div', 'lr-nf-row');
         var left = el('div', 'lr-nf-left');
         left.appendChild(nfButton('lr-nf-play', 'pause', 'Abspielen/Pause', function () {
-            var pause = osdNode('.btnPause');
-            if (pause) {
-                pause.click();
-            }
+            nfTogglePause();
             nfShow();
         }));
         left.appendChild(nfButton('lr-nf-seek', 'replay_10', '10 Sekunden zurück', function () {
