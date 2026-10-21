@@ -28,6 +28,7 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         private const int TrailerRotation = 7;
         private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(30);
         private static readonly TimeSpan VisibleCacheDuration = TimeSpan.FromMinutes(15);
+        private static readonly int MaxAccessibleUsers = 50;
         private static readonly TimeSpan LastWatchedCacheDuration = TimeSpan.FromMinutes(5);
 
         private readonly ILogger<WorldService> _logger;
@@ -114,7 +115,23 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                 IsVirtualItem = false,
                 Recursive = true
             }).GroupBy(i => i.Id).ToDictionary(g => g.Key, g => g.First());
-            _accessibleCache[user.Id] = (DateTime.UtcNow, access, items);
+
+            // Abgelaufene Einträge entfernen; höchstens MaxAccessibleUsers Benutzer (die ältesten fallen weg)
+            var now = DateTime.UtcNow;
+            foreach (var expired in _accessibleCache.Where(e => now - e.Value.Created >= VisibleCacheDuration).Select(e => e.Key).ToList())
+            {
+                _accessibleCache.TryRemove(expired, out _);
+            }
+
+            if (_accessibleCache.Count >= MaxAccessibleUsers)
+            {
+                foreach (var oldest in _accessibleCache.OrderBy(e => e.Value.Created).Take(_accessibleCache.Count - MaxAccessibleUsers + 1).Select(e => e.Key).ToList())
+                {
+                    _accessibleCache.TryRemove(oldest, out _);
+                }
+            }
+
+            _accessibleCache[user.Id] = (now, access, items);
             return items;
         }
 

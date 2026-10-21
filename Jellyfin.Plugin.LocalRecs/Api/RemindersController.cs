@@ -301,9 +301,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 return configured;
             }
 
-            var scheme = Request.Headers["X-Forwarded-Proto"].FirstOrDefault()?.Split(',')[0].Trim();
-            var host = Request.Headers["X-Forwarded-Host"].FirstOrDefault()?.Split(',')[0].Trim();
-            return (string.IsNullOrEmpty(scheme) ? Request.Scheme : scheme) + "://" + (string.IsNullOrEmpty(host) ? Request.Host.Value : host) + Request.PathBase;
+            // Keine X-Forwarded-*-Header selbst auswerten (beliebig fälschbar): Hinter einem Proxy setzt Jellyfin Scheme und
+            // Host schon selbst, wenn der Proxy unter „Bekannte Proxys“ eingetragen ist – sonst „Öffentliche Adresse“ setzen.
+            return Request.Scheme + "://" + Request.Host.Value + Request.PathBase;
         }
 
         private CalendarLink Link(string token)

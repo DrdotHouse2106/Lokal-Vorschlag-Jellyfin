@@ -188,7 +188,9 @@ Damit jede Person ihre eigenen Vorschläge bekommt, zeigt Jellyfin Web beim Öff
 - **Ohne PIN:** Jedes Profil meldet sich einmal über **„Profil hinzufügen“** an, danach genügt ein Klick zum Wechseln. Die anderen Profile bleiben dabei angemeldet.
 - Die Anmeldungen werden **nur im jeweiligen Browser** gespeichert (wie Jellyfin selbst seine Anmeldung speichert) – nicht auf dem Server und nicht in anderen Geräten.
 - Die Auswahl erscheint einmal pro geöffnetem Tab bzw. App-Start, jederzeit erreichbar über **„Profil wechseln“** im Profilmenü. Esc schließt sie.
-- **„Profile verwalten“** entfernt ein Profil nur aus diesem Browser. Wer sich in Jellyfin über „Abmelden“ abmeldet, macht den gespeicherten Zugang ungültig; das Profil verschwindet dann beim nächsten Klick mit einem Hinweis und kann neu hinzugefügt werden.
+- **Administratoren werden nie gemerkt** (ab 12.39.0): Sie melden sich jedes Mal mit Passwort an. Beim Wechsel zu einem anderen Profil wird ihr Zugang abgemeldet. Ein Administrator-Profil aus älteren Versionen wird beim nächsten Klick entfernt und abgemeldet.
+- **Achtung:** Wer an den Browser kommt, kann jedes gemerkte Profil ohne Passwort öffnen. Nur auf gemeinsam genutzten Geräten einschalten, denen ihr vertraut.
+- **„Profile verwalten“** entfernt ein Profil aus diesem Browser und meldet seinen Zugang auf dem Server ab (ab 12.39.0; nicht das gerade angemeldete Profil). Wer sich in Jellyfin über „Abmelden“ abmeldet, macht den gespeicherten Zugang ungültig; das Profil verschwindet dann beim nächsten Klick mit einem Hinweis und kann neu hinzugefügt werden.
 - Ohne Profilbild erscheint der Anfangsbuchstabe auf einer Farbe.
 - `/LocalRecs/Web/Config` meldet `"ProfilesEnabled": true|false` – so können auch eigene Apps die Einstellung übernehmen.
 
@@ -263,7 +265,7 @@ GET    /LocalRecs/Calendar/{token}/Abonnieren  → Abo-Seite ohne Anmeldung: Kno
 - **iPhone:** Die Kamera-App öffnet webcal-Links aus einem QR-Code nicht („Im Kalender öffnen“ bewirkt nichts). Deshalb führt der QR-Code ab 12.23.0 auf die Abo-Seite; dort öffnet der Knopf in Safari den Dialog „Kalenderabo hinzufügen“. In der iOS-App öffnet „Im Kalender abonnieren“ ebenfalls diese Seite. Ein leerer Kalender enthält einen unsichtbaren Platzhalter (1.1.2000), weil iOS Abos ganz ohne Ereignis ablehnt.
 - Ids (`programId`) mit oder ohne Bindestriche. Alle Endpunkte außer dem `.ics`-Feed brauchen die normale Anmeldung (`Authorization: MediaBrowser Token="…"`, bei Bild-Links `?ApiKey=…`).
 - `/LocalRecs/Web/Config` meldet `"Reminders": true`, Apps können die Funktion darüber erkennen.
-- Die Abo-Adresse ergibt sich aus der Anfrage (beachtet `X-Forwarded-Proto`/`X-Forwarded-Host`) oder aus der Einstellung „Öffentliche Adresse für Kalender-Links“.
+- Die Abo-Adresse ergibt sich aus der Einstellung „Öffentliche Adresse für Kalender-Links“ oder aus der Anfrage. `X-Forwarded-*`-Header wertet das Plugin ab 12.39.0 nicht mehr selbst aus. Hinter einem Reverse-Proxy also die öffentliche Adresse eintragen oder den Proxy in Jellyfin unter „Netzwerk“ → „Bekannte Proxys“ eintragen.
 - iPhone: `webcal://`-Link bzw. QR-Code → Abo bestätigen. Google Kalender: https-Link am PC unter „Weitere Kalender → Per URL“ einfügen.
 
 ### Fernsehprogramm-Anbieter „LocalRecs EPG“ (ab 12.26.0)
@@ -316,7 +318,7 @@ Header: X-Device-Id: <Jellyfin-Geräte-ID der App>
 → { "ServerId": "<ohne Bindestriche, klein>", "Host": "<Adresse, wie der Server sie sieht>", "Proofs": ["<hex>", …] }
 ```
 
-`Proof = hex(HMAC-SHA256(Schlüssel = SHA-256(UTF-8 Zugangsschlüssel), Nachricht = UTF-8 "nonce|ServerId|host"))`, `host` = die angesprochene Adresse in Kleinbuchstaben mit Port, z. B. `192.168.1.10:8096`. Die App rechnet den Proof selbst aus und schickt ihren Schlüssel nur, wenn er in `Proofs` steht (ein Eintrag je Anmeldung des Geräts) und `ServerId` stimmt. Ohne Anmeldung, aber nur bei **direkter Verbindung aus dem lokalen Netz** (laut Jellyfins Netzwerkeinstellung, keine Weiterleitungs-Header wie `X-Forwarded-For`) – sonst 403. So kann ein falscher Server die Anfrage nicht über das Internet an den echten durchreichen; die angesprochene Adresse ist Teil des Proofs. Höchstens 30 Anfragen pro Minute und Adresse (429). Unbekanntes Gerät: leere `Proofs`.
+`Proof = hex(HMAC-SHA256(Schlüssel = SHA-256(UTF-8 Zugangsschlüssel), Nachricht = UTF-8 "nonce|ServerId|host"))`, `host` = die angesprochene Adresse in Kleinbuchstaben mit Port, z. B. `192.168.1.10:8096`. Die App rechnet den Proof selbst aus und schickt ihren Schlüssel nur, wenn er in `Proofs` steht (ein Eintrag je Anmeldung des Geräts) und `ServerId` stimmt. Ohne Anmeldung, aber nur bei **direkter Verbindung aus dem lokalen Netz** (laut Jellyfins Netzwerkeinstellung, keine Weiterleitungs-Header wie `X-Forwarded-For`) – sonst 403. So kann ein falscher Server die Anfrage nicht über das Internet an den echten durchreichen; die angesprochene Adresse ist Teil des Proofs. Höchstens 30 Anfragen pro Minute und Adresse (429). `Proofs` enthält ab 12.39.0 immer mindestens 4 Einträge in zufälliger Reihenfolge (aufgefüllt mit Zufallswerten), damit die Antwort nicht verrät, ob ein Gerät bekannt ist.
 
 Apps, die „Home Screen Sections“ nicht anzeigen (z. B. [Jellyfin-TV-Client](https://github.com/DrdotHouse2106/Jellyfin-TV-Client) für Android TV / Fire TV), holen die Empfehlungen direkt:
 

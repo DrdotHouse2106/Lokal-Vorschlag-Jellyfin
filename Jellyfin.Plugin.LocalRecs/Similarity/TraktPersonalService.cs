@@ -24,7 +24,7 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
     /// oder – nur lesend – die Verknüpfung des Trakt-Plugins (<c>Trakt.xml</c>). Dessen Zugang wird nie erneuert
     /// oder zurückgeschrieben. Gesendet wird nur der Abruf der Empfehlungen; das Scrobbeln macht weiter das Trakt-Plugin.
     /// </summary>
-    public class TraktPersonalService
+    public class TraktPersonalService : IDisposable
     {
         /// <summary>Source of the access: own connection in Quallenkino.</summary>
         public const string SourceOwn = "eigen";
@@ -48,6 +48,7 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
         private readonly object _lock = new object();
         private readonly ConcurrentDictionary<Guid, (DateTime Fetched, PersonalRecommendations Recommendations)> _cache = new ConcurrentDictionary<Guid, (DateTime Fetched, PersonalRecommendations Recommendations)>();
         private readonly ConcurrentDictionary<Guid, DeviceLogin> _logins = new ConcurrentDictionary<Guid, DeviceLogin>();
+        private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _polls = new ConcurrentDictionary<Guid, CancellationTokenSource>();
         private Dictionary<string, Account>? _accounts;
 
         /// <summary>
@@ -178,7 +179,10 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
                     Interval = TimeSpan.FromSeconds(Math.Max(1, root.TryGetProperty("interval", out var interval) ? interval.GetInt32() : 5))
                 };
                 _logins[userId] = login;
-                _ = PollLoginAsync(userId, login, clientId, config.TraktClientSecret.Trim());
+                CancelLogin(userId);
+                var poll = new CancellationTokenSource();
+                _polls[userId] = poll;
+                _ = PollLoginAsync(userId, login, clientId, config.TraktClientSecret.Trim(), poll.Token);
             }
             catch (Exception ex) when (ex is HttpRequestException || ex is JsonException || ex is KeyNotFoundException || ex is InvalidOperationException
                 || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
@@ -199,6 +203,7 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
         public async Task DisconnectAsync(Guid userId, PluginConfiguration config, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(config);
+            CancelLogin(userId);
             var token = GetAccount(userId)?.AccessToken;
             UpdateAccount(userId, a =>
             {
@@ -277,6 +282,32 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
             };
             _cache[userId] = (DateTime.UtcNow, result);
             return result;
+        }
+
+        /// <summary>
+        /// Stops all running login polls (server shutdown).
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Stops all running login polls.
+        /// </summary>
+        /// <param name="disposing">True when called from <see cref="Dispose()"/>.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposing)
+            {
+                return;
+            }
+
+            foreach (var userId in _polls.Keys.ToList())
+            {
+                CancelLogin(userId);
+            }
         }
 
         private static bool HasOwnApp(PluginConfiguration config)
@@ -396,12 +427,32 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
             return access;
         }
 
-        private async Task PollLoginAsync(Guid userId, DeviceLogin login, string clientId, string clientSecret)
+        // Bricht das Abfragen einer laufenden Anmeldung ab (neue Anmeldung, Trennen). Nur abbrechen, nicht freigeben:
+        // die Abfrage hält das Token noch; ohne Zeitgeber braucht die Quelle kein Dispose.
+        private void CancelLogin(Guid userId)
+        {
+            if (_polls.TryRemove(userId, out var running))
+            {
+                running.Cancel();
+            }
+        }
+
+        private async Task PollLoginAsync(Guid userId, DeviceLogin login, string clientId, string clientSecret, CancellationToken cancellationToken)
         {
             var interval = login.Interval;
             while (DateTime.UtcNow < login.ExpiresAt && !login.Done)
             {
-                await Task.Delay(interval).ConfigureAwait(false);
+                try
+                {
+                    await Task.Delay(interval, cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // neue Anmeldung, Trennen oder Server fährt herunter
+                    login.Done = true;
+                    return;
+                }
+
                 try
                 {
                     using var request = JsonRequest(HttpMethod.Post, "oauth/device/token", new Dictionary<string, string>
@@ -410,7 +461,7 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
                         ["client_id"] = clientId,
                         ["client_secret"] = clientSecret
                     });
-                    using var response = await _send(request, CancellationToken.None).ConfigureAwait(false);
+                    using var response = await _send(request, cancellationToken).ConfigureAwait(false);
                     var status = (int)response.StatusCode;
                     if (response.IsSuccessStatusCode)
                     {
@@ -444,6 +495,12 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
                 }
                 catch (Exception ex) when (ex is HttpRequestException || ex is JsonException || ex is TaskCanceledException)
                 {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        login.Done = true;
+                        return;
+                    }
+
                     // nächster Versuch
                 }
             }

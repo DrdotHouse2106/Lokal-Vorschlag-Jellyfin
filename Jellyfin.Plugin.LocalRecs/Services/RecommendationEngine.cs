@@ -232,8 +232,13 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 accessibleItemIds.Count);
 
             var candidates = new List<Guid>();
+            var itemIds = availableItemIds as IReadOnlyCollection<Guid> ?? availableItemIds.ToList();
+            var userDataLookup = UserDataLookup.Load(
+                _userDataManager,
+                user,
+                itemIds.Where(accessibleItemIds.Contains).Select(id => _libraryManager.GetItemById(id)).OfType<BaseItem>());
 
-            foreach (var itemId in availableItemIds)
+            foreach (var itemId in itemIds)
             {
                 // Get item metadata for type filtering
                 if (!metadata.TryGetValue(itemId, out var itemMetadata))
@@ -286,7 +291,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                         item.Path);
                 }
 
-                var userData = _userDataManager.GetUserData(user, item);
+                var userData = userDataLookup.Get(item);
 
                 // Exclude fully watched items
                 // For series, userData.Played is not reliable - we need to check episode watch status
@@ -455,6 +460,11 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             {
                 // Filter to items from libraries the user can access
                 var accessibleItemIds = GetUserAccessibleItemIds(user);
+                candidateMetadata = candidateMetadata.ToList();
+                var userDataLookup = UserDataLookup.Load(
+                    _userDataManager,
+                    user,
+                    candidateMetadata.Where(m => accessibleItemIds.Contains(m.Id)).Select(m => _libraryManager.GetItemById(m.Id)).OfType<BaseItem>());
 
                 foreach (var item in candidateMetadata)
                 {
@@ -470,7 +480,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                         continue;
                     }
 
-                    var userData = _userDataManager.GetUserData(user, libraryItem);
+                    var userData = userDataLookup.Get(libraryItem);
                     if (userData != null && (userData.Played || userData.Likes == false))
                     {
                         continue; // Skip watched and disliked items

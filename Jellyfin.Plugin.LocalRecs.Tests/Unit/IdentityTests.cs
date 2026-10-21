@@ -26,5 +26,17 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             IdentityController.Proof("token-123", nonce, "s", "jellyfin.example.org").Should().NotBe(proof);
             IdentityController.Proof("anderer", nonce, "s", "192.168.1.10:8096").Should().NotBe(proof);
         }
+
+        [Fact]
+        public void PadProofs_KnownAndUnknownDevicesLookAlike()
+        {
+            var real = IdentityController.Proof("token", new string('a', 64), "server", "host:8096");
+
+            var unknown = IdentityController.PadProofs(System.Array.Empty<string>());
+            var known = IdentityController.PadProofs(new[] { real });
+
+            unknown.Should().HaveCount(IdentityController.MinProofs).And.OnlyContain(p => p.Length == 64);
+            known.Should().HaveCount(IdentityController.MinProofs).And.Contain(real).And.OnlyContain(p => p.Length == 64);
+        }
     }
 }

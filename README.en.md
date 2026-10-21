@@ -151,7 +151,9 @@ So that every person gets their own recommendations, Jellyfin Web shows a profil
 - **No PIN:** each profile signs in once via „Profil hinzufügen“, afterwards one click switches. The other profiles stay signed in.
 - Sign-ins are stored **only in that browser** (the same way Jellyfin stores its own sign-in), not on the server.
 - The picker appears once per opened tab / app start and is always available via „Profil wechseln“ in the profile menu; Esc closes it.
-- „Profile verwalten“ removes a profile from this browser only. Signing out via Jellyfin's „Abmelden“ invalidates the stored sign-in; the profile is then removed on the next click with a hint and can be added again.
+- **Administrators are never remembered** (since 12.39.0): they sign in with their password each time, their sign-in is logged out when switching to another profile, and an administrator profile stored by older versions is removed and logged out on the next click.
+- **Caution:** whoever gets to the browser can open every remembered profile without password – only turn it on for shared devices you trust.
+- „Profile verwalten“ removes a profile from this browser and logs its sign-in out on the server (since 12.39.0; not the currently signed-in profile). Signing out via Jellyfin's „Abmelden“ invalidates the stored sign-in; the profile is then removed on the next click with a hint and can be added again.
 - `/LocalRecs/Web/Config` reports `"ProfilesEnabled": true|false`.
 
 ### Profile images from figures (since 12.22.0)
@@ -185,7 +187,7 @@ Remember single programmes or whole series (all future broadcasts with the same 
 
 ### API for TV apps
 
-Identity proof in the home network (since 12.35.0): `GET /LocalRecs/Identity/Challenge?nonce=<64 lower-case hex>` with header `X-Device-Id` returns `{ "ServerId", "Host", "Proofs": [...] }`, `Proof = hex(HMAC-SHA256(key = SHA-256(access token), msg = "nonce|ServerId|host"))`, host = address the app connected to (lower-case, with port). The app sends its token over http only if its own proof is listed. Anonymous, but only for direct connections from the local network (no forwarding headers), otherwise 403; 30 requests per minute and address.
+Identity proof in the home network (since 12.35.0): `GET /LocalRecs/Identity/Challenge?nonce=<64 lower-case hex>` with header `X-Device-Id` returns `{ "ServerId", "Host", "Proofs": [...] }`, `Proof = hex(HMAC-SHA256(key = SHA-256(access token), msg = "nonce|ServerId|host"))`, host = address the app connected to (lower-case, with port). The app sends its token over http only if its own proof is listed. Since 12.39.0 `Proofs` always holds at least 4 entries in random order (filled with random values), so the answer does not reveal whether a device is known. Anonymous, but only for direct connections from the local network (no forwarding headers), otherwise 403; 30 requests per minute and address.
 
 `GET /LocalRecs/Recommendations?type=movies|series|livetv&limit=20` returns the same items as the home screen rows for the **signed-in user** (regular token, no admin) as `{ "Items": [...], "TotalRecordCount": n }`. Works without Home Screen Sections.
 

@@ -233,6 +233,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             var itemIdSet = availableItemIds.ToHashSet();
             var itemsByTitle = new Dictionary<string, Guid>();
             var seriesRecords = new Dictionary<Guid, WatchRecord>();
+            var userDataLookup = UserDataLookup.Load(_userDataManager, user, itemIdSet.Select(id => _libraryManager.GetItemById(id)).OfType<BaseItem>());
 
             foreach (var itemId in itemIdSet)
             {
@@ -244,7 +245,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
 
                 itemsByTitle.TryAdd(LiveTvText.NormalizeTitle(item.Name), itemId);
 
-                var userData = _userDataManager.GetUserData(user, item);
+                var userData = userDataLookup.Get(item);
 
                 if (userData == null)
                 {

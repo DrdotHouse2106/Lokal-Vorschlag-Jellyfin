@@ -4456,7 +4456,56 @@
         return !!a && !!b && String(a).replace(/-/g, '').toLowerCase() === String(b).replace(/-/g, '').toLowerCase();
     }
 
-    // Merkt sich das angemeldete Profil (Name, Bild, Zugang) für den Wechsel per Klick
+    function isAdmin(user) {
+        return !!(user && user.Policy && user.Policy.IsAdministrator);
+    }
+
+    function dropProfile(profile) {
+        writeProfiles(readProfiles().filter(function (p) {
+            return !(p.ServerId === profile.ServerId && sameId(p.Id, profile.Id));
+        }));
+    }
+
+    // Entfernt ein Profil aus diesem Browser und meldet seinen gespeicherten Zugang auf dem Server ab
+    // (nicht das gerade angemeldete Profil – das bleibt angemeldet, wird nur nicht mehr gemerkt)
+    function removeProfile(profile) {
+        dropProfile(profile);
+        if (!sameId(signedInUserId(profile.ServerId), profile.Id)) {
+            logoutToken(profile.Token);
+        }
+    }
+
+    function logoutToken(token) {
+        if (!token) {
+            return;
+        }
+        try {
+            // keepalive: die Anfrage überlebt das Neuladen beim Profilwechsel
+            window.fetch(basePath() + '/Sessions/Logout', {
+                method: 'POST',
+                headers: { Authorization: 'MediaBrowser Token="' + token + '"' },
+                cache: 'no-store',
+                keepalive: true
+            }).catch(function () {
+                // Server nicht erreichbar – der Zugang ist hier trotzdem vergessen
+            });
+        } catch (e) {
+            // ohne fetch nur vergessen
+        }
+    }
+
+    // Beim Verlassen eines nicht gemerkten Zugangs (z. B. Administrator) diesen abmelden, statt ihn verwaist zu lassen
+    function logoutUnremembered(server) {
+        var token = server && server.AccessToken;
+        if (token && !readProfiles().some(function (p) {
+            return p.Token === token;
+        })) {
+            logoutToken(token);
+        }
+    }
+
+    // Merkt sich das angemeldete Profil (Name, Bild, Zugang) für den Wechsel per Klick.
+    // Administratoren nie: ihr Zugang soll nicht dauerhaft im Browser liegen, sie melden sich jedes Mal an.
     function rememberProfile() {
         var client = api();
         var uid = userId();
@@ -4478,6 +4527,10 @@
             var list = readProfiles().filter(function (p) {
                 return !(p.ServerId === serverId && sameId(p.Id, user.Id));
             });
+            if (isAdmin(user)) {
+                writeProfiles(list);
+                return;
+            }
             list.push({
                 Id: user.Id,
                 Name: user.Name,
@@ -4515,7 +4568,8 @@
         return box;
     }
 
-    // Prüft den gespeicherten Zugang (z. B. nach „Abmelden“ ist er serverseitig ungültig)
+    // Prüft den gespeicherten Zugang (z. B. nach „Abmelden“ ist er serverseitig ungültig). Ein Administrator-Profil
+    // aus älteren Versionen gilt ebenfalls als ungültig: es wird abgemeldet und muss sich neu anmelden.
     function checkToken(profile) {
         return window.fetch(basePath() + '/Users/Me', {
             headers: { Authorization: 'MediaBrowser Token="' + profile.Token + '"' },
@@ -4524,7 +4578,15 @@
             if (response.status === 401 || response.status === 403) {
                 return false;
             }
-            return true;
+            return response.json().then(function (user) {
+                if (isAdmin(user)) {
+                    removeProfile(profile);
+                    return false;
+                }
+                return true;
+            }, function () {
+                return true;
+            });
         }, function () {
             // Server nicht erreichbar – trotzdem versuchen, Jellyfin zeigt dann seine Meldung
             return true;
@@ -4540,6 +4602,7 @@
             server = { Id: profile.ServerId, ManualAddress: window.location.origin + basePath(), LastConnectionMode: 2 };
             credentials.Servers.push(server);
         }
+        logoutUnremembered(server);
         server.UserId = profile.Id;
         server.AccessToken = profile.Token;
         server.DateLastAccessed = Date.now();
@@ -4562,6 +4625,7 @@
         var credentials = readCredentials();
         credentials.Servers.forEach(function (s) {
             if (s) {
+                logoutUnremembered(s);
                 s.UserId = null;
                 s.AccessToken = null;
             }
@@ -4622,18 +4686,14 @@
                             profile: profile,
                             onDone: draw,
                             onRemove: function () {
-                                writeProfiles(readProfiles().filter(function (p) {
-                                    return !(p.ServerId === profile.ServerId && sameId(p.Id, profile.Id));
-                                }));
+                                removeProfile(profile);
                                 draw();
                             }
                         });
                         return;
                     }
                     if (editing) {
-                        writeProfiles(readProfiles().filter(function (p) {
-                            return !(p.ServerId === profile.ServerId && sameId(p.Id, profile.Id));
-                        }));
+                        removeProfile(profile);
                         draw();
                         return;
                     }
@@ -4649,9 +4709,7 @@
                             switchToProfile(profile);
                             return;
                         }
-                        writeProfiles(readProfiles().filter(function (p) {
-                            return !(p.ServerId === profile.ServerId && sameId(p.Id, profile.Id));
-                        }));
+                        dropProfile(profile);
                         hint.textContent = profile.Name + ' wurde abgemeldet – bitte über „Profil hinzufügen“ neu anmelden.';
                         draw();
                     });
@@ -4684,8 +4742,8 @@
         function drawTitle() {
             title.textContent = editing ? 'Profile verwalten' : 'Wer schaut?';
             hint.textContent = !editing ? '' : avatarsEnabled()
-                ? 'Profil antippen, um das Profilbild zu ändern oder es aus diesem Browser zu entfernen.'
-                : 'Entfernt das Profil nur aus diesem Browser.';
+                ? 'Profil antippen, um das Profilbild zu ändern oder es aus diesem Browser zu entfernen (meldet es hier ab).'
+                : 'Entfernt das Profil aus diesem Browser und meldet es hier ab.';
         }
 
         manage = el('button', 'lr-profiles-manage');

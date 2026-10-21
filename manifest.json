@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.39.0.0",
+        "changelog": "Sicherheit und Tempo\n- „Wer schaut?“: Administratoren werden nie gemerkt, entfernte Profile werden auf dem Server abgemeldet, Warnhinweis in den Einstellungen\n- Kalender-Links werten X-Forwarded-Header nicht mehr selbst aus\n- Identitätsnachweis verrät nicht mehr, ob ein Gerät bekannt ist\n- Top 10 blockiert keine Anfragen mehr, Welten-Zwischenspeicher begrenzt, Trakt-Anmeldung abbrechbar\n- Empfehlungen: Benutzerdaten gesammelt statt pro Titel geladen\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.39.0.zip",
+        "checksum": "cde4b9321007dbd90f729eca2d30c1ec",
+        "timestamp": "2026-10-21T13:00:00Z"
+      },
+      {
         "version": "12.38.0.0",
         "changelog": "Metadaten-Check und Live-TV-Dashboard\n- Neuer Reiter „Metadaten“: zeigt je Bibliothek die Lücken (Genres, TMDB/IMDb-ID, Stichwörter, Besetzung …), listet Titel mit wenig oder zu wenig Metadaten und ruft sie gezielt neu ab\n- Dashboard → Live-TV: „LocalRecs EPG“ statt „Unknown“, der Eintrag öffnet die Fernsehprogramm-Einstellungen statt „Seite nicht gefunden“\n- „Reisen“ zählt zu „Nie Film“\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

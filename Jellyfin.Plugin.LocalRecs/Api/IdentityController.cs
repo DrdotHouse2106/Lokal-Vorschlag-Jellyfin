@@ -29,6 +29,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// <summary>Requests per remote address and minute.</summary>
         public const int MaxRequestsPerMinute = 30;
 
+        /// <summary>Minimum number of proofs in an answer (filled with random values), so the answer does not show whether the device is known.</summary>
+        public const int MinProofs = 4;
+
         private static readonly Regex NoncePattern = new Regex("^[0-9a-f]{64}$", RegexOptions.Compiled, TimeSpan.FromMilliseconds(100));
         private static readonly string[] ForwardHeaders = { "X-Forwarded-For", "X-Forwarded-Host", "X-Real-IP", "Forwarded" };
         private static readonly ConcurrentDictionary<string, (long Minute, int Count)> Budget = new();
@@ -67,6 +70,25 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         }
 
         /// <summary>
+        /// Fills the proofs with random values up to <see cref="MinProofs"/> and shuffles them, so known and unknown
+        /// devices get answers of the same form (the app only checks whether its own proof is among them).
+        /// </summary>
+        /// <param name="proofs">The real proofs.</param>
+        /// <returns>At least <see cref="MinProofs"/> proofs in random order.</returns>
+        public static IReadOnlyList<string> PadProofs(IReadOnlyList<string> proofs)
+        {
+            ArgumentNullException.ThrowIfNull(proofs);
+            var all = proofs.ToList();
+            while (all.Count < MinProofs)
+            {
+                all.Add(Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant());
+            }
+
+            RandomNumberGenerator.Shuffle(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(all));
+            return all;
+        }
+
+        /// <summary>
         /// Answers a challenge of an app in the home network. Anonymous; only for direct connections from the local network.
         /// </summary>
         /// <param name="nonce">32 random bytes of the app as 64 lower-case hex digits.</param>
@@ -97,7 +119,11 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             if (Budget.Count > 10000)
             {
-                Budget.Clear();
+                // Nur abgelaufene Minuten entfernen – die laufenden Grenzen bleiben bestehen
+                foreach (var stale in Budget.Where(b => b.Value.Minute != minute).Select(b => b.Key).ToList())
+                {
+                    Budget.TryRemove(stale, out _);
+                }
             }
 
             nonce = nonce?.Trim().ToLowerInvariant();
@@ -117,7 +143,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             {
                 ServerId = serverId,
                 Host = host,
-                Proofs = tokens.Select(t => Proof(t, nonce, serverId, host)).ToList()
+                Proofs = PadProofs(tokens.Select(t => Proof(t, nonce, serverId, host)).ToList())
             };
         }
 
@@ -132,7 +158,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             /// <summary>Gets or sets the host as seen by the server (part of the proof; the app compares it with the address it used).</summary>
             public string Host { get; set; } = string.Empty;
 
-            /// <summary>Gets or sets one proof per access token of the device (empty if the device is unknown).</summary>
+            /// <summary>Gets or sets one proof per access token of the device, filled with random values to at least <see cref="MinProofs"/>.</summary>
             public IReadOnlyList<string> Proofs { get; set; } = Array.Empty<string>();
         }
     }

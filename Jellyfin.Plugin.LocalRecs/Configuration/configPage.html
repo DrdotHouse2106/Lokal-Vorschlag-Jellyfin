@@ -308,7 +308,7 @@
                                 <input is="emby-checkbox" type="checkbox" id="webProfilesEnabled" name="webProfilesEnabled" />
                                 <span>„Wer schaut?“ – Profilauswahl</span>
                             </label>
-                            <div class="fieldDescription checkboxFieldDescription">Zeigt beim Öffnen von Jellyfin Web die Profile mit Profilbild. Jedes Profil meldet sich einmal an, danach genügt ein Klick zum Wechseln – ohne PIN. Die Anmeldungen bleiben nur im jeweiligen Browser gespeichert. So bekommt jede Person ihre eigenen Vorschläge.</div>
+                            <div class="fieldDescription checkboxFieldDescription">Zeigt beim Öffnen von Jellyfin Web die Profile mit Profilbild. Jedes Profil meldet sich einmal an, danach genügt ein Klick zum Wechseln – ohne PIN. Die Anmeldungen bleiben nur im jeweiligen Browser gespeichert. So bekommt jede Person ihre eigenen Vorschläge.<br><b>Achtung:</b> Wer an den Browser kommt, kann jedes gemerkte Profil ohne Passwort öffnen – nur auf Geräten einschalten, die ihr gemeinsam nutzt und denen ihr vertraut. Administratoren werden nie gemerkt und melden sich jedes Mal mit Passwort an. „Profile verwalten“ → Profil entfernen meldet dessen Zugang auch auf dem Server ab.</div>
                         </div>
 
                         <div class="checkboxContainer checkboxContainer-withDescription">
@@ -356,7 +356,7 @@
                         <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="calendarPublicUrl">Öffentliche Adresse für Kalender-Links (optional):</label>
                             <input is="emby-input" type="text" id="calendarPublicUrl" name="calendarPublicUrl" placeholder="https://jellyfin.example.org" />
-                            <div class="fieldDescription">Unter dieser Adresse holen Kalender-Apps die gemerkten Sendungen ab (iCal-Abo mit geheimem Link pro Benutzer). Leer = die Adresse, über die Jellyfin gerade aufgerufen wird.</div>
+                            <div class="fieldDescription">Unter dieser Adresse holen Kalender-Apps die gemerkten Sendungen ab (iCal-Abo mit geheimem Link pro Benutzer). Leer = die Adresse, über die Jellyfin gerade aufgerufen wird. Hinter einem Reverse-Proxy hier die öffentliche Adresse eintragen (oder den Proxy in Jellyfin unter „Netzwerk“ → „Bekannte Proxys“), sonst zeigt der Link auf die interne Adresse.</div>
                         </div>
 
                         <div class="inputContainer">

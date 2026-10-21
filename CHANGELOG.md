@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.39.0] - 2026-10-21
+
+### Security
+
+- **„Wer schaut?“:** administrator sign-ins are never remembered in the browser; switching away from a sign-in that is not remembered logs it out; removing a profile under „Profile verwalten“ calls `POST /Sessions/Logout` with its token; an administrator profile stored by older versions is removed and logged out on the next click. Warning on the settings page.
+- **Calendar links** no longer evaluate `X-Forwarded-Proto`/`X-Forwarded-Host` themselves (spoofable); they use the public address from the settings or the request as Jellyfin sees it (Jellyfin applies forwarded headers for its known proxies).
+- **Identity proof:** `Proofs` always holds at least 4 entries in random order, so known and unknown devices get answers of the same form; the request budget only drops expired minutes instead of resetting all limits.
+
+### Changed
+
+- **Top 10:** no request blocks a thread while another one computes the ranking – an older ranking is delivered at once and recomputed in the background; the first computation is awaited asynchronously.
+- **Worlds:** the per-user cache of accessible titles drops expired entries and holds at most 50 users.
+- **Trakt:** polling a device login is cancelled on a new login, on disconnect and on server shutdown.
+- **Recommendation refresh:** user data (played, position, likes) is loaded in batches of 500 per user instead of one query per title (profile, candidates, unwatched filter).
+- GitHub Actions pinned to commit SHAs.
+
 ## [12.38.0] - 2026-10-21
 
 ### Added
