@@ -92,6 +92,11 @@ namespace Jellyfin.Plugin.LocalRecs
                     Path.Combine(GetPluginDataPath(sp), "verhalten.json")));
             serviceCollection.AddSingleton<Behavior.BehaviorService>();
             serviceCollection.AddSingleton<Metadata.MetadataCheckService>();
+            serviceCollection.AddSingleton(sp =>
+                new Banner.BannerStore(
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Banner.BannerStore>>(),
+                    Path.Combine(GetPluginDataPath(sp), "banner.json")));
+            serviceCollection.AddSingleton<Banner.BannerService>();
             serviceCollection.AddSingleton<RecommendationSectionHandler>();
             serviceCollection.AddSingleton<LiveTvSectionHandler>();
 

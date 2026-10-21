@@ -187,6 +187,8 @@ Remember single programmes or whole series (all future broadcasts with the same 
 
 ### API for TV apps
 
+Banner of the day (since 12.41.0): `GET /LocalRecs/Banner?count=5&utcOffsetMinutes=120` returns movies and series for the big banner of the signed-in user (same format as `/LocalRecs/Recommendations`). Picked from the best 30 recommendations (movies and series alternating), weighted at random with date + user as seed – the same on every device during a day, new the next day (midnight in the app's time zone). Titles from the banner of the last days (yesterday ×0.15, two days ago ×0.3, within a week ×0.6) and recommendations ignored in the rows for long (from 14 days ×0.5, from 30 days ×0.3) come up less often. Stored in `banner.json` (title IDs only, 14 days).
+
 Identity proof in the home network (since 12.35.0): `GET /LocalRecs/Identity/Challenge?nonce=<64 lower-case hex>` with header `X-Device-Id` returns `{ "ServerId", "Host", "Proofs": [...] }`, `Proof = hex(HMAC-SHA256(key = SHA-256(access token), msg = "nonce|ServerId|host"))`, host = address the app connected to (lower-case, with port). The app sends its token over http only if its own proof is listed. Since 12.39.0 `Proofs` always holds at least 4 entries in random order (filled with random values), so the answer does not reveal whether a device is known. Anonymous, but only for direct connections from the local network (no forwarding headers), otherwise 403; 30 requests per minute and address.
 
 `GET /LocalRecs/Recommendations?type=movies|series|livetv&limit=20` returns the same items as the home screen rows for the **signed-in user** (regular token, no admin) as `{ "Items": [...], "TotalRecordCount": n }`. Works without Home Screen Sections.

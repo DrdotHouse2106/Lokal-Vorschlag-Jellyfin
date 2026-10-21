@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.41.0] - 2026-10-21
+
+### Added
+
+- **Banner of the day:** `GET /LocalRecs/Banner?count=5&utcOffsetMinutes=` picks movies and series for the big banner from the best 30 recommendations, weighted at random with date + user as seed – the same on all devices during a day, new every day. Titles from the banner of the last days and recommendations ignored in the rows for a long time come up less often. The Quallenkino start page for Jellyfin Web uses it (one of the five per opened tab); TV apps can use it instead of the first items of the rows.
+
 ## [12.40.0] - 2026-10-21
 
 ### Security

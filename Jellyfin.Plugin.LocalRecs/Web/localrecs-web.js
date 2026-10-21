@@ -2460,6 +2460,8 @@
         var offset = utcOffset();
         tasks.push(add('movies', 'Empfohlene Filme für dich', 'landscape', getJson('LocalRecs/Recommendations?type=movies&limit=' + ROW_LIMIT + '&utcOffsetMinutes=' + offset)));
         tasks.push(add('series', 'Empfohlene Serien für dich', 'landscape', getJson('LocalRecs/Recommendations?type=series&limit=' + ROW_LIMIT + '&utcOffsetMinutes=' + offset)));
+        // Banner des Tages vom Server (täglich neu, auf allen Geräten gleich) – keine eigene Reihe
+        tasks.push(add('banner', '', 'banner', getJson('LocalRecs/Banner?count=5&utcOffsetMinutes=' + offset)));
         var daypartOrder = null;
         tasks.push(safe(getJson('LocalRecs/Behavior/Daypart?utcOffsetMinutes=' + offset)).then(function (result) {
             daypartOrder = result && result.Order;
@@ -2612,6 +2614,21 @@
     }, true);
 
     function pickHero(rows, uid) {
+        // Banner des Tages: je Sitzung einer der Titel, am nächsten Tag neue
+        var banner = (rows.filter(function (row) {
+            return row.key === 'banner';
+        })[0] || { items: [] }).items.filter(function (item) {
+            return item.BackdropImageTags && item.BackdropImageTags.length;
+        });
+        if (banner.length) {
+            var today = new Date().toDateString();
+            var bannerId = sessionChoice('lrWeb.banner.' + uid + '.' + today, function () {
+                return banner[Math.floor(Math.random() * banner.length)].Id;
+            });
+            return banner.filter(function (b) {
+                return b.Id === bannerId;
+            })[0] || banner[0];
+        }
         var candidates = [];
         rows.forEach(function (row) {
             if (row.key === 'movies' || row.key === 'series') {
@@ -2647,7 +2664,7 @@
     // ---------------------------------------------------------------- Aufbau der Startseite
 
     function buildRow(row) {
-        if (!row.items || !row.items.length) {
+        if (!row.items || !row.items.length || row.kind === 'banner') {
             return null;
         }
         var cards;

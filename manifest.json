@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.41.0.0",
+        "changelog": "Banner des Tages\n- Der große Banner wechselt täglich: gewichtet aus den besten Empfehlungen, am selben Tag auf allen Geräten gleich\n- Titel aus den letzten Tagen und lange unbeachtete Empfehlungen kommen seltener dran\n- Neue Schnittstelle GET /LocalRecs/Banner für die TV-Apps\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.41.0.zip",
+        "checksum": "fd71d834b4fd6d0278bad7f9ed2ea5db",
+        "timestamp": "2026-10-21T15:00:00Z"
+      },
+      {
         "version": "12.40.0.0",
         "changelog": "Härtung und Tempo\n- Trakt-Zugänge nur für Jellyfin lesbar (600), XMLTV höchstens 250 MB\n- TMDB/Trakt-Abgleich bis zu 4 Titel gleichzeitig\n- Kalender-Abo 60 Sekunden zwischengespeichert\n- Nach einem Update keine volle Neuberechnung beim Start mehr\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

@@ -167,7 +167,7 @@ Das Plugin merkt sich, was es wem empfohlen hat, und zählt, was davon danach ge
 
 Im Browser und in den Jellyfin-Apps für iOS und Android kann die Startseite wie in der TV-App Quallenkino aussehen, mit all ihren Reihen. Voraussetzung ist das Plugin **File Transformation** (aus dem gleichen Katalog wie Home Screen Sections). Einschalten im Reiter **„Einstellungen“**, Abschnitt **Jellyfin Web**: **„Startseite im Quallenkino-Stil“**, die Farben separat über **„Quallenkino-Farben“**.
 
-- **Großer Infobereich** mit Hintergrundbild, Logo, Begründung und den Knöpfen „Abspielen“ und „Weitere Infos“. Hat der Titel einen lokalen Trailer, läuft er nach kurzer Zeit im Hintergrund – immer stumm, auf dem PC mit Ton-Knopf. Die Kopfleiste ist über dem Bild durchsichtig und wird beim Scrollen dunkel.
+- **Großer Infobereich** mit Hintergrundbild, Logo, Begründung und den Knöpfen „Abspielen“ und „Weitere Infos“. Ab 12.41.0 kommt der Titel aus dem **Banner des Tages** (siehe Schnittstelle): täglich neu, je geöffnetem Tab einer von fünf. Hat der Titel einen lokalen Trailer, läuft er nach kurzer Zeit im Hintergrund – immer stumm, auf dem PC mit Ton-Knopf. Die Kopfleiste ist über dem Bild durchsichtig und wird beim Scrollen dunkel.
 - **Reihen:** Weiterschauen, Als Nächstes, Empfohlene Filme und Serien (mit Begründung), Heute im TV für dich, Top 10 (große Ziffern), Welten (Kachel öffnet die Welten-Seite mit Filter und Sortierung), Jetzt im TV, „Neu in …“ je Bibliothek, Genre-Reihen und Bibliotheken. Alles wird gleichzeitig geladen; die letzte Startseite erscheint sofort aus dem Speicher des Browsers und wird im Hintergrund Reihe für Reihe aktualisiert.
 - **PC:** Pfeile am Rand jeder Reihe, beim Überfahren eine Vorschau-Karte (Abspielen, Meine Liste, Gefällt mir, Weitere Infos; bei künftigen Sendungen zusätzlich Glocke und Aufnahme-Knopf). „Weitere Infos“ öffnet ein Fenster mit Folgen je Staffel, ähnlichen Titeln und Besetzung statt einer neuen Seite – bei Sendungen auch, wenn sie gerade laufen.
 - **Handy** wie eine Streaming-App: Infobereich als Karte mit Poster, Logo und Genres, „Abspielen“ und „Meine Liste“, Chips „Serien“, „Filme“, „Meine Liste“, Hochformat-Poster, Welten als Kreise und eine Tab-Leiste unten (Startseite, Suche, Live-TV, Meine Liste, Mehr).
@@ -309,6 +309,14 @@ GET  /LocalRecs/Epg/Test?search=&kind=series|movie|other|kids|news|sports&limit=
 **EPG-Quelle:** Die Datei kommt z. B. von m3u-editor oder einem eigenen Skript. [`extras/epg-enrich`](extras/epg-enrich/) enthält die Fassung für epgshare01 mit Bundesliga-Paarungen. Es mischt auf Wunsch 14 Tage MagentaTV ein (über iptv-org/epg, Dateien unter [`extras/epg-enrich/magentatv`](extras/epg-enrich/magentatv/)) und ergänzt Bundesliga-Paarungen.
 
 ### Schnittstelle für TV-Apps
+
+**Banner des Tages (ab 12.41.0):** `GET /LocalRecs/Banner?count=5&utcOffsetMinutes=120` liefert für den angemeldeten Benutzer Filme und Serien für den großen Banner, wie `/LocalRecs/Recommendations` als `{ "Items": [...] }` (mit Hintergrundbild, Logo, Beschreibung).
+- Gewählt wird aus den besten 30 Empfehlungen (Filme und Serien abwechselnd), gewichtet zufällig: Weiter oben Empfohlenes kommt öfter dran.
+- Der Startwert ist Datum plus Benutzer. Deshalb ist die Auswahl **am selben Tag auf allen Geräten gleich** und am nächsten Tag neu. Der Tag wechselt um Mitternacht in der Zeitzone der App (`utcOffsetMinutes`, sonst die des Servers).
+- Titel aus dem Banner der letzten Tage kommen seltener dran: gestern ×0,15, vorgestern ×0,3, innerhalb einer Woche ×0,6.
+- Empfehlungen, die lange unbeachtet in den Reihen stehen, ebenfalls: ab 14 Tagen ×0,5, ab 30 Tagen ×0,3.
+- Titel ohne Hintergrundbild nur, wenn sonst zu wenige bleiben.
+- Die Auswahl des Tages wird in `plugins/LocalRecs/banner.json` gemerkt (nur Titel-IDs, 14 Tage).
 
 **Identitätsnachweis im Heimnetz (ab 12.35.0):** Bevor eine App ihren Zugangsschlüssel unverschlüsselt (http) an eine lokale Adresse schickt, kann sie prüfen, dass dort wirklich ihr Server antwortet:
 
