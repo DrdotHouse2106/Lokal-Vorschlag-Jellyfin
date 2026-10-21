@@ -313,6 +313,9 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Domain
             var metadata = library.ToDictionary(i => i.Id, i => i);
             SetupUserDataMocks(library);
 
+            // Einmal aufwärmen (JIT, Mock-Proxys): gemessen wird der laufende Betrieb, nicht der Kaltstart des Testlaufs
+            _service.BuildUserProfile(_testUserId, embeddings, _config);
+
             // Act
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             var profile = _service.BuildUserProfile(_testUserId, embeddings, _config);

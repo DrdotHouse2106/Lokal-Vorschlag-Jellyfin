@@ -221,8 +221,10 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
         [Fact]
         public async Task Refresh_LooksUpSeveralTitlesAtOnce()
         {
+            // Die erste Anfrage wartet, bis eine zweite gleichzeitig läuft (höchstens 10 s) – unabhängig von der Rechnerlast
             var running = 0;
             var maxRunning = 0;
+            var second = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var service = new ExternalSimilarityService(
                 NullLogger<ExternalSimilarityService>.Instance,
                 Path.Combine(Path.GetTempPath(), "lr-similar-" + Guid.NewGuid().ToString("N") + ".json"),
@@ -234,7 +236,12 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
                     {
                     }
 
-                    await Task.Delay(30, token);
+                    if (now >= 2)
+                    {
+                        second.TrySetResult();
+                    }
+
+                    await Task.WhenAny(second.Task, Task.Delay(10000, token));
                     Interlocked.Decrement(ref running);
                     return Json("{\"results\":[]}");
                 },
