@@ -104,5 +104,56 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             recent[a].Should().Be(1);
             recent[b].Should().Be(1);
         }
+
+        [Theory]
+        [InlineData(5, 0, 0)]
+        [InlineData(5, 1, 1)]
+        [InlineData(5, 10, 2)]
+        [InlineData(8, 10, 3)]
+        [InlineData(1, 3, 1)]
+        public void ContinueSlots_AboutFortyPercent(int count, int available, int slots)
+        {
+            BannerService.ContinueSlots(count, available).Should().Be(slots);
+        }
+
+        [Fact]
+        public void WeekdayEvenings_PreferShortMovies()
+        {
+            BannerService.PreferShort(new DateTime(2026, 10, 21, 20, 0, 0)).Should().BeTrue("Mittwochabend");
+            BannerService.PreferShort(new DateTime(2026, 10, 18, 19, 0, 0)).Should().BeTrue("Sonntagabend, am Montag ist wieder Arbeit");
+            BannerService.PreferShort(new DateTime(2026, 10, 23, 20, 0, 0)).Should().BeFalse("Freitagabend");
+            BannerService.PreferShort(new DateTime(2026, 10, 21, 14, 0, 0)).Should().BeFalse("nachmittags");
+            BannerService.RuntimeFactor(150, true).Should().Be(0.5);
+            BannerService.RuntimeFactor(90, true).Should().Be(1);
+            BannerService.RuntimeFactor(150, false).Should().Be(1);
+        }
+
+        [Fact]
+        public void ShownButNeverOpened_ComesLess()
+        {
+            BannerService.NeverOpenedFactor(1, false).Should().Be(1);
+            BannerService.NeverOpenedFactor(2, false).Should().Be(0.5);
+            BannerService.NeverOpenedFactor(5, false).Should().Be(0.25);
+            BannerService.NeverOpenedFactor(5, true).Should().Be(1);
+        }
+
+        [Fact]
+        public void Store_Later_AndShownDays()
+        {
+            var store = new BannerStore(NullLogger<BannerStore>.Instance, Path.Combine(Path.GetTempPath(), "lr-banner-" + Guid.NewGuid().ToString("N") + ".json"));
+            var a = Guid.NewGuid();
+            var b = Guid.NewGuid();
+            var now = DateTime.UtcNow;
+            var today = DateOnly.FromDateTime(now);
+            store.Set(User, today.AddDays(-1), new[] { a });
+            store.Set(User, today.AddDays(-2), new[] { a, b });
+            store.SetLater(User, a, now.AddDays(21));
+            store.SetLater(User, b, now.AddDays(-1));
+
+            store.ShownDays(User, today, 7).Should().Contain(a, 2).And.Contain(b, 1);
+            store.GetLater(User, now).Keys.Should().Equal(a);
+            store.RemoveLater(User, a);
+            store.GetLater(User, now).Should().BeEmpty();
+        }
     }
 }

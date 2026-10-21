@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.42.0.0",
+        "changelog": "Banner: Entdecken und Weiterschauen\n- Der Banner mischt neue Empfehlungen mit angefangenen Serien, neuen Folgen und angefangenen Filmen\n- Knopf „Später“: Titel drei Wochen nicht im Banner, bleibt in den Empfehlungen\n- Abends unter der Woche eher kürzere Filme; oft gezeigte, nie geöffnete Titel seltener\n- Schnittstelle /LocalRecs/Billboard für die TV-Apps\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.42.0.zip",
+        "checksum": "08bf281f2fb5d392ad2ee5d4e1c1c496",
+        "timestamp": "2026-10-21T16:00:00Z"
+      },
+      {
         "version": "12.41.0.0",
         "changelog": "Banner des Tages\n- Der große Banner wechselt täglich: gewichtet aus den besten Empfehlungen, am selben Tag auf allen Geräten gleich\n- Titel aus den letzten Tagen und lange unbeachtete Empfehlungen kommen seltener dran\n- Neue Schnittstelle GET /LocalRecs/Banner für die TV-Apps\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

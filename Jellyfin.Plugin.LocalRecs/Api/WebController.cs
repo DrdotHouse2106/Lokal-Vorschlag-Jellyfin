@@ -92,6 +92,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 Diagnostics = Config.WebDiagnostics,
                 BehaviorSignals = Config.EnableBehaviorSignals,
                 TraktPersonal = Config.EnableTraktPersonal && Config.TraktPersonalWeight > 0,
+                Billboard = true,
                 Version = WebIntegration.Version
             };
         }
@@ -130,6 +131,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets a value indicating whether personal Trakt recommendations are available (since 12.33.0).</summary>
             public bool TraktPersonal { get; set; }
+
+            /// <summary>Gets or sets a value indicating whether the server offers the banner of the day (GET /LocalRecs/Billboard, since 12.42.0).</summary>
+            public bool Billboard { get; set; }
 
             /// <summary>Gets or sets the plugin version.</summary>
             public string Version { get; set; } = string.Empty;

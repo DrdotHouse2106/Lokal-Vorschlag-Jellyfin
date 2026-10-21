@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.42.0] - 2026-10-21
+
+### Added
+
+- **Banner mixes discovery with what fits right now:** about 40 % are started series with unwatched (also new) episodes and started movies, labelled „Weiterschauen“, „Neue Folgen“ or „Fortsetzen“ (`Reasons` in the answer); the rest comes from the best recommendations.
+- **„Später“** on the banner: takes a title out of the banner for three weeks without touching the recommendations and without counting as rejection (`POST/GET /LocalRecs/Billboard/Later`, `DELETE /LocalRecs/Billboard/Later/{itemId}`); listed with „Wieder zeigen“ under „Was Quallenkino sich merkt“.
+- Endpoint names for the TV apps: `GET /LocalRecs/Billboard?limit=&utcOffsetMinutes=` (alias of `/LocalRecs/Banner`), flag `"Billboard": true` in `/LocalRecs/Web/Config`.
+
+### Changed
+
+- Weekday evenings (Sunday to Thursday, 17–22) movies over 100 minutes count half in the banner.
+- Titles shown in the banner on several of the last 7 days but never opened come up less often.
+- The banner only contains titles with a backdrop; titles dropping out during the day (watched, „Später“) are replaced, the others stay.
+
 ## [12.41.0] - 2026-10-21
 
 ### Added

@@ -1855,6 +1855,12 @@
                     openInfo(item);
                 }));
             }
+            if (options.later) {
+                // „Später“: für einige Wochen aus dem Banner, bleibt in den Empfehlungen
+                var laterButton = button(card ? 'lr-btn-icon' : 'lr-btn-info', 'schedule', 'Später', options.later);
+                laterButton.title = 'Für ein paar Wochen nicht mehr im Banner zeigen – bleibt in den Empfehlungen';
+                actions.appendChild(laterButton);
+            }
             content.appendChild(actions);
         }
         hero.appendChild(content);
@@ -2460,8 +2466,17 @@
         var offset = utcOffset();
         tasks.push(add('movies', 'Empfohlene Filme für dich', 'landscape', getJson('LocalRecs/Recommendations?type=movies&limit=' + ROW_LIMIT + '&utcOffsetMinutes=' + offset)));
         tasks.push(add('series', 'Empfohlene Serien für dich', 'landscape', getJson('LocalRecs/Recommendations?type=series&limit=' + ROW_LIMIT + '&utcOffsetMinutes=' + offset)));
-        // Banner des Tages vom Server (täglich neu, auf allen Geräten gleich) – keine eigene Reihe
-        tasks.push(add('banner', '', 'banner', getJson('LocalRecs/Banner?count=5&utcOffsetMinutes=' + offset)));
+        // Banner des Tages vom Server (täglich neu, auf allen Geräten gleich, Entdecken und Weiterschauen gemischt) – keine eigene Reihe
+        var bannerRow = { key: 'banner', title: '', kind: 'banner', items: [] };
+        rows.push(bannerRow);
+        tasks.push(safe(getJson('LocalRecs/Billboard?limit=5&utcOffsetMinutes=' + offset)).then(function (result) {
+            var labels = (result && result.Reasons) || {};
+            bannerRow.items = itemsOf(result).map(function (item) {
+                var entry = slim(item);
+                entry.BannerReason = labels[item.Id] || '';
+                return entry;
+            });
+        }));
         var daypartOrder = null;
         tasks.push(safe(getJson('LocalRecs/Behavior/Daypart?utcOffsetMinutes=' + offset)).then(function (result) {
             daypartOrder = result && result.Order;
@@ -2613,6 +2628,19 @@
         }, 2500);
     }, true);
 
+    function laterBanner(item, uid) {
+        postJson('LocalRecs/Billboard/Later', { ItemId: item.Id }).then(function () {
+            try {
+                window.sessionStorage.removeItem('lrWeb.banner.' + uid + '.' + new Date().toDateString());
+            } catch (e) {
+                // dann bleibt die Auswahl bis zum Neuladen
+            }
+            refresh(true);
+        }).catch(function () {
+            // Server nicht erreichbar – Banner bleibt
+        });
+    }
+
     function pickHero(rows, uid) {
         // Banner des Tages: je Sitzung einer der Titel, am nächsten Tag neue
         var banner = (rows.filter(function (row) {
@@ -2621,6 +2649,9 @@
             return item.BackdropImageTags && item.BackdropImageTags.length;
         });
         if (banner.length) {
+            banner.forEach(function (item) {
+                item.FromBanner = true;
+            });
             var today = new Date().toDateString();
             var bannerId = sessionChoice('lrWeb.banner.' + uid + '.' + today, function () {
                 return banner[Math.floor(Math.random() * banner.length)].Id;
@@ -2706,7 +2737,14 @@
             heroHolder.innerHTML = '';
             heroHolder.dataset.id = hero.Id;
             heroHolder.dataset.layout = phoneLayout() ? 'phone' : 'wide';
-            heroHolder.appendChild(heroElement(hero, { badge: state.reasons[hero.Id], card: true, overview: phoneLayout() ? null : undefined }));
+            heroHolder.appendChild(heroElement(hero, {
+                badge: hero.BannerReason || state.reasons[hero.Id],
+                card: true,
+                overview: phoneLayout() ? null : undefined,
+                later: hero.FromBanner ? function () {
+                    laterBanner(hero, uid);
+                } : null
+            }));
         }
         root.classList.toggle('lr-no-hero', !hero);
         if (!root.querySelector('.lr-topchips')) {
@@ -4871,6 +4909,8 @@
             + 'Alles bleibt auf diesem Server.'));
         var box = el('div', 'lr-behavior-state');
         body.appendChild(box);
+        var laterBox = el('div', 'lr-behavior-state');
+        body.appendChild(laterBox);
         dialog.appendChild(body);
         var send = function (type, path, data) {
             return api().ajax({ type: type, url: url(path), data: data ? JSON.stringify(data) : undefined, contentType: data ? 'application/json' : undefined });
@@ -4944,11 +4984,30 @@
             }));
         };
 
+        // Mit „Später“ aus dem Banner genommene Titel, einzeln zurückholbar
+        var renderLater = function (entries) {
+            laterBox.innerHTML = '';
+            if (!entries || !entries.length) {
+                return;
+            }
+            laterBox.appendChild(el('h3', 'lr-behavior-heading', 'Später ansehen (nicht im Banner)'));
+            var list = el('ul', 'lr-behavior-list');
+            entries.forEach(function (entry) {
+                var li = el('li', null, '„' + (entry.Name || 'unbekannt') + '“ bis ' + new Date(entry.Until).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' }) + ' ');
+                li.appendChild(button('lr-btn-link', 'undo', 'Wieder zeigen', function () {
+                    del('LocalRecs/Billboard/Later/' + entry.ItemId).then(load);
+                }));
+                list.appendChild(li);
+            });
+            laterBox.appendChild(list);
+        };
+
         function load() {
             getJson('LocalRecs/Behavior/Me?utcOffsetMinutes=' + utcOffset()).then(render).catch(function () {
                 box.innerHTML = '';
                 box.appendChild(el('p', 'lr-cal-text', 'Der Stand konnte nicht geladen werden.'));
             });
+            safe(getJson('LocalRecs/Billboard/Later')).then(renderLater);
         }
 
         load();
