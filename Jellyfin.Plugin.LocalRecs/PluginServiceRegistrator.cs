@@ -86,6 +86,11 @@ namespace Jellyfin.Plugin.LocalRecs
             serviceCollection.AddHostedService<PluginFolderCleanup>();
 
             // Empfehlungen für TV-Apps ohne Home Screen Sections (GET /LocalRecs/Recommendations)
+            serviceCollection.AddSingleton(sp =>
+                new Behavior.BehaviorStore(
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Behavior.BehaviorStore>>(),
+                    Path.Combine(GetPluginDataPath(sp), "verhalten.json")));
+            serviceCollection.AddSingleton<Behavior.BehaviorService>();
             serviceCollection.AddSingleton<RecommendationSectionHandler>();
             serviceCollection.AddSingleton<LiveTvSectionHandler>();
 

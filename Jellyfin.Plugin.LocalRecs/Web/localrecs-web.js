@@ -1924,6 +1924,7 @@
     }
 
     function openInfo(summary) {
+        noteView(summary && summary.Id);
         var dialog = overlayShell('lr-info');
         dialog.appendChild(el('div', 'lr-spinner'));
         getJson(itemsQuery('Items/' + summary.Id).replace('&Fields=' + FIELDS, '&Fields=' + FIELDS + ',People,Studios,Taglines,ChannelInfo'))
@@ -2263,6 +2264,7 @@
             return;
         }
         showNativeDetail(view);
+        noteView(id);
         getJson(itemsQuery('Items/' + id).replace('&Fields=' + FIELDS, '&Fields=' + FIELDS + ',People,Studios,Taglines,ChannelInfo'))
             .then(function (item) {
                 if (DETAIL_TYPES.indexOf(item.Type) < 0 || detailIdFromHash() !== id) {
@@ -2454,8 +2456,14 @@
         }
         tasks.push(add('resume', 'Weiterschauen für ' + user.Name, 'landscape', getJson(itemsQuery('UserItems/Resume?MediaTypes=Video&Limit=' + ROW_LIMIT))));
         tasks.push(add('nextup', 'Als Nächstes', 'landscape', getJson(itemsQuery('Shows/NextUp?Limit=' + ROW_LIMIT + '&EnableResumable=false'))));
-        tasks.push(add('movies', 'Empfohlene Filme für dich', 'landscape', getJson('LocalRecs/Recommendations?type=movies&limit=' + ROW_LIMIT)));
-        tasks.push(add('series', 'Empfohlene Serien für dich', 'landscape', getJson('LocalRecs/Recommendations?type=series&limit=' + ROW_LIMIT)));
+        // Zeitzone des Browsers: Tageszeit für die Reihenfolge der Zeilen und tageszeit-typische Titel
+        var offset = utcOffset();
+        tasks.push(add('movies', 'Empfohlene Filme für dich', 'landscape', getJson('LocalRecs/Recommendations?type=movies&limit=' + ROW_LIMIT + '&utcOffsetMinutes=' + offset)));
+        tasks.push(add('series', 'Empfohlene Serien für dich', 'landscape', getJson('LocalRecs/Recommendations?type=series&limit=' + ROW_LIMIT + '&utcOffsetMinutes=' + offset)));
+        var daypartOrder = null;
+        tasks.push(safe(getJson('LocalRecs/Behavior/Daypart?utcOffsetMinutes=' + offset)).then(function (result) {
+            daypartOrder = result && result.Order;
+        }));
         if (liveTv) {
             tasks.push(add('livetv', 'Heute im TV für dich', 'landscape', getJson('LocalRecs/Recommendations?type=livetv&limit=' + ROW_LIMIT)));
         }
@@ -2527,6 +2535,7 @@
         }));
 
         return Promise.all(tasks).then(function () {
+            orderByDaypart(rows, daypartOrder);
             var flat = [];
             rows.forEach(function (row) {
                 if (row.kind === 'group') {
@@ -2540,6 +2549,67 @@
             return flat;
         });
     }
+
+    function utcOffset() {
+        return -new Date().getTimezoneOffset();
+    }
+
+    // Empfehlungszeilen (Filme, Serien, Live-TV) in der Reihenfolge, die zur Tageszeit passt – auf ihren bisherigen Plätzen
+    function orderByDaypart(rows, order) {
+        if (!order || !order.length) {
+            return;
+        }
+        var keys = ['movies', 'series', 'livetv'];
+        var slots = [];
+        rows.forEach(function (row, index) {
+            if (keys.indexOf(row.key) >= 0) {
+                slots.push(index);
+            }
+        });
+        var present = slots.map(function (index) {
+            return rows[index];
+        }).sort(function (a, b) {
+            var ia = order.indexOf(a.key);
+            var ib = order.indexOf(b.key);
+            return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+        });
+        slots.forEach(function (slot, i) {
+            rows[slot] = present[i];
+        });
+    }
+
+    // Kurzfristiges Interesse: Suchen und geöffnete Titel (der Server prüft Einstellung und Zustimmung des Benutzers)
+    function behaviorOn() {
+        return !!(state.config && state.config.BehaviorSignals) && !!userId();
+    }
+
+    function noteView(itemId) {
+        if (behaviorOn() && itemId) {
+            postJson('LocalRecs/Behavior/View', { ItemId: itemId }).catch(function () {
+                // nur ein Signal
+            });
+        }
+    }
+
+    var searchNote = { timer: null, last: '' };
+    document.addEventListener('input', function (e) {
+        var target = e.target;
+        if (!behaviorOn() || !target || !target.matches || !/^#\/search/.test(window.location.hash || '')
+            || !target.matches('#searchTextInput, .searchfields-txtSearch, input[type="search"]')) {
+            return;
+        }
+        window.clearTimeout(searchNote.timer);
+        // Erst nach einer Tipp-Pause melden, damit nicht jeder Zwischenstand gespeichert wird
+        searchNote.timer = window.setTimeout(function () {
+            var term = (target.value || '').trim();
+            if (term.length >= 2 && term.length <= 80 && term.toLowerCase() !== searchNote.last) {
+                searchNote.last = term.toLowerCase();
+                postJson('LocalRecs/Behavior/Search', { Term: term }).catch(function () {
+                    // nur ein Signal
+                });
+            }
+        }, 2500);
+    }, true);
 
     function pickHero(rows, uid) {
         var candidates = [];
@@ -4707,10 +4777,93 @@
         if (state.config && state.config.TraktPersonal && userId()) {
             items.push(accountMenuItem('recommend', 'Trakt-Empfehlungen', openTraktDialog));
         }
+        if (userId()) {
+            items.push(accountMenuItem('psychology', 'Was Quallenkino sich merkt', openBehaviorDialog));
+        }
         items.slice().reverse().forEach(function (item) {
             list.insertBefore(item, list.firstChild);
         });
         return items;
+    }
+
+    // Was das Plugin über die eigenen Empfehlungen hinaus auswertet: Tageszeit, Suchen, geöffnete Titel – mit Schalter und Löschen
+    function openBehaviorDialog() {
+        var dialog = overlayShell('lr-calendar lr-behavior');
+        var body = el('div', 'lr-cal-body');
+        body.appendChild(el('h2', 'lr-cal-title', 'Was Quallenkino sich merkt'));
+        body.appendChild(el('p', 'lr-cal-text', 'Empfehlungen entstehen aus dem, was du schaust: gesehene Titel (mehrfach Gesehenes zählt mehr, '
+            + 'angefangene Filme etwas), Daumen und Favoriten, abgebrochene Filme, ignorierte Empfehlungen und Live-TV. '
+            + 'Alles bleibt auf diesem Server.'));
+        var box = el('div', 'lr-behavior-state');
+        body.appendChild(box);
+        dialog.appendChild(body);
+        var send = function (type, path, data) {
+            return api().ajax({ type: type, url: url(path), data: data ? JSON.stringify(data) : undefined, contentType: data ? 'application/json' : undefined });
+        };
+        var orderNames = { movies: 'Filme', series: 'Serien', livetv: 'Live-TV' };
+        var when = function (iso) {
+            var d = new Date(iso);
+            return d.toLocaleDateString('de-DE', { day: 'numeric', month: 'short' }) + ', ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+        };
+
+        var render = function (st) {
+            box.innerHTML = '';
+            box.appendChild(el('h3', 'lr-behavior-heading', 'Tageszeit'));
+            if (!st.DaypartEnabled) {
+                box.appendChild(el('p', 'lr-cal-text', 'In den Einstellungen des Servers ausgeschaltet.'));
+            } else if (st.PlaysInDaypart >= 15) {
+                box.appendChild(el('p', 'lr-cal-text', 'Jetzt ist ' + st.Daypart + ' – um diese Zeit schaust du am ehesten: '
+                    + st.Order.map(function (k) {
+                        return orderNames[k] || k;
+                    }).join(', ') + '. Danach richten sich die Reihen auf der Startseite.'));
+            } else {
+                box.appendChild(el('p', 'lr-cal-text', 'Für ' + st.Daypart + ' gibt es noch zu wenig Gesehenes (' + st.PlaysInDaypart + ' von 15) – die Reihen bleiben in der üblichen Reihenfolge.'));
+            }
+
+            box.appendChild(el('h3', 'lr-behavior-heading', 'Suchen und angesehene Titel'));
+            if (!st.FeatureEnabled) {
+                box.appendChild(el('p', 'lr-cal-text', 'In den Einstellungen des Servers ausgeschaltet.'));
+                return;
+            }
+            var label = el('label', 'lr-trakt-toggle');
+            var check = el('input');
+            check.type = 'checkbox';
+            check.checked = !!st.Enabled;
+            check.addEventListener('change', function () {
+                send('POST', 'LocalRecs/Behavior/Me', { Enabled: check.checked }).then(load);
+            });
+            label.appendChild(check);
+            label.appendChild(el('span', null, ' Suchen und geöffnete Titel 30 Tage lang merken'));
+            box.appendChild(label);
+            box.appendChild(el('p', 'lr-cal-hint', 'Ähnliche Titel rücken dann für ein paar Tage nach vorne („Weil du nach … gesucht hast“). Ausschalten löscht alles.'));
+            if (!st.Enabled) {
+                return;
+            }
+            if (!st.Searches.length && !st.Views.length) {
+                box.appendChild(el('p', 'lr-cal-text', 'Noch nichts gemerkt.'));
+                return;
+            }
+            var list = el('ul', 'lr-behavior-list');
+            st.Searches.slice(0, 10).forEach(function (s) {
+                list.appendChild(el('li', null, 'Gesucht: „' + s.Term + '“ · ' + when(s.At)));
+            });
+            st.Views.slice(0, 10).forEach(function (v) {
+                list.appendChild(el('li', null, 'Angesehen: „' + (v.Name || 'unbekannt') + '“ · ' + when(v.At)));
+            });
+            box.appendChild(list);
+            box.appendChild(button('lr-btn-link', 'delete_outline', 'Alles löschen', function () {
+                send('DELETE', 'LocalRecs/Behavior/Me').then(load);
+            }));
+        };
+
+        function load() {
+            getJson('LocalRecs/Behavior/Me?utcOffsetMinutes=' + utcOffset()).then(render).catch(function () {
+                box.innerHTML = '';
+                box.appendChild(el('p', 'lr-cal-text', 'Der Stand konnte nicht geladen werden.'));
+            });
+        }
+
+        load();
     }
 
     // Persönliche Trakt-Empfehlungen: Stand, ein/aus, eigene Verbindung per Code (Zugangsdaten bleiben auf dem Server)

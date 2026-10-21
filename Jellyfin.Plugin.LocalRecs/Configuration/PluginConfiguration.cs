@@ -68,6 +68,10 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             TraktClientId = string.Empty;
             TraktClientSecret = string.Empty;
             EnableTraktPersonal = true;
+            EnableDaypart = true;
+            DaypartWeight = 0.15;
+            EnableBehaviorSignals = true;
+            InterestWeight = 0.35;
             TraktPersonalWeight = 0.5;
             CalendarPublicUrl = string.Empty;
             CalendarAlarmMinutes = 10;
@@ -418,6 +422,28 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Gets or sets the weight of the personal Trakt recommendations (0 = off).
         /// </summary>
         public double TraktPersonalWeight { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the time of day counts: order of the recommendation rows and genres typical
+        /// for the time of day (since 12.36.0).
+        /// </summary>
+        public bool EnableDaypart { get; set; }
+
+        /// <summary>
+        /// Gets or sets how strongly genres typical for the time of day move titles up (0 = off).
+        /// </summary>
+        public double DaypartWeight { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether searches and viewed titles (detail page opened) are noted as short-term
+        /// interest (since 12.36.0). Each user can switch it off; entries are kept 30 days.
+        /// </summary>
+        public bool EnableBehaviorSignals { get; set; }
+
+        /// <summary>
+        /// Gets or sets how strongly recent searches and viewed titles move similar titles up (0 = off).
+        /// </summary>
+        public double InterestWeight { get; set; }
 
         /// <summary>
         /// Gets or sets the public address of the server for calendar links (e.g. https://jellyfin.example.org).

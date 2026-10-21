@@ -3059,3 +3059,15 @@ html.lr-profiles-open body {
     font-weight: 700;
     letter-spacing: 0.15em;
 }
+
+/* Was Quallenkino sich merkt */
+.lr-behavior-heading {
+    margin: 1.2em 0 0.4em;
+    font-size: 1.05em;
+}
+
+.lr-behavior-list {
+    margin: 0.4em 0 1em;
+    padding-left: 1.2em;
+    line-height: 1.6;
+}

@@ -170,6 +170,36 @@
                             <div class="fieldDescription">Nach so vielen Tagen zählt ein gesehener Titel nur noch halb (Standard: 365)</div>
                         </div>
                         
+                        <h2 class="sectionTitle">Verhalten: Tageszeit, Suchen, angesehene Titel</h2>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="enableDaypart" />
+                                <span>Tageszeit berücksichtigen</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Was jemand morgens, tagsüber, abends und nachts schaut (aus den Wiedergabezeiten): Die Empfehlungszeilen auf der Quallenkino-Startseite stehen in passender Reihenfolge, tageszeit-typische Genres rücken etwas nach vorne. Wirkt ab 15 Wiedergaben in der jeweiligen Tageszeit.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="daypartWeight">Gewicht der Tageszeit:</label>
+                            <input is="emby-input" type="number" id="daypartWeight" name="daypartWeight" min="0" max="1" step="0.05" />
+                            <div class="fieldDescription">0 = aus (Standard: 0.15)</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="enableBehaviorSignals" />
+                                <span>Suchen und geöffnete Titel als kurzfristiges Interesse merken</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Ähnliche Titel rücken für einige Tage nach vorne („Weil du nach … gesucht hast“, „Weil du dir … angesehen hast“). Gespeichert nur auf dem Server, 30 Tage, höchstens 100 Einträge je Art. Jeder Benutzer sieht im Profilmenü „Was Quallenkino sich merkt“, was gemerkt ist, und kann es abschalten oder löschen.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="interestWeight">Gewicht von Suchen und angesehenen Titeln:</label>
+                            <input is="emby-input" type="number" id="interestWeight" name="interestWeight" min="0" max="1" step="0.05" />
+                            <div class="fieldDescription">0 = aus (Standard: 0.35)</div>
+                        </div>
+
                         <h2 class="sectionTitle">Ähnliche Titel von TMDB und Trakt</h2>
 
                         <div class="checkboxContainer checkboxContainer-withDescription">
@@ -962,6 +992,10 @@
                             page.querySelector('#worldListSource').value = listSource;
                             page.querySelector('#fanartApiKey').value = config.FanartApiKey || '';
                             page.querySelector('#enableExternalSimilarity').checked = config.EnableExternalSimilarity !== false;
+                            page.querySelector('#enableDaypart').checked = config.EnableDaypart !== false;
+                            page.querySelector('#daypartWeight').value = config.DaypartWeight !== undefined ? config.DaypartWeight : 0.15;
+                            page.querySelector('#enableBehaviorSignals').checked = config.EnableBehaviorSignals !== false;
+                            page.querySelector('#interestWeight').value = config.InterestWeight !== undefined ? config.InterestWeight : 0.35;
                             page.querySelector('#externalSimilarityWeight').value = config.ExternalSimilarityWeight !== undefined ? config.ExternalSimilarityWeight : 0.25;
                             page.querySelector('#tmdbApiKey').value = config.TmdbApiKey || '';
                             page.querySelector('#useJellyfinTmdbKey').checked = config.UseJellyfinTmdbKey !== false;
@@ -1086,6 +1120,12 @@
                             config.WorldListSource = page.querySelector('#worldListSource').value.trim();
                             config.FanartApiKey = page.querySelector('#fanartApiKey').value.trim();
                             config.EnableExternalSimilarity = page.querySelector('#enableExternalSimilarity').checked;
+                            config.EnableDaypart = page.querySelector('#enableDaypart').checked;
+                            var daypartWeight = parseFloat(page.querySelector('#daypartWeight').value);
+                            config.DaypartWeight = isNaN(daypartWeight) ? 0.15 : Math.min(1, Math.max(0, daypartWeight));
+                            config.EnableBehaviorSignals = page.querySelector('#enableBehaviorSignals').checked;
+                            var interestWeight = parseFloat(page.querySelector('#interestWeight').value);
+                            config.InterestWeight = isNaN(interestWeight) ? 0.35 : Math.min(1, Math.max(0, interestWeight));
                             var externalWeight = parseFloat(page.querySelector('#externalSimilarityWeight').value);
                             config.ExternalSimilarityWeight = isNaN(externalWeight) ? 0.25 : Math.min(1, Math.max(0, externalWeight));
                             config.TmdbApiKey = page.querySelector('#tmdbApiKey').value.trim();

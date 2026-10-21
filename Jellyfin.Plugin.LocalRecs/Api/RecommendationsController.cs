@@ -79,11 +79,12 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// </summary>
         /// <param name="type">"movies", "series" or "livetv".</param>
         /// <param name="limit">Optional maximum number of items.</param>
+        /// <param name="utcOffsetMinutes">Offset of the app's time zone in minutes (e.g. 120 for CEST), for the time of day; optional.</param>
         /// <returns>The items in recommendation order.</returns>
         [HttpGet("Recommendations")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public ActionResult<QueryResult<BaseItemDto>> GetRecommendations([FromQuery] string type = RecommendationSectionHandler.MoviesSection, [FromQuery] int? limit = null)
+        public ActionResult<QueryResult<BaseItemDto>> GetRecommendations([FromQuery] string type = RecommendationSectionHandler.MoviesSection, [FromQuery] int? limit = null, [FromQuery] int? utcOffsetMinutes = null)
         {
             var userId = GetUserId(User);
             if (userId == Guid.Empty)
@@ -95,11 +96,11 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             QueryResult<BaseItemDto> result;
             if (string.Equals(type, RecommendationSectionHandler.MoviesSection, StringComparison.OrdinalIgnoreCase))
             {
-                result = _recommendations.GetApiResults(request, RecommendationSectionHandler.MoviesSection);
+                result = _recommendations.GetApiResults(request, RecommendationSectionHandler.MoviesSection, utcOffsetMinutes);
             }
             else if (string.Equals(type, RecommendationSectionHandler.SeriesSection, StringComparison.OrdinalIgnoreCase))
             {
-                result = _recommendations.GetApiResults(request, RecommendationSectionHandler.SeriesSection);
+                result = _recommendations.GetApiResults(request, RecommendationSectionHandler.SeriesSection, utcOffsetMinutes);
             }
             else if (string.Equals(type, LiveTvType, StringComparison.OrdinalIgnoreCase))
             {

@@ -44,6 +44,11 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         /// </summary>
         public const int AbandonAfterDays = 3;
 
+        /// <summary>
+        /// Share of the runtime from which Jellyfin marks a movie as played.
+        /// </summary>
+        public const double PlayedShare = 0.9;
+
         // Höchstens so viele gesehene Titel kommen als Begründung („Weil du … geschaut hast“) in Frage
         private const int MaxReasonSources = 300;
 
@@ -90,6 +95,46 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 && positionTicks < runTimeTicks.Value * AbandonShare
                 && lastPlayed != null
                 && now - lastPlayed.Value >= TimeSpan.FromDays(AbandonAfterDays);
+        }
+
+        /// <summary>
+        /// Weight of a watched movie by how often it was watched: once 1, twice 1.25, up to 1.75 from four times.
+        /// </summary>
+        /// <param name="playCount">Play count.</param>
+        /// <returns>The factor.</returns>
+        public static float RewatchFactor(int playCount) => 1f + (0.25f * (Math.Clamp(playCount, 1, 4) - 1));
+
+        /// <summary>
+        /// Weight of a started, not finished movie (at least a quarter watched): 0.43 at a quarter up to 0.75 shortly before the end.
+        /// </summary>
+        /// <param name="positionTicks">Playback position.</param>
+        /// <param name="runTimeTicks">Runtime.</param>
+        /// <returns>The factor, or 0 if it does not count (too little watched, no runtime, finished).</returns>
+        public static float ProgressFactor(long positionTicks, long? runTimeTicks)
+        {
+            if (positionTicks <= 0 || runTimeTicks is not > 0)
+            {
+                return 0f;
+            }
+
+            var share = (double)positionTicks / runTimeTicks.Value;
+            return share < AbandonShare || share >= PlayedShare ? 0f : (float)(0.3 + (0.5 * share));
+        }
+
+        /// <summary>
+        /// Weight of a series by the share of watched episodes: 0.6 for barely started up to 1.4 for watched completely.
+        /// </summary>
+        /// <param name="played">Watched episodes.</param>
+        /// <param name="total">All episodes.</param>
+        /// <returns>The factor (1 if unknown).</returns>
+        public static float SeriesFactor(int played, int total)
+        {
+            if (total <= 0 || played <= 0)
+            {
+                return 1f;
+            }
+
+            return 0.6f + (0.8f * Math.Min(1f, (float)played / total));
         }
 
         /// <summary>
@@ -187,6 +232,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
 
             var itemIdSet = availableItemIds.ToHashSet();
             var itemsByTitle = new Dictionary<string, Guid>();
+            var seriesRecords = new Dictionary<Guid, WatchRecord>();
 
             foreach (var itemId in itemIdSet)
             {
@@ -239,6 +285,16 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                             CriticRating = item.CriticRating
                         });
                     }
+                    else if (ProgressFactor(userData.PlaybackPositionTicks, item.RunTimeTicks) is var progress and > 0f)
+                    {
+                        // Angefangen und mindestens ein Viertel geschaut: schwaches Interesse
+                        records.Add(new WatchRecord(itemId, userId, userData.LastPlayedDate ?? DateTime.UtcNow)
+                        {
+                            Engagement = progress,
+                            CommunityRating = item.CommunityRating,
+                            CriticRating = item.CriticRating
+                        });
+                    }
 
                     // For movies, Played = true means the movie was completed.
                     continue;
@@ -256,10 +312,35 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                     IsUnplayedLike = unplayedLike,
                     Likes = userData.Likes,
                     CommunityRating = item.CommunityRating,
-                    CriticRating = item.CriticRating
+                    CriticRating = item.CriticRating,
+                    Engagement = item is Series || !userData.Played ? 1f : RewatchFactor(userData.PlayCount)
                 };
 
                 records.Add(record);
+                if (item is Series && !unplayedLike)
+                {
+                    seriesRecords[itemId] = record;
+                }
+            }
+
+            // Serien: Anteil gesehener Folgen in einer Abfrage für alle
+            if (seriesRecords.Count > 0)
+            {
+                try
+                {
+                    var counts = _libraryManager.GetPlayedAndTotalCountBatch(seriesRecords.Keys.ToList(), user);
+                    foreach (var (seriesId, record) in seriesRecords)
+                    {
+                        if (counts != null && counts.TryGetValue(seriesId, out var count))
+                        {
+                            record.Engagement = SeriesFactor(count.Played, count.Total);
+                        }
+                    }
+                }
+                catch (Exception ex) when (ex is InvalidOperationException || ex is ArgumentException || ex is NotSupportedException)
+                {
+                    _logger.LogDebug(ex, "Anteil gesehener Folgen nicht ermittelbar");
+                }
             }
 
             AddLiveTvWatchRecords(userId, records, itemsByTitle, config);
@@ -370,6 +451,9 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 {
                     weight *= UnplayedLikeFactor;
                 }
+
+                // Mehrfach gesehen, Serie weit geschaut bzw. Film nur angefangen
+                weight *= record.Engagement;
 
                 // Daumen runter bzw. früh abgebrochen: vom Geschmack abziehen (ähnliche Titel werden seltener empfohlen)
                 if (record.Likes == false || record.IsAbandoned)

@@ -33,6 +33,7 @@ Das **Quallenkinoplugin** (bis 12.27 „Local Recommendations“) erweitert Jell
 - **Welten wie bei Disney+** und **„Top 10 bei euch“** – für Apps wie Quallenkino und die Quallenkino-Startseite
 - **Schnittstellen für TV-Apps** – alles auch für eigene Apps (Quallenkino für Android TV, Fire TV und webOS)
 - **Ähnliche Titel von TMDB und Trakt** – öffentliche Ähnlichkeitslisten als Zusatzsignal, besonders bei wenig Sehverlauf; dazu persönliche Trakt-Empfehlungen für Benutzer mit Trakt-Konto
+- **Verhalten** – mehrfach Gesehenes und Serienfortschritt zählen mehr, Tageszeit bestimmt die Reihenfolge, Suchen und geöffnete Titel wirken einige Tage (pro Benutzer abschaltbar)
 - **Datenschutz** – alle Berechnungen laufen lokal auf deinem Server; nach außen gehen nur Titel-IDs (siehe „Ähnliche Titel“), persönliche Trakt-Empfehlungen nur nach Einschalten durch den Benutzer, Sicherungen der Einstellungen ohne Schlüssel
 
 ## Voraussetzungen
@@ -108,6 +109,19 @@ Filme und Serien mit einer Community-Bewertung unter **5.0** werden nicht empfoh
 - **Filmreihen (ab 12.9.0):** Wurde ein Teil einer Jellyfin-Sammlung gesehen (z. B. „Harry Potter“), steht der nächste ungesehene Teil vorne in der Filmzeile – höchstens ein Viertel der Zeile, Mindestbewertung gilt weiterhin. Abschaltbar unter „Filmreihen: nächsten Teil vorziehen“.
 - **Begründung (ab 12.9.0):** Über dem Titel steht auf der Startseite, warum etwas empfohlen wird, z. B. „Weil du „Frieren“ geschaut hast“ (ähnlichster gesehener Titel) oder „Nächster Teil nach „Harry Potter 1““. Voraussetzung: In Home Screen Sections ist die Anzeige der Titel eingeschaltet. Abschaltbar unter „Begründung auf den Karten anzeigen“. Apps holen die Begründungen über `GET /LocalRecs/Recommendations/Reasons` (Zuordnung Element-ID → Text).
 - **Keine gesehenen Folgen im TV:** „Heute im TV für dich“ schlägt keine Folge vor, die schon live oder in der Bibliothek geschaut wurde (Abgleich über Sendung und Episodentitel). Läuft danach eine neue Folge, erscheint diese.
+
+### Verhalten: wie stark, wann, wonach gesucht (ab 12.36.0)
+
+Neben „gesehen“, Daumen und Favoriten wertet das Plugin aus – alles lokal auf dem Server:
+
+- **Wie weit geschaut, wie oft:** Ein zweimal gesehener Film zählt 1,25-fach, ab viermal 1,75-fach. Ein angefangener Film (mindestens ein Viertel, nicht abgebrochen) zählt als schwaches Interesse (0,43–0,75). Serien zählen nach dem Anteil gesehener Folgen: kaum angefangen 0,6, ganz gesehen 1,4.
+- **Tageszeit:** Aus den Wiedergabezeiten (Filme, Folgen, Live-TV) entsteht ein Profil, was jemand morgens (5–11 Uhr), tagsüber (11–17), abends (17–22) und nachts schaut. Die Empfehlungszeilen Filme/Serien/Live-TV der Quallenkino-Startseite stehen in der passenden Reihenfolge, Titel mit tageszeit-typischen Genres rücken etwas nach vorne („Gewicht der Tageszeit“, 0.15). Wirkt ab 15 Wiedergaben in der jeweiligen Tageszeit; die Uhrzeit kommt aus der Zeitzone des Browsers (`utcOffsetMinutes`), ohne Angabe die des Servers.
+- **Suchen und geöffnete Titel:** Was jemand in Jellyfin sucht (nach einer Tipp-Pause) und welche Detailseiten er öffnet, gilt einige Tage als Interesse. Ähnliche Titel (Genres, Stichwörter) rücken nach vorne („Gewicht von Suchen und angesehenen Titeln“, 0.35; nach 7 Tagen nur noch ein Drittel), mit Begründung **„Weil du nach „…“ gesucht hast“** bzw. **„Weil du dir „…“ angesehen hast“**. Gespeichert in `plugins/LocalRecs/verhalten.json`: Suchbegriff mit den passenden Titeln bzw. Titel-ID, jeweils mit Zeit – höchstens 30 Tage und 100 Einträge je Art.
+- **Für jeden einsehbar und abschaltbar:** Im Profilmenü **„Was Quallenkino sich merkt“** steht, was gemerkt ist und wie die Tageszeit gerade wirkt; dort lässt sich das Merken abschalten (löscht alles) oder alles löschen. Der Admin schaltet beides in den Einstellungen ab („Verhalten: Tageszeit, Suchen, angesehene Titel“).
+- Wirkung beim Abruf: Die nächtlich berechneten Empfehlungen werden beim Laden der Startseite bzw. von `GET /LocalRecs/Recommendations` (auch in Home Screen Sections) leicht umsortiert – Suchen wirken also sofort.
+- Schnittstelle (für den angemeldeten Benutzer): `POST /LocalRecs/Behavior/Search {Term}`, `POST /LocalRecs/Behavior/View {ItemId}`, `GET /LocalRecs/Behavior/Daypart?utcOffsetMinutes=`, `GET/POST/DELETE /LocalRecs/Behavior/Me`; `GET /LocalRecs/Recommendations` nimmt `utcOffsetMinutes`.
+
+Nicht ausgewertet: wohin jemand scrollt oder wie lange er auf einer Kachel verweilt, welches Gerät, Vorschaubilder – und nichts davon verlässt den Server.
 
 ### Ähnliche Titel von TMDB und Trakt (ab 12.33.0)
 

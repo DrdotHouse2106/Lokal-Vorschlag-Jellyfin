@@ -32,6 +32,7 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
         /// </summary>
         public const string SeriesSection = "series";
 
+        private readonly Behavior.BehaviorService? _behavior;
         private readonly ILogger<RecommendationSectionHandler> _logger;
         private readonly IUserManager _userManager;
         private readonly ILibraryManager _libraryManager;
@@ -48,19 +49,22 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
         /// <param name="userDataManager">User data manager.</param>
         /// <param name="dtoService">DTO service.</param>
         /// <param name="store">Recommendation store.</param>
+        /// <param name="behavior">Time of day and recent interest (sorts the recommendations again when they are fetched), optional.</param>
         public RecommendationSectionHandler(
             ILogger<RecommendationSectionHandler> logger,
             IUserManager userManager,
             ILibraryManager libraryManager,
             IUserDataManager userDataManager,
             IDtoService dtoService,
-            RecommendationStore store)
+            RecommendationStore store,
+            Behavior.BehaviorService? behavior = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
             _libraryManager = libraryManager ?? throw new ArgumentNullException(nameof(libraryManager));
             _userDataManager = userDataManager ?? throw new ArgumentNullException(nameof(userDataManager));
             _dtoService = dtoService ?? throw new ArgumentNullException(nameof(dtoService));
+            _behavior = behavior;
             _store = store ?? throw new ArgumentNullException(nameof(store));
         }
 
@@ -122,13 +126,39 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
         }
 
         /// <summary>
+        /// Returns the recommendations for apps, sorted for the time of day in the app's time zone.
+        /// </summary>
+        /// <param name="request">Section request.</param>
+        /// <param name="section">Section type.</param>
+        /// <param name="utcOffsetMinutes">Offset of the app's time zone.</param>
+        /// <returns>The items.</returns>
+        public QueryResult<BaseItemDto> GetApiResults(SectionRequest request, string section, int? utcOffsetMinutes)
+        {
+            return GetResults(request, section, false, utcOffsetMinutes);
+        }
+
+        /// <summary>
         /// Gets the reasons of the recommendations of a user (e.g. "Weil du „Frieren“ geschaut hast").
         /// </summary>
         /// <param name="userId">User ID.</param>
         /// <returns>Reasons by item ID.</returns>
         public IReadOnlyDictionary<Guid, string> GetReasons(Guid userId)
         {
-            return _store.Get(userId)?.Reasons ?? new Dictionary<Guid, string>();
+            var stored = _store.Get(userId)?.Reasons ?? new Dictionary<Guid, string>();
+            var recent = _behavior?.GetReasons(userId);
+            if (recent == null || recent.Count == 0)
+            {
+                return stored;
+            }
+
+            // Suchen und angesehene Titel sind aktueller als die nächtliche Berechnung
+            var merged = new Dictionary<Guid, string>(stored);
+            foreach (var (id, reason) in recent)
+            {
+                merged[id] = reason;
+            }
+
+            return merged;
         }
 
         /// <summary>
@@ -138,7 +168,17 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
         /// <param name="userId">User ID.</param>
         /// <param name="section">Section type (<see cref="MoviesSection"/> or <see cref="SeriesSection"/>).</param>
         /// <returns>The items in recommendation order.</returns>
-        public IReadOnlyList<BaseItem> GetItems(Guid userId, string? section)
+        public IReadOnlyList<BaseItem> GetItems(Guid userId, string? section) => GetItems(userId, section, null);
+
+        /// <summary>
+        /// Resolves the stored recommendations of a user and sorts them again for now (time of day, recent searches and
+        /// viewed titles).
+        /// </summary>
+        /// <param name="userId">User ID.</param>
+        /// <param name="section">Section type (<see cref="MoviesSection"/> or <see cref="SeriesSection"/>).</param>
+        /// <param name="utcOffsetMinutes">Offset of the user's time zone, optional (otherwise the server's).</param>
+        /// <returns>The items.</returns>
+        public IReadOnlyList<BaseItem> GetItems(Guid userId, string? section, int? utcOffsetMinutes)
         {
             if (userId == Guid.Empty)
             {
@@ -161,11 +201,6 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var id in ids)
             {
-                if (limit > 0 && result.Count >= limit)
-                {
-                    break;
-                }
-
                 var item = _libraryManager.GetItemById(id);
                 if (item == null || !item.IsVisibleStandalone(user))
                 {
@@ -188,14 +223,27 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
                 result.Add(item);
             }
 
-            return result;
+            IReadOnlyList<BaseItem> ordered = result;
+            if (_behavior != null)
+            {
+                try
+                {
+                    ordered = _behavior.Rerank(user, result, utcOffsetMinutes);
+                }
+                catch (Exception ex) when (ex is InvalidOperationException || ex is ArgumentException)
+                {
+                    _logger.LogDebug(ex, "Umsortierung nach Tageszeit/Interesse übersprungen");
+                }
+            }
+
+            return limit > 0 ? ordered.Take(limit).ToList() : ordered;
         }
 
-        private QueryResult<BaseItemDto> GetResults(SectionRequest? request, string section, bool reasonLine)
+        private QueryResult<BaseItemDto> GetResults(SectionRequest? request, string section, bool reasonLine, int? utcOffsetMinutes = null)
         {
             try
             {
-                var items = GetItems(request?.UserId ?? Guid.Empty, section);
+                var items = GetItems(request?.UserId ?? Guid.Empty, section, utcOffsetMinutes);
                 if (items.Count == 0)
                 {
                     return new QueryResult<BaseItemDto>();

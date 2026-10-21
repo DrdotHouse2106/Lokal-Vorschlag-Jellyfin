@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.36.0] - 2026-10-21
+
+### Added
+
+- **How far and how often:** rewatched movies count more (twice 1.25×, from four times 1.75×), started movies (at least a quarter, not abandoned) count as weak interest, series by the share of watched episodes (0.6×–1.4×, one batch query for all series).
+- **Time of day:** per user a profile of what is watched in the morning, daytime, evening and night (play times of movies, episodes and live TV). The Quallenkino start page orders the rows movies/series/live TV by it, and titles with genres typical for the time of day move up a little. From 15 plays per daypart; time zone of the browser.
+- **Searches and opened titles** count as short-term interest: similar titles move up for a few days with the reason „Weil du nach „…“ gesucht hast“ / „Weil du dir „…“ angesehen hast“. Kept on the server for 30 days (at most 100 entries each). Profile menu „Was Quallenkino sich merkt“ shows what is noted, switches it off (deleting everything) or deletes it. Admin switches and weights in the settings.
+- Recommendations are sorted again when fetched (start page, Home Screen Sections, `GET /LocalRecs/Recommendations?utcOffsetMinutes=`), so searches take effect at once.
+- API: `POST /LocalRecs/Behavior/Search`, `POST /LocalRecs/Behavior/View`, `GET /LocalRecs/Behavior/Daypart`, `GET/POST/DELETE /LocalRecs/Behavior/Me`.
+
 ## [12.35.0] - 2026-10-21
 
 ### Added

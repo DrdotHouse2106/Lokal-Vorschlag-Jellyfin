@@ -65,5 +65,11 @@ namespace Jellyfin.Plugin.LocalRecs.Models
         /// Gets or sets the critic rating (0-100 scale) of the item, if available.
         /// </summary>
         public float? CriticRating { get; set; }
+
+        /// <summary>
+        /// Gets or sets how strongly the user engaged with the title (1 = watched once; more for rewatches and series
+        /// watched far, less for started movies and series of which only a few episodes were watched).
+        /// </summary>
+        public float Engagement { get; set; } = 1f;
     }
 }

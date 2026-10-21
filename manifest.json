@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.36.0.0",
+        "changelog": "Verhalten wie bei großen Streamingdiensten – aber lokal\n- Mehrfach Gesehenes und weit geschaute Serien zählen mehr, kurz Angefangenes weniger\n- Die Tageszeit ordnet die Empfehlungszeilen und hebt passende Genres hervor\n- Suchen und geöffnete, nicht gestartete Titel wirken einige Tage („Weil du nach … gesucht hast“), pro Benutzer abschaltbar und löschbar unter „Was Quallenkino sich merkt“\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.36.0.zip",
+        "checksum": "fe57f13ba7e499097ca006b232a7489d",
+        "timestamp": "2026-10-21T10:00:00Z"
+      },
+      {
         "version": "12.35.0.0",
         "changelog": "Identitätsnachweis für TV-Apps\n- Apps prüfen im Heimnetz vor dem Senden des Zugangs, dass ihr eigener Server antwortet (GET /LocalRecs/Identity/Challenge)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
