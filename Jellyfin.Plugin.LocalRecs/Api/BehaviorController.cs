@@ -119,6 +119,8 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             {
                 FeatureEnabled = Config.EnableBehaviorSignals,
                 Enabled = _store.IsEnabled(user.Id),
+                RetentionDays = _store.RetentionDays,
+                MaxEntries = _store.MaxEntries,
                 DaypartEnabled = Config.EnableDaypart,
                 Daypart = daypart.Label,
                 PlaysInDaypart = daypart.Plays,
@@ -230,6 +232,12 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets a value indicating whether the user lets the plugin note searches and viewed titles.</summary>
             public bool Enabled { get; set; }
+
+            /// <summary>Gets or sets how many days entries are kept.</summary>
+            public int RetentionDays { get; set; }
+
+            /// <summary>Gets or sets how many searches and how many viewed titles are kept.</summary>
+            public int MaxEntries { get; set; }
 
             /// <summary>Gets or sets a value indicating whether the time of day counts.</summary>
             public bool DaypartEnabled { get; set; }

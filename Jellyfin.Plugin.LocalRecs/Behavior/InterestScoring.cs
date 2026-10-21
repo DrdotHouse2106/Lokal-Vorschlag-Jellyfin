@@ -5,12 +5,18 @@ using System.Linq;
 namespace Jellyfin.Plugin.LocalRecs.Behavior
 {
     /// <summary>
-    /// Kurzfristiges Interesse (Suchen, angesehene Titel) und die Umsortierung der gespeicherten Empfehlungen beim Abruf.
+    /// Interesse aus Suchen und angesehenen Titeln und die Umsortierung der gespeicherten Empfehlungen beim Abruf.
     /// </summary>
     public static class InterestScoring
     {
-        /// <summary>Days after which an interest counts only a third (e^-1).</summary>
-        public const double DecayDays = 7;
+        /// <summary>Default days after which an interest counts only a third (e^-1).</summary>
+        public const double DefaultDecayDays = 30;
+
+        /// <summary>Weight below which an interest is ignored.</summary>
+        public const double MinWeight = 0.03;
+
+        /// <summary>Most interests used for one reordering (the strongest).</summary>
+        public const int MaxInterests = 300;
 
         /// <summary>Weight of a search (relative).</summary>
         public const double SearchWeight = 1.0;
@@ -19,11 +25,23 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
         public const double ViewWeight = 0.6;
 
         /// <summary>
-        /// Weight of an interest by its age: 1 now, e^-1 after <see cref="DecayDays"/> days.
+        /// Weight of an interest by its age: 1 now, e^-1 after <paramref name="decayDays"/> days.
         /// </summary>
         /// <param name="age">Age.</param>
+        /// <param name="decayDays">Days after which it counts only a third.</param>
         /// <returns>The weight.</returns>
-        public static double Decay(TimeSpan age) => Math.Exp(-Math.Max(0, age.TotalDays) / DecayDays);
+        public static double Decay(TimeSpan age, double decayDays = DefaultDecayDays) => Math.Exp(-Math.Max(0, age.TotalDays) / Math.Max(1, decayDays));
+
+        /// <summary>
+        /// Combines repeated interest in the same title: the weights add up, at most to 1.
+        /// </summary>
+        /// <param name="weights">Weights of the single entries.</param>
+        /// <returns>The combined weight.</returns>
+        public static double Combine(IEnumerable<double> weights)
+        {
+            ArgumentNullException.ThrowIfNull(weights);
+            return Math.Min(1, weights.Sum());
+        }
 
         /// <summary>
         /// Similarity of two titles by genres and tags (Jaccard), 1 for the same title.

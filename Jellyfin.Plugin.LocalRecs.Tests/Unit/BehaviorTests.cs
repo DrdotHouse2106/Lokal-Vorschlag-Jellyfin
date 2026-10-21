@@ -76,7 +76,15 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
         public void Decay_FallsOverDays()
         {
             InterestScoring.Decay(TimeSpan.Zero).Should().Be(1);
-            InterestScoring.Decay(TimeSpan.FromDays(7)).Should().BeApproximately(Math.Exp(-1), 0.0001);
+            InterestScoring.Decay(TimeSpan.FromDays(30)).Should().BeApproximately(Math.Exp(-1), 0.0001, "Standard: ein Drittel nach 30 Tagen");
+            InterestScoring.Decay(TimeSpan.FromDays(7), 7).Should().BeApproximately(Math.Exp(-1), 0.0001);
+        }
+
+        [Fact]
+        public void Combine_RepeatedInterestAddsUp_AtMostOne()
+        {
+            InterestScoring.Combine(new[] { 0.3, 0.2 }).Should().BeApproximately(0.5, 0.0001);
+            InterestScoring.Combine(new[] { 0.6, 0.6, 0.6 }).Should().Be(1);
         }
 
         [Fact]
@@ -112,9 +120,9 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
         }
 
         [Fact]
-        public void Store_KeepsAtMost100_AndDropsOldEntries()
+        public void Store_KeepsAtMostMaxEntries_AndDropsOldEntries()
         {
-            var store = new BehaviorStore(NullLogger<BehaviorStore>.Instance, Path.Combine(Path.GetTempPath(), "lr-behavior-" + Guid.NewGuid().ToString("N") + ".json"));
+            var store = new BehaviorStore(NullLogger<BehaviorStore>.Instance, Path.Combine(Path.GetTempPath(), "lr-behavior-" + Guid.NewGuid().ToString("N") + ".json"), 30, 100);
             var user = Guid.NewGuid();
             var now = DateTime.UtcNow;
             store.AddView(user, Guid.NewGuid(), now.AddDays(-40));
@@ -123,8 +131,25 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
                 store.AddView(user, Guid.NewGuid(), now.AddMinutes(i));
             }
 
-            store.Get(user).Views.Should().HaveCount(BehaviorStore.MaxEntries);
+            store.Get(user).Views.Should().HaveCount(100);
             store.Get(user).Views.Should().OnlyContain(v => v.At >= now);
+        }
+
+        [Fact]
+        public void Store_DefaultsKeepAYearAnd1000Entries()
+        {
+            var store = new BehaviorStore(NullLogger<BehaviorStore>.Instance, Path.Combine(Path.GetTempPath(), "lr-behavior-" + Guid.NewGuid().ToString("N") + ".json"));
+            var user = Guid.NewGuid();
+            var now = DateTime.UtcNow;
+            var version = store.Version;
+            store.AddView(user, Guid.NewGuid(), now.AddDays(-200));
+            store.AddView(user, Guid.NewGuid(), now.AddDays(-400));
+            store.AddView(user, Guid.NewGuid(), now);
+
+            store.RetentionDays.Should().Be(365);
+            store.MaxEntries.Should().Be(1000);
+            store.Version.Should().BeGreaterThan(version);
+            store.Get(user).Views.Should().HaveCount(2, "200 Tage alt bleibt, 400 Tage alt nicht");
         }
 
         // Abends (Berlin) vor allem Filme mit Thriller, tagsüber vor allem Serien mit Animation

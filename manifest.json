@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.37.0.0",
+        "changelog": "Längeres Gedächtnis\n- Suchen und geöffnete Titel werden standardmäßig ein Jahr gespeichert (bis zu 1000 Einträge je Art) und wirken wochenlang nach\n- Wiederholtes Interesse am selben Titel zählt mehr\n- Speicherdauer, Anzahl und Nachwirkung in den Einstellungen wählbar\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.37.0.zip",
+        "checksum": "8dcb9de168ae8f47cddb79e654c08bb1",
+        "timestamp": "2026-10-21T11:00:00Z"
+      },
+      {
         "version": "12.36.0.0",
         "changelog": "Verhalten wie bei großen Streamingdiensten – aber lokal\n- Mehrfach Gesehenes und weit geschaute Serien zählen mehr, kurz Angefangenes weniger\n- Die Tageszeit ordnet die Empfehlungszeilen und hebt passende Genres hervor\n- Suchen und geöffnete, nicht gestartete Titel wirken einige Tage („Weil du nach … gesucht hast“), pro Benutzer abschaltbar und löschbar unter „Was Quallenkino sich merkt“\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

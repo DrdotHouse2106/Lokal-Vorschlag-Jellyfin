@@ -200,7 +200,7 @@ Since 12.6.0: `GET /LocalRecs/Top10?type=all|movies|series&days=60&limit=10` ret
 
 - Rewatches count more (twice 1.25, four times 1.75); started movies (at least a quarter, not abandoned) count as weak interest; series count by the share of watched episodes (0.6–1.4).
 - Time of day: a profile of what a user watches in the morning (5–11), daytime (11–17), evening (17–22) and night, from play times. The recommendation rows movies/series/live TV of the Quallenkino start page follow it, and genres typical for the time of day move titles up a little (weight 0.15). From 15 plays per daypart; time zone from the browser (`utcOffsetMinutes`).
-- Searches and opened detail pages count as interest for a few days (weight 0.35, a third after 7 days), with reasons „Weil du nach „…“ gesucht hast“ / „Weil du dir „…“ angesehen hast“. Stored only on the server (`verhalten.json`), 30 days, at most 100 entries each. Each user sees and controls it in the profile menu „Was Quallenkino sich merkt“ (switch off deletes everything); admins can switch both off.
+- Searches and opened detail pages count as interest (weight 0.35, a third after the „Nachwirkung“ of 30 days; repeated interest in the same title adds up), with reasons „Weil du nach „…“ gesucht hast“ / „Weil du dir „…“ angesehen hast“. Stored only on the server (`verhalten.json`), by default 365 days and at most 1000 entries each (adjustable: 7–1095 days, 50–5000 entries). Each user sees and controls it in the profile menu „Was Quallenkino sich merkt“ (switch off deletes everything); admins can switch both off.
 - API: `POST /LocalRecs/Behavior/Search {Term}`, `POST /LocalRecs/Behavior/View {ItemId}`, `GET /LocalRecs/Behavior/Daypart?utcOffsetMinutes=`, `GET/POST/DELETE /LocalRecs/Behavior/Me`; `GET /LocalRecs/Recommendations` takes `utcOffsetMinutes`.
 
 ### Similar titles from TMDB and Trakt (since 12.33.0)
@@ -225,7 +225,7 @@ Public similarity lists are an extra signal on top of the own content similarity
 - All computation happens on your server; no tracking or telemetry
 - Outgoing: only title IDs to TMDB/Trakt (similar titles, see above) and, for users who switched it on, the request of their Trakt recommendation list
 - Configuration backups without keys
-- Searches and opened titles stay on the server (30 days), each user can see, switch off and delete them
+- Searches and opened titles stay on the server (365 days by default, adjustable), each user can see, switch off and delete them
 
 ### Live TV
 

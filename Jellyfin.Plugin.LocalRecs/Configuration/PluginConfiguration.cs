@@ -72,6 +72,9 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             DaypartWeight = 0.15;
             EnableBehaviorSignals = true;
             InterestWeight = 0.35;
+            BehaviorRetentionDays = 365;
+            BehaviorMaxEntries = 1000;
+            InterestDecayDays = 30;
             TraktPersonalWeight = 0.5;
             CalendarPublicUrl = string.Empty;
             CalendarAlarmMinutes = 10;
@@ -436,7 +439,7 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
 
         /// <summary>
         /// Gets or sets a value indicating whether searches and viewed titles (detail page opened) are noted as short-term
-        /// interest (since 12.36.0). Each user can switch it off; entries are kept 30 days.
+        /// interest (since 12.36.0). Each user can switch it off; entries are kept <see cref="BehaviorRetentionDays"/> days.
         /// </summary>
         public bool EnableBehaviorSignals { get; set; }
 
@@ -444,6 +447,21 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Gets or sets how strongly recent searches and viewed titles move similar titles up (0 = off).
         /// </summary>
         public double InterestWeight { get; set; }
+
+        /// <summary>
+        /// Gets or sets how many days searches and viewed titles are kept (7–1095, since 12.37.0).
+        /// </summary>
+        public int BehaviorRetentionDays { get; set; }
+
+        /// <summary>
+        /// Gets or sets how many searches and how many viewed titles are kept per user (50–5000, since 12.37.0).
+        /// </summary>
+        public int BehaviorMaxEntries { get; set; }
+
+        /// <summary>
+        /// Gets or sets after how many days a search or viewed title counts only a third (3–365, since 12.37.0).
+        /// </summary>
+        public int InterestDecayDays { get; set; }
 
         /// <summary>
         /// Gets or sets the public address of the server for calendar links (e.g. https://jellyfin.example.org).

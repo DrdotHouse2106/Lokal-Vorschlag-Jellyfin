@@ -3,41 +3,59 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.LocalRecs.Behavior
 {
     /// <summary>
     /// Merkt sich pro Benutzer, wonach er zuletzt gesucht und welche Titel er sich angesehen (Detailseite geöffnet) hat –
-    /// als kurzfristiges Interesse für die Empfehlungen. Nur auf dem Server, höchstens 30 Tage und 100 Einträge je Art;
-    /// jeder Benutzer kann es abschalten (dabei wird alles gelöscht) oder seine Einträge löschen.
+    /// als Interesse für die Empfehlungen. Nur auf dem Server; wie lange und wie viele Einträge, stellt der Admin ein
+    /// (Standard: 365 Tage und 1000 Einträge je Art). Jeder Benutzer kann es abschalten (dabei wird alles gelöscht) oder
+    /// seine Einträge löschen.
     /// </summary>
     public class BehaviorStore
     {
-        /// <summary>Maximum number of entries per kind and user.</summary>
-        public const int MaxEntries = 100;
+        /// <summary>Default maximum number of entries per kind and user.</summary>
+        public const int DefaultMaxEntries = 1000;
 
-        /// <summary>Days an entry is kept.</summary>
-        public const int RetentionDays = 30;
+        /// <summary>Default number of days an entry is kept.</summary>
+        public const int DefaultRetentionDays = 365;
 
         private readonly ILogger<BehaviorStore> _logger;
         private readonly string _path;
+        private readonly int? _retentionDays;
+        private readonly int? _maxEntries;
         private readonly object _lock = new object();
         private Dictionary<string, UserBehavior>? _users;
+        private long _version;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BehaviorStore"/> class.
         /// </summary>
         /// <param name="logger">Logger instance.</param>
         /// <param name="path">File of the store.</param>
-        public BehaviorStore(ILogger<BehaviorStore> logger, string path)
+        /// <param name="retentionDays">Days an entry is kept, optional (otherwise from the configuration).</param>
+        /// <param name="maxEntries">Entries per kind and user, optional (otherwise from the configuration).</param>
+        public BehaviorStore(ILogger<BehaviorStore> logger, string path, int? retentionDays = null, int? maxEntries = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _path = path ?? throw new ArgumentNullException(nameof(path));
+            _retentionDays = retentionDays;
+            _maxEntries = maxEntries;
         }
 
+        /// <summary>Gets the number of days an entry is kept.</summary>
+        public int RetentionDays => _retentionDays ?? Math.Clamp(Plugin.Instance?.Configuration?.BehaviorRetentionDays ?? DefaultRetentionDays, 7, 1095);
+
+        /// <summary>Gets the maximum number of entries per kind and user.</summary>
+        public int MaxEntries => _maxEntries ?? Math.Clamp(Plugin.Instance?.Configuration?.BehaviorMaxEntries ?? DefaultMaxEntries, 50, 5000);
+
+        /// <summary>Gets a number that changes with every change of the stored entries.</summary>
+        public long Version => Interlocked.Read(ref _version);
+
         /// <summary>
-        /// Gets a copy of the stored behavior of a user (without entries older than 30 days).
+        /// Gets a copy of the stored behavior of a user (without entries older than <see cref="RetentionDays"/>).
         /// </summary>
         /// <param name="userId">The user.</param>
         /// <returns>The behavior.</returns>
@@ -154,19 +172,20 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
             });
         }
 
-        private static void Prune(UserBehavior behavior, DateTime now)
+        private void Prune(UserBehavior behavior, DateTime now)
         {
+            var max = MaxEntries;
             var limit = now.AddDays(-RetentionDays);
             behavior.Searches.RemoveAll(s => s.At < limit);
             behavior.Views.RemoveAll(v => v.At < limit);
-            if (behavior.Searches.Count > MaxEntries)
+            if (behavior.Searches.Count > max)
             {
-                behavior.Searches.RemoveRange(0, behavior.Searches.Count - MaxEntries);
+                behavior.Searches.RemoveRange(0, behavior.Searches.Count - max);
             }
 
-            if (behavior.Views.Count > MaxEntries)
+            if (behavior.Views.Count > max)
             {
-                behavior.Views.RemoveRange(0, behavior.Views.Count - MaxEntries);
+                behavior.Views.RemoveRange(0, behavior.Views.Count - max);
             }
         }
 
@@ -189,6 +208,7 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
                 }
 
                 change(entry);
+                Interlocked.Increment(ref _version);
                 json = JsonSerializer.Serialize(_users);
             }
 

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.37.0] - 2026-10-21
+
+### Changed
+
+- **Searches and opened titles are kept longer and count longer:** by default 365 days (before 30) and up to 1000 entries each (before 100); a third after 30 days (before 7). Adjustable in the settings: „Speicherdauer in Tagen“ (7–1095), „Einträge je Benutzer“ (50–5000), „Nachwirkung in Tagen“ (3–365).
+- Repeated interest in the same title adds up (at most like a fresh search); the strongest 300 interests are used, cached until something changes.
+- „Was Quallenkino sich merkt“ shows the number of entries, the storage time and „Alle anzeigen“.
+- `GET /LocalRecs/Behavior/Me` also returns `RetentionDays` and `MaxEntries`.
+
 ## [12.36.0] - 2026-10-21
 
 ### Added

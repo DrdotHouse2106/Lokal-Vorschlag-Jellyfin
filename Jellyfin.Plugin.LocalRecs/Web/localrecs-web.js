@@ -4833,9 +4833,10 @@
                 send('POST', 'LocalRecs/Behavior/Me', { Enabled: check.checked }).then(load);
             });
             label.appendChild(check);
-            label.appendChild(el('span', null, ' Suchen und geöffnete Titel 30 Tage lang merken'));
+            var days = st.RetentionDays || 365;
+            label.appendChild(el('span', null, ' Suchen und geöffnete Titel merken (' + (days % 365 === 0 ? (days / 365 === 1 ? 'ein Jahr' : days / 365 + ' Jahre') : days + ' Tage') + ')'));
             box.appendChild(label);
-            box.appendChild(el('p', 'lr-cal-hint', 'Ähnliche Titel rücken dann für ein paar Tage nach vorne („Weil du nach … gesucht hast“). Ausschalten löscht alles.'));
+            box.appendChild(el('p', 'lr-cal-hint', 'Ähnliche Titel rücken dann nach vorne („Weil du nach … gesucht hast“), Neues zählt mehr als Älteres. Ausschalten löscht alles.'));
             if (!st.Enabled) {
                 return;
             }
@@ -4843,14 +4844,26 @@
                 box.appendChild(el('p', 'lr-cal-text', 'Noch nichts gemerkt.'));
                 return;
             }
+            box.appendChild(el('p', 'lr-cal-text', st.Searches.length + ' Suchen, ' + st.Views.length + ' angesehene Titel gemerkt.'));
             var list = el('ul', 'lr-behavior-list');
-            st.Searches.slice(0, 10).forEach(function (s) {
-                list.appendChild(el('li', null, 'Gesucht: „' + s.Term + '“ · ' + when(s.At)));
-            });
-            st.Views.slice(0, 10).forEach(function (v) {
-                list.appendChild(el('li', null, 'Angesehen: „' + (v.Name || 'unbekannt') + '“ · ' + when(v.At)));
-            });
+            var fill = function (count) {
+                list.innerHTML = '';
+                st.Searches.slice(0, count).forEach(function (s) {
+                    list.appendChild(el('li', null, 'Gesucht: „' + s.Term + '“ · ' + when(s.At)));
+                });
+                st.Views.slice(0, count).forEach(function (v) {
+                    list.appendChild(el('li', null, 'Angesehen: „' + (v.Name || 'unbekannt') + '“ · ' + when(v.At)));
+                });
+            };
+            fill(10);
             box.appendChild(list);
+            if (st.Searches.length > 10 || st.Views.length > 10) {
+                var more = button('lr-btn-link', 'expand_more', 'Alle anzeigen', function () {
+                    fill(Infinity);
+                    more.remove();
+                });
+                box.appendChild(more);
+            }
             box.appendChild(button('lr-btn-link', 'delete_outline', 'Alles löschen', function () {
                 send('DELETE', 'LocalRecs/Behavior/Me').then(load);
             }));

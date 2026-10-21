@@ -3070,4 +3070,6 @@ html.lr-profiles-open body {
     margin: 0.4em 0 1em;
     padding-left: 1.2em;
     line-height: 1.6;
+    max-height: 40vh;
+    overflow-y: auto;
 }

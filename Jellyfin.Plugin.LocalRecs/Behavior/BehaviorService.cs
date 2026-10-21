@@ -27,8 +27,8 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
     {
         private const int MaxMovies = 500;
         private const int MaxEpisodes = 800;
-        private const int MaxInterestDays = 14;
         private static readonly TimeSpan ProfileCacheDuration = TimeSpan.FromHours(1);
+        private static readonly TimeSpan InterestCacheDuration = TimeSpan.FromMinutes(10);
 
         private readonly ILibraryManager _libraryManager;
         private readonly IUserDataManager _userDataManager;
@@ -37,6 +37,7 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
         private readonly ILogger<BehaviorService> _logger;
         private readonly ConcurrentDictionary<Guid, (DateTime Created, DaypartProfile Profile)> _profiles = new();
         private readonly ConcurrentDictionary<Guid, IReadOnlyDictionary<Guid, string>> _reasons = new();
+        private readonly ConcurrentDictionary<Guid, (DateTime Created, long Version, List<Interest> Interests)> _interests = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BehaviorService"/> class.
@@ -245,6 +246,7 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
         public void Forget(Guid userId)
         {
             _reasons.TryRemove(userId, out _);
+            _interests.TryRemove(userId, out _);
         }
 
         private static IReadOnlyCollection<string> Features(BaseItem item) => (item.Genres ?? Array.Empty<string>()).Concat(item.Tags ?? Array.Empty<string>()).ToList();
@@ -261,30 +263,51 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
             });
         }
 
+        // Alle gespeicherten Suchen und angesehenen Titel, älter = schwächer; mehrfaches Interesse am selben Titel addiert sich.
+        // Zwischengespeichert, bis sich die Einträge ändern (höchstens 10 Minuten, damit das Altern wirkt).
         private List<Interest> Interests(User user, DateTime now)
         {
+            var version = _store.Version;
+            if (_interests.TryGetValue(user.Id, out var cached) && cached.Version == version && now - cached.Created < InterestCacheDuration)
+            {
+                return cached.Interests;
+            }
+
             var behavior = _store.Get(user.Id);
-            var limit = now.AddDays(-MaxInterestDays);
+            var decayDays = Math.Clamp(Config.InterestDecayDays, 3, 365);
+            var entries = new List<(Guid ItemId, double Weight, string Reason)>();
+            foreach (var search in behavior.Searches)
+            {
+                var weight = InterestScoring.SearchWeight * InterestScoring.Decay(now - search.At, decayDays);
+                if (weight >= InterestScoring.MinWeight)
+                {
+                    entries.AddRange(search.Matches.Take(5).Select(id => (id, weight, "Weil du nach „" + search.Term + "“ gesucht hast")));
+                }
+            }
+
+            foreach (var view in behavior.Views)
+            {
+                var weight = InterestScoring.ViewWeight * InterestScoring.Decay(now - view.At, decayDays);
+                if (weight >= InterestScoring.MinWeight)
+                {
+                    entries.Add((view.ItemId, weight, string.Empty));
+                }
+            }
+
             var result = new List<Interest>();
-            foreach (var search in behavior.Searches.Where(s => s.At >= limit))
+            foreach (var group in entries.GroupBy(e => e.ItemId).OrderByDescending(g => InterestScoring.Combine(g.Select(e => e.Weight))).Take(InterestScoring.MaxInterests))
             {
-                foreach (var id in search.Matches.Take(5))
+                if (_libraryManager.GetItemById(group.Key) is not { } item || !item.IsVisibleStandalone(user))
                 {
-                    if (_libraryManager.GetItemById(id) is { } item && item.IsVisibleStandalone(user))
-                    {
-                        result.Add(new Interest(item.Id, Features(item), InterestScoring.SearchWeight * InterestScoring.Decay(now - search.At), "Weil du nach „" + search.Term + "“ gesucht hast"));
-                    }
+                    continue;
                 }
+
+                var strongest = group.OrderByDescending(e => e.Weight).First();
+                var reason = strongest.Reason.Length > 0 ? strongest.Reason : "Weil du dir „" + item.Name + "“ angesehen hast";
+                result.Add(new Interest(item.Id, Features(item), InterestScoring.Combine(group.Select(e => e.Weight)), reason));
             }
 
-            foreach (var view in behavior.Views.Where(v => v.At >= limit))
-            {
-                if (_libraryManager.GetItemById(view.ItemId) is { } item && item.IsVisibleStandalone(user))
-                {
-                    result.Add(new Interest(item.Id, Features(item), InterestScoring.ViewWeight * InterestScoring.Decay(now - view.At), "Weil du dir „" + item.Name + "“ angesehen hast"));
-                }
-            }
-
+            _interests[user.Id] = (now, version, result);
             return result;
         }
 
