@@ -180,6 +180,7 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.HomeScreen
             var item = new Mock<T>();
             item.Object.Id = id;
             item.Setup(i => i.IsVisible(_user, It.IsAny<bool>())).Returns(visible);
+            item.Setup(i => i.IsVisibleStandalone(_user)).Returns(visible);
             _libraryManager.Setup(m => m.GetItemById(id)).Returns(item.Object);
             _userDataManager
                 .Setup(m => m.GetUserData(_user, item.Object))
