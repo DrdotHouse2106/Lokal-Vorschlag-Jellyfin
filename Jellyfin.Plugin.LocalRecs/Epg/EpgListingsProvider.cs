@@ -80,7 +80,7 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
                     return cached.File;
                 }
 
-                using var stream = File.OpenRead(path);
+                using var stream = new LimitedReadStream(File.OpenRead(path), LimitedReadStream.MaxXmltvBytes);
                 var file = EpgFile.Read(stream, info.PreferredLanguage);
                 _parsed[path] = (written, file);
                 _extraStatusLogged = false;
@@ -368,7 +368,7 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
                     {
                         if (IsGzip(info.Path) || (response?.Content.Headers.ContentType?.MediaType?.Contains("gzip", StringComparison.OrdinalIgnoreCase) ?? false))
                         {
-                            var unzip = new GZipStream(source, CompressionMode.Decompress);
+                            var unzip = new LimitedReadStream(new GZipStream(source, CompressionMode.Decompress, leaveOpen: true), LimitedReadStream.MaxXmltvBytes);
                             await using (unzip.ConfigureAwait(false))
                             {
                                 await unzip.CopyToAsync(target, linked.Token).ConfigureAwait(false);
@@ -376,7 +376,11 @@ namespace Jellyfin.Plugin.LocalRecs.Epg
                         }
                         else
                         {
-                            await source.CopyToAsync(target, linked.Token).ConfigureAwait(false);
+                            var limited = new LimitedReadStream(source, LimitedReadStream.MaxXmltvBytes, leaveOpen: true);
+                            await using (limited.ConfigureAwait(false))
+                            {
+                                await limited.CopyToAsync(target, linked.Token).ConfigureAwait(false);
+                            }
                         }
                     }
                 }

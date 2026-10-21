@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.40.0] - 2026-10-21
+
+### Security
+
+- `trakt-konten.json` (own Trakt sign-ins) is written with file mode 600.
+- XMLTV guides (programme source and actor source) are read up to 250 MB unpacked – larger or inflated (gzip) files are rejected instead of filling memory or disk.
+- Note at „Wer schaut?“: switching away from a sign-in that is not remembered logs it out, also in a second tab.
+
+### Changed
+
+- **TMDB/Trakt similarity lists:** up to 4 titles are looked up at once, with a minimum gap per source (TMDB 100 ms, Trakt 400 ms) instead of one request every 260 ms.
+- **Calendar feed (.ics):** cached for 60 seconds per user, dropped at once when reminders change.
+- **Update:** an update alone no longer recomputes all recommendations at startup; only missing or outdated (older than 24 h) data does.
+- **Top 10:** the background recomputation stops on server shutdown.
+- Batch loading of user data also falls back on `MissingMethodException` (older 12.x servers).
+
 ## [12.39.0] - 2026-10-21
 
 ### Security

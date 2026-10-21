@@ -45,7 +45,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 {
                     batch = userDataManager.GetUserDataBatch(chunk, user);
                 }
-                catch (NotImplementedException)
+                catch (Exception ex) when (ex is NotImplementedException || ex is MissingMethodException)
                 {
                     // ältere Server ohne gesammeltes Laden: einzeln
                 }

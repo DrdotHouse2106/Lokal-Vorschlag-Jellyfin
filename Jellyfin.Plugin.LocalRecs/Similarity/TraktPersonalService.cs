@@ -339,6 +339,35 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
             }
         }
 
+        // Schreibt eine Datei, die nur der Besitzer lesen und schreiben darf (unter Windows gelten die Ordnerrechte)
+        private static void WritePrivate(string path, string content)
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                File.WriteAllText(path, content);
+                return;
+            }
+
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+
+            var options = new FileStreamOptions
+            {
+                Mode = FileMode.CreateNew,
+                Access = FileAccess.Write,
+                UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite
+            };
+            using (var stream = new FileStream(path, options))
+            using (var writer = new StreamWriter(stream))
+            {
+                writer.Write(content);
+            }
+
+            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        }
+
         private string? ResolveSource(Guid userId, PluginConfiguration config, Account? account)
         {
             if (!string.IsNullOrEmpty(account?.AccessToken) && HasOwnApp(config))
@@ -574,8 +603,9 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
                     Directory.CreateDirectory(directory);
                 }
 
+                // Enthält Zugangsschlüssel: nur für den Jellyfin-Benutzer lesbar (600)
                 var temp = _storePath + ".tmp";
-                File.WriteAllText(temp, json);
+                WritePrivate(temp, json);
                 File.Move(temp, _storePath, true);
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)

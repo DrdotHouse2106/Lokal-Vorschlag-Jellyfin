@@ -15,6 +15,7 @@ using MediaBrowser.Model.Querying;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.LocalRecs.Api
@@ -42,6 +43,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         private readonly IUserDataManager _userDataManager;
         private readonly IDtoService _dtoService;
         private readonly ILogger<Top10Controller> _logger;
+        private readonly CancellationToken _stopping;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Top10Controller"/> class.
@@ -51,13 +53,16 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// <param name="userDataManager">User data manager.</param>
         /// <param name="dtoService">DTO service.</param>
         /// <param name="logger">Logger.</param>
+        /// <param name="lifetime">Application lifetime (stops the background computation on shutdown), optional.</param>
         public Top10Controller(
             IUserManager userManager,
             ILibraryManager libraryManager,
             IUserDataManager userDataManager,
             IDtoService dtoService,
-            ILogger<Top10Controller> logger)
+            ILogger<Top10Controller> logger,
+            IHostApplicationLifetime? lifetime = null)
         {
+            _stopping = lifetime?.ApplicationStopping ?? CancellationToken.None;
             _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
             _libraryManager = libraryManager ?? throw new ArgumentNullException(nameof(libraryManager));
             _userDataManager = userDataManager ?? throw new ArgumentNullException(nameof(userDataManager));
@@ -140,11 +145,16 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             {
                 if (DateTime.UtcNow - cached.Created >= RankingCacheDuration && RankingGate.Wait(0))
                 {
+                    var stopping = _stopping;
                     _ = Task.Run(() =>
                     {
                         try
                         {
-                            RankingCache[key] = (DateTime.UtcNow, ComputeRanking(includeMovies, includeSeries, DateTime.UtcNow.AddDays(-days)));
+                            RankingCache[key] = (DateTime.UtcNow, ComputeRanking(includeMovies, includeSeries, DateTime.UtcNow.AddDays(-days), stopping));
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            // Server fährt herunter
                         }
                         catch (Exception ex)
                         {
@@ -168,7 +178,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                     return cached.Ranked;
                 }
 
-                var ranked = ComputeRanking(includeMovies, includeSeries, since);
+                var ranked = ComputeRanking(includeMovies, includeSeries, since, cancellationToken);
                 RankingCache[key] = (DateTime.UtcNow, ranked);
                 return ranked;
             }
@@ -178,7 +188,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             }
         }
 
-        private IReadOnlyList<Guid> ComputeRanking(bool includeMovies, bool includeSeries, DateTime since)
+        private IReadOnlyList<Guid> ComputeRanking(bool includeMovies, bool includeSeries, DateTime since, CancellationToken cancellationToken)
         {
             var kinds = new List<BaseItemKind>();
             if (includeMovies)
@@ -194,6 +204,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             var usages = new List<(Guid Key, Guid UserId, int Plays)>();
             foreach (var user in _userManager.GetUsers().ToList())
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 try
                 {
                     var played = _libraryManager.GetItemList(new InternalItemsQuery(user)

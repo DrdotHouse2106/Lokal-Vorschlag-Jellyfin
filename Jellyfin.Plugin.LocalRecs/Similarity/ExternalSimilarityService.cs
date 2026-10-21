@@ -36,8 +36,13 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
         private const string TraktBase = "https://api.trakt.tv/";
         private const int MaxConsecutiveFailures = 5;
 
-        // Pause zwischen zwei Anfragen (TMDB und Trakt erlauben weit mehr; so bleibt der Server ruhig)
-        private static readonly TimeSpan RequestInterval = TimeSpan.FromMilliseconds(260);
+        /// <summary>Titles looked up at the same time.</summary>
+        private const int DefaultParallelism = 4;
+
+        // Mindestabstand zwischen zwei Anfragen je Quelle, egal wie viele Titel gleichzeitig laufen:
+        // TMDB erlaubt rund 40 Anfragen pro Sekunde, Trakt 1000 in 5 Minuten – beides bleibt deutlich darunter.
+        private static readonly TimeSpan TmdbInterval = TimeSpan.FromMilliseconds(100);
+        private static readonly TimeSpan TraktInterval = TimeSpan.FromMilliseconds(400);
 
         private static readonly HttpClient SharedClient = new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(10) })
         {
@@ -50,6 +55,7 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
         private readonly Func<TimeSpan, CancellationToken, Task> _delay;
         private readonly object _lock = new object();
         private readonly SemaphoreSlim _running = new SemaphoreSlim(1, 1);
+        private readonly int _parallelism;
         private Dictionary<string, CacheEntry>? _cache;
 
         /// <summary>
@@ -59,12 +65,15 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
         /// <param name="cachePath">File of the cache.</param>
         /// <param name="send">Sends a request (for tests); default: a shared HTTP client without request logging.</param>
         /// <param name="delay">Waits between requests (for tests).</param>
+        /// <param name="parallelism">Titles looked up at the same time (default 4).</param>
         public ExternalSimilarityService(
             ILogger<ExternalSimilarityService> logger,
             string cachePath,
             Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>>? send = null,
-            Func<TimeSpan, CancellationToken, Task>? delay = null)
+            Func<TimeSpan, CancellationToken, Task>? delay = null,
+            int parallelism = DefaultParallelism)
         {
+            _parallelism = Math.Max(1, parallelism);
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _cachePath = cachePath ?? throw new ArgumentNullException(nameof(cachePath));
             _send = send ?? ((request, token) => SharedClient.SendAsync(request, token));
@@ -204,33 +213,49 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
                 }
 
                 var sources = new SourceState { TmdbKey = tmdbKey, TraktId = traktId };
-                foreach (var item in pending)
+                var options = new ParallelOptions { MaxDegreeOfParallelism = _parallelism, CancellationToken = cancellationToken };
+                await Parallel.ForEachAsync(pending, options, async (item, token) =>
                 {
-                    if (sources.ConsecutiveFailures >= MaxConsecutiveFailures || (sources.TmdbKey == null && sources.TraktId == null))
+                    lock (sources)
                     {
-                        result.Aborted = true;
-                        break;
+                        if (sources.ConsecutiveFailures >= MaxConsecutiveFailures || (sources.TmdbKey == null && sources.TraktId == null))
+                        {
+                            result.Aborted = true;
+                        }
+
+                        if (result.Aborted)
+                        {
+                            return;
+                        }
                     }
 
                     var kind = ExternalSimilarityScorer.KindOf(item.Type);
                     var lists = new List<(IReadOnlyList<string> Ids, double SourceWeight)>();
                     var complete = true;
-                    if (sources.TmdbKey != null)
+                    string? tmdbKeyNow;
+                    string? traktIdNow;
+                    lock (sources)
                     {
-                        complete &= await AddAsync(lists, sources, Source.Tmdb, TmdbBase + kind + "/" + item.TmdbId + "/recommendations?page=1", SimilarityParser.TmdbRecommendationsWeight, result, cancellationToken).ConfigureAwait(false);
-                        complete &= await AddAsync(lists, sources, Source.Tmdb, TmdbBase + kind + "/" + item.TmdbId + "/similar?page=1", SimilarityParser.TmdbSimilarWeight, result, cancellationToken).ConfigureAwait(false);
+                        tmdbKeyNow = sources.TmdbKey;
+                        traktIdNow = sources.TraktId;
                     }
 
-                    if (sources.TraktId != null && !string.IsNullOrEmpty(item.ImdbId))
+                    if (tmdbKeyNow != null)
+                    {
+                        complete &= await AddAsync(lists, sources, Source.Tmdb, TmdbBase + kind + "/" + item.TmdbId + "/recommendations?page=1", SimilarityParser.TmdbRecommendationsWeight, result, token).ConfigureAwait(false);
+                        complete &= await AddAsync(lists, sources, Source.Tmdb, TmdbBase + kind + "/" + item.TmdbId + "/similar?page=1", SimilarityParser.TmdbSimilarWeight, result, token).ConfigureAwait(false);
+                    }
+
+                    if (traktIdNow != null && !string.IsNullOrEmpty(item.ImdbId))
                     {
                         var path = (kind == "tv" ? "shows/" : "movies/") + Uri.EscapeDataString(item.ImdbId) + "/related?limit=20";
-                        complete &= await AddAsync(lists, sources, Source.Trakt, TraktBase + path, SimilarityParser.TraktRelatedWeight, result, cancellationToken).ConfigureAwait(false);
+                        complete &= await AddAsync(lists, sources, Source.Trakt, TraktBase + path, SimilarityParser.TraktRelatedWeight, result, token).ConfigureAwait(false);
                     }
 
                     // Nur vollständige Antworten speichern – bei vorübergehenden Fehlern beim nächsten Lauf erneut
                     if (!complete)
                     {
-                        continue;
+                        return;
                     }
 
                     var titles = SimilarityParser.Merge(kind, item.TmdbId!, lists);
@@ -239,12 +264,18 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
                         _cache![SimilarTitle.Key(kind, item.TmdbId!)] = new CacheEntry { Fetched = DateTime.UtcNow, Titles = titles };
                     }
 
-                    result.Fetched++;
-                    if (result.Fetched % 50 == 0)
+                    bool save;
+                    lock (sources)
+                    {
+                        result.Fetched++;
+                        save = result.Fetched % 50 == 0;
+                    }
+
+                    if (save)
                     {
                         SaveCache();
                     }
-                }
+                }).ConfigureAwait(false);
 
                 result.Pending = pending.Count - result.Fetched;
                 Prune(maxAge);
@@ -269,6 +300,59 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
             return new Uri(url);
         }
 
+        private static SourceState Snapshot(SourceState sources)
+        {
+            lock (sources)
+            {
+                return new SourceState { TmdbKey = sources.TmdbKey, TraktId = sources.TraktId };
+            }
+        }
+
+        private static void Succeeded(SourceState sources)
+        {
+            lock (sources)
+            {
+                sources.ConsecutiveFailures = 0;
+            }
+        }
+
+        private static void Failed(SourceState sources, RefreshResult result)
+        {
+            lock (sources)
+            {
+                sources.ConsecutiveFailures++;
+                result.Errors++;
+            }
+        }
+
+        // Hält den Mindestabstand je Quelle ein, auch wenn mehrere Titel gleichzeitig laufen
+        private async Task PaceAsync(Source source, SourceState sources, CancellationToken cancellationToken)
+        {
+            TimeSpan wait;
+            lock (sources)
+            {
+                var now = DateTime.UtcNow;
+                var next = source == Source.Tmdb ? sources.NextTmdb : sources.NextTrakt;
+                var slot = next > now ? next : now;
+                var interval = source == Source.Tmdb ? TmdbInterval : TraktInterval;
+                if (source == Source.Tmdb)
+                {
+                    sources.NextTmdb = slot + interval;
+                }
+                else
+                {
+                    sources.NextTrakt = slot + interval;
+                }
+
+                wait = slot - now;
+            }
+
+            if (wait > TimeSpan.Zero)
+            {
+                await _delay(wait, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
         private async Task<bool> AddAsync(
             List<(IReadOnlyList<string> Ids, double SourceWeight)> lists,
             SourceState sources,
@@ -278,35 +362,42 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
             RefreshResult result,
             CancellationToken cancellationToken)
         {
-            if ((source == Source.Tmdb ? sources.TmdbKey : sources.TraktId) == null)
+            lock (sources)
             {
-                return false;
+                if ((source == Source.Tmdb ? sources.TmdbKey : sources.TraktId) == null)
+                {
+                    return false;
+                }
             }
 
             for (var attempt = 0; attempt < 2; attempt++)
             {
-                await _delay(RequestInterval, cancellationToken).ConfigureAwait(false);
-                using var request = new HttpRequestMessage(HttpMethod.Get, BuildUri(url, source, sources));
+                await PaceAsync(source, sources, cancellationToken).ConfigureAwait(false);
+                using var request = new HttpRequestMessage(HttpMethod.Get, BuildUri(url, source, Snapshot(sources)));
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 request.Headers.UserAgent.ParseAdd("Quallenkino/" + (typeof(ExternalSimilarityService).Assembly.GetName().Version?.ToString() ?? "1"));
                 if (source == Source.Trakt)
                 {
                     request.Headers.Add("trakt-api-version", "2");
-                    request.Headers.Add("trakt-api-key", sources.TraktId);
+                    request.Headers.Add("trakt-api-key", Snapshot(sources).TraktId);
                 }
-                else if (IsBearer(sources.TmdbKey!))
+                else if (Snapshot(sources).TmdbKey is { } bearer && IsBearer(bearer))
                 {
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", sources.TmdbKey);
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearer);
                 }
 
                 try
                 {
-                    result.Requests++;
+                    lock (sources)
+                    {
+                        result.Requests++;
+                    }
+
                     using var response = await _send(request, cancellationToken).ConfigureAwait(false);
                     if (response.StatusCode == HttpStatusCode.NotFound)
                     {
                         // Titel dort unbekannt – leere Liste ist eine gültige Antwort
-                        sources.ConsecutiveFailures = 0;
+                        Succeeded(sources);
                         return true;
                     }
 
@@ -316,16 +407,20 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
                             "Ähnliche Titel: {Source} lehnt den Schlüssel ab (HTTP {Status}) – diese Quelle bleibt in diesem Lauf aus",
                             source == Source.Tmdb ? "TMDB" : "Trakt",
                             (int)response.StatusCode);
-                        if (source == Source.Tmdb)
+                        lock (sources)
                         {
-                            sources.TmdbKey = null;
-                        }
-                        else
-                        {
-                            sources.TraktId = null;
+                            if (source == Source.Tmdb)
+                            {
+                                sources.TmdbKey = null;
+                            }
+                            else
+                            {
+                                sources.TraktId = null;
+                            }
+
+                            result.Errors++;
                         }
 
-                        result.Errors++;
                         return false;
                     }
 
@@ -338,27 +433,24 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
 
                     if (!response.IsSuccessStatusCode)
                     {
-                        sources.ConsecutiveFailures++;
-                        result.Errors++;
+                        Failed(sources, result);
                         return false;
                     }
 
                     var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                     lists.Add((source == Source.Tmdb ? SimilarityParser.ParseTmdb(json) : SimilarityParser.ParseTrakt(json), weight));
-                    sources.ConsecutiveFailures = 0;
+                    Succeeded(sources);
                     return true;
                 }
                 catch (Exception ex) when (ex is HttpRequestException || ex is JsonException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
                 {
-                    sources.ConsecutiveFailures++;
-                    result.Errors++;
+                    Failed(sources, result);
                     _logger.LogDebug("Ähnliche Titel: Anfrage an {Source} fehlgeschlagen: {Message}", source == Source.Tmdb ? "TMDB" : "Trakt", ex.Message);
                     return false;
                 }
             }
 
-            sources.ConsecutiveFailures++;
-            result.Errors++;
+            Failed(sources, result);
             return false;
         }
 
@@ -468,6 +560,10 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
             public string? TraktId { get; set; }
 
             public int ConsecutiveFailures { get; set; }
+
+            public DateTime NextTmdb { get; set; }
+
+            public DateTime NextTrakt { get; set; }
         }
     }
 }

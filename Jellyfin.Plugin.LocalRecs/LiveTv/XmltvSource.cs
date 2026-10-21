@@ -79,7 +79,8 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         {
             ArgumentNullException.ThrowIfNull(stream);
             var buffered = stream.CanSeek ? stream : new BufferedStream(stream);
-            var input = IsGzip(buffered) ? new GZipStream(buffered, CompressionMode.Decompress) : buffered;
+            Stream unpacked = IsGzip(buffered) ? new GZipStream(buffered, CompressionMode.Decompress) : buffered;
+            var input = new LimitedReadStream(unpacked, LimitedReadStream.MaxXmltvBytes, leaveOpen: true);
 
             var settings = new XmlReaderSettings
             {
@@ -508,7 +509,11 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                     using var response = await client.GetAsync(source, HttpCompletionOption.ResponseHeadersRead, CancellationToken.None).ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
                     using var memory = new MemoryStream();
-                    await response.Content.CopyToAsync(memory).ConfigureAwait(false);
+                    using (var limited = new LimitedReadStream(await response.Content.ReadAsStreamAsync().ConfigureAwait(false), LimitedReadStream.MaxXmltvBytes))
+                    {
+                        await limited.CopyToAsync(memory).ConfigureAwait(false);
+                    }
+
                     memory.Position = 0;
                     index = Parse(memory);
                 }

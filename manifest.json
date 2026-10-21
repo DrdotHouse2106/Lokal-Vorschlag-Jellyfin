@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.40.0.0",
+        "changelog": "Härtung und Tempo\n- Trakt-Zugänge nur für Jellyfin lesbar (600), XMLTV höchstens 250 MB\n- TMDB/Trakt-Abgleich bis zu 4 Titel gleichzeitig\n- Kalender-Abo 60 Sekunden zwischengespeichert\n- Nach einem Update keine volle Neuberechnung beim Start mehr\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.40.0.zip",
+        "checksum": "8cf24ab2ce34354b695bcb529baf3400",
+        "timestamp": "2026-10-21T14:00:00Z"
+      },
+      {
         "version": "12.39.0.0",
         "changelog": "Sicherheit und Tempo\n- „Wer schaut?“: Administratoren werden nie gemerkt, entfernte Profile werden auf dem Server abgemeldet, Warnhinweis in den Einstellungen\n- Kalender-Links werten X-Forwarded-Header nicht mehr selbst aus\n- Identitätsnachweis verrät nicht mehr, ob ein Gerät bekannt ist\n- Top 10 blockiert keine Anfragen mehr, Welten-Zwischenspeicher begrenzt, Trakt-Anmeldung abbrechbar\n- Empfehlungen: Benutzerdaten gesammelt statt pro Titel geladen\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

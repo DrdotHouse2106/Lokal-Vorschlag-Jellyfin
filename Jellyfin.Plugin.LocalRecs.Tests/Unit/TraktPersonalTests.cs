@@ -154,5 +154,21 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
         }
 
         private static HttpResponseMessage Json(string body) => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) };
+
+        [Fact]
+        public void Store_IsWrittenReadableOnlyForTheOwner()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return;
+            }
+
+            var store = Path.Combine(Path.GetTempPath(), "lr-trakt-" + Guid.NewGuid().ToString("N") + ".json");
+            var service = new TraktPersonalService(NullLogger<TraktPersonalService>.Instance, store, Path.Combine(Path.GetTempPath(), "fehlt.xml"));
+
+            service.SetEnabled(Guid.NewGuid(), true);
+
+            File.GetUnixFileMode(store).Should().Be(UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        }
     }
 }

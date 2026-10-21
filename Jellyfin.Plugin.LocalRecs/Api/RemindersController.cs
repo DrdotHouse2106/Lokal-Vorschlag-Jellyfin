@@ -21,6 +21,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
     [Route("LocalRecs")]
     public class RemindersController : ControllerBase
     {
+        // Kalender-Apps fragen oft ab: den Feed je Benutzer 60 Sekunden zwischenspeichern (höchstens 500 Benutzer)
+        private static readonly TimeSpan FeedCacheDuration = TimeSpan.FromSeconds(60);
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, (DateTime Created, byte[] Ics)> FeedCache = new();
+
         private readonly ReminderService _reminders;
         private readonly IUserManager _userManager;
 
@@ -82,6 +86,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         public ActionResult AddReminder([FromRoute] string programId)
         {
             var user = CurrentUser();
+            ForgetFeed(user);
             if (user == null)
             {
                 return Unauthorized();
@@ -121,6 +126,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         public ActionResult RemoveReminder([FromRoute] string programId)
         {
             var user = CurrentUser();
+            ForgetFeed(user);
             if (user == null)
             {
                 return Unauthorized();
@@ -142,6 +148,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         public ActionResult<SeriesReminder> AddSeries([FromRoute] string programId)
         {
             var user = CurrentUser();
+            ForgetFeed(user);
             if (user == null)
             {
                 return Unauthorized();
@@ -177,6 +184,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         public ActionResult RemoveSeries([FromRoute] string key)
         {
             var user = CurrentUser();
+            ForgetFeed(user);
             if (user == null)
             {
                 return Unauthorized();
@@ -214,6 +222,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         public ActionResult<CalendarLink> RenewCalendar()
         {
             var user = CurrentUser();
+            ForgetFeed(user);
             return user == null ? Unauthorized() : Ok(Link(_reminders.Store.GetToken(user.Id, true)));
         }
 
@@ -260,9 +269,20 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             }
 
             var now = DateTime.UtcNow;
-            var ics = IcsBuilder.Build(_reminders.GetEntries(user, now), "Live-TV – " + user.Username, Math.Max(0, Config.CalendarAlarmMinutes), now);
             Response.Headers.CacheControl = "no-cache";
-            return File(Encoding.UTF8.GetBytes(ics), "text/calendar; charset=utf-8");
+            if (FeedCache.TryGetValue(user.Id, out var cached) && now - cached.Created < FeedCacheDuration)
+            {
+                return File(cached.Ics, "text/calendar; charset=utf-8");
+            }
+
+            var ics = Encoding.UTF8.GetBytes(IcsBuilder.Build(_reminders.GetEntries(user, now), "Live-TV – " + user.Username, Math.Max(0, Config.CalendarAlarmMinutes), now));
+            if (FeedCache.Count > 500)
+            {
+                FeedCache.Clear();
+            }
+
+            FeedCache[user.Id] = (now, ics);
+            return File(ics, "text/calendar; charset=utf-8");
         }
 
         /// <summary>
@@ -289,6 +309,15 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             Response.Headers["X-Content-Type-Options"] = "nosniff";
             Response.Headers["Referrer-Policy"] = "no-referrer";
             return Content(CalendarPage.Build(link.WebcalUrl, link.Url, "Live-TV – " + user.Username), "text/html; charset=utf-8");
+        }
+
+        // Nach Änderungen sieht der nächste Kalender-Abruf sofort den neuen Stand
+        private static void ForgetFeed(Jellyfin.Database.Implementations.Entities.User? user)
+        {
+            if (user != null)
+            {
+                FeedCache.TryRemove(user.Id, out _);
+            }
         }
 
         private Jellyfin.Database.Implementations.Entities.User? CurrentUser() => _userManager.GetUserById(RecommendationsController.GetUserId(User));

@@ -218,6 +218,36 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             limited.Pending.Should().Be(0);
         }
 
+        [Fact]
+        public async Task Refresh_LooksUpSeveralTitlesAtOnce()
+        {
+            var running = 0;
+            var maxRunning = 0;
+            var service = new ExternalSimilarityService(
+                NullLogger<ExternalSimilarityService>.Instance,
+                Path.Combine(Path.GetTempPath(), "lr-similar-" + Guid.NewGuid().ToString("N") + ".json"),
+                async (request, token) =>
+                {
+                    var now = Interlocked.Increment(ref running);
+                    int seen;
+                    while ((seen = maxRunning) < now && Interlocked.CompareExchange(ref maxRunning, now, seen) != seen)
+                    {
+                    }
+
+                    await Task.Delay(30, token);
+                    Interlocked.Decrement(ref running);
+                    return Json("{\"results\":[]}");
+                },
+                (_, _) => Task.CompletedTask,
+                parallelism: 4);
+            var library = Library();
+
+            var result = await service.RefreshAsync(library.Values, new PluginConfiguration { TmdbApiKey = "k" }, CancellationToken.None);
+
+            result.Fetched.Should().Be(library.Values.Count(m => !string.IsNullOrEmpty(m.TmdbId)));
+            maxRunning.Should().BeGreaterThan(1).And.BeLessOrEqualTo(4);
+        }
+
         private static ExternalSimilarityService Service(List<HttpRequestMessage> requests, Func<HttpRequestMessage, HttpResponseMessage> respond)
         {
             var cache = Path.Combine(Path.GetTempPath(), "lr-similar-" + Guid.NewGuid().ToString("N") + ".json");
@@ -229,7 +259,8 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
                     requests.Add(request);
                     return Task.FromResult(respond(request));
                 },
-                (_, _) => Task.CompletedTask);
+                (_, _) => Task.CompletedTask,
+                parallelism: 1);
         }
 
         private static HttpResponseMessage Json(string body) => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) };
