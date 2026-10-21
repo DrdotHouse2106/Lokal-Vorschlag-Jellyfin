@@ -103,7 +103,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 {
                     var movies = boxSet.GetLinkedChildren()
                         .OfType<Movie>()
-                        .Where(m => m.IsVisible(user))
+                        .Where(m => m.IsVisibleStandalone(user))
                         .GroupBy(m => m.Id)
                         .Select(g => g.First())
                         .OrderBy(m => m.PremiereDate ?? (m.ProductionYear.HasValue ? new DateTime(m.ProductionYear.Value, 1, 1, 0, 0, 0, DateTimeKind.Utc) : DateTime.MaxValue))

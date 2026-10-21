@@ -118,11 +118,12 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
             return new TraktStatus
             {
                 FeatureEnabled = config.EnableTraktPersonal,
-                Enabled = account?.Enabled ?? true,
+                Enabled = account?.Enabled == true,
                 Source = source,
                 CanConnect = HasOwnApp(config),
                 OwnConnected = !string.IsNullOrEmpty(account?.AccessToken),
-                PluginLinked = (PluginClientIdOverride ?? PluginClientId()) != null && ReadPluginTokenFromFile(userId) != null,
+                PluginInstalled = (PluginClientIdOverride ?? PluginClientId()) != null,
+                PluginLinked = source == SourcePlugin,
                 UserCode = login != null && !login.Done && login.ExpiresAt > DateTime.UtcNow ? login.UserCode : null,
                 VerificationUrl = login != null && !login.Done && login.ExpiresAt > DateTime.UtcNow ? login.VerificationUrl : null,
                 LoginError = login?.Error
@@ -243,7 +244,9 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
             }
 
             var account = GetAccount(userId);
-            if (account?.Enabled == false)
+
+            // Nur nach ausdrücklichem Einschalten durch den Benutzer (auch die Mitnutzung der Trakt-Plugin-Verknüpfung)
+            if (account?.Enabled != true)
             {
                 return null;
             }
@@ -312,7 +315,8 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
                 return SourceOwn;
             }
 
-            return (PluginClientIdOverride ?? PluginClientId()) != null && ReadPluginTokenFromFile(userId) != null ? SourcePlugin : null;
+            // Trakt.xml wird erst gelesen, wenn der Benutzer es eingeschaltet hat
+            return account?.Enabled == true && (PluginClientIdOverride ?? PluginClientId()) != null && ReadPluginTokenFromFile(userId) != null ? SourcePlugin : null;
         }
 
         private async Task<(string Token, string ClientId, string Source)?> ResolveAccessAsync(Guid userId, PluginConfiguration config, Account? account, CancellationToken cancellationToken)

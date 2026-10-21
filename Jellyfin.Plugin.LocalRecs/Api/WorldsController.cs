@@ -155,10 +155,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             }
 
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var accessible = _worlds.AccessibleItems(user);
             IEnumerable<BaseItem> items = members[world.Id]
-                .Select(id => _libraryManager.GetItemById(id))
-                .Where(i => i != null && i.IsVisible(user))
-                .Select(i => i!)
+                .Where(accessible.ContainsKey)
+                .Select(id => accessible[id])
                 .Where(i => string.IsNullOrEmpty(type)
                     || (string.Equals(type, "movies", StringComparison.OrdinalIgnoreCase) && i is MediaBrowser.Controller.Entities.Movies.Movie)
                     || (string.Equals(type, "series", StringComparison.OrdinalIgnoreCase) && i is MediaBrowser.Controller.Entities.TV.Series));
@@ -348,31 +348,24 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
         private List<(WorldInfo Info, DateTime? LastWatched)> GetVisibleWorlds(User user, IReadOnlyDictionary<Guid, DateTime> lastWatched)
         {
-            var (worlds, members) = _worlds.GetWorlds();
-            var minItems = Math.Max(1, Config.MinWorldItems);
+            var hasFanart = !string.IsNullOrWhiteSpace(Config.FanartApiKey);
+            var listSource = WorldListSource.ConfiguredSource();
             var result = new List<(WorldInfo, DateTime?)>();
-            foreach (var world in worlds)
+            foreach (var entry in _worlds.GetVisibleWorlds(user, Math.Max(1, Config.MinWorldItems)))
             {
-                var visible = members[world.Id]
-                    .Where(id => _libraryManager.GetItemById(id) is { } item && item.IsVisible(user))
-                    .ToList();
-                if (visible.Count < minItems)
-                {
-                    continue;
-                }
-
-                var watched = visible.Where(lastWatched.ContainsKey).Select(id => (DateTime?)lastWatched[id]).Max();
-                var trailer = _worlds.GetTrailer(user, world.Id, visible);
+                var world = entry.World;
+                var watched = entry.Visible.Where(lastWatched.ContainsKey).Select(id => (DateTime?)lastWatched[id]).Max();
+                var trailer = _worlds.GetTrailer(user, world.Id, entry.Visible);
                 result.Add((new WorldInfo
                 {
                     Id = world.Id,
                     Name = world.Name,
-                    ItemCount = visible.Count,
-                    ImageItemId = _worlds.GetImageItem(user, visible)?.ToString("N"),
+                    ItemCount = entry.Visible.Count,
+                    ImageItemId = entry.ImageItemId?.ToString("N"),
                     Studios = world.Studios.ToList(),
                     Collections = world.Collections.ToList(),
                     TmdbCollectionIds = _worlds.GetTmdbCollectionIds(world.Id).ToList(),
-                    LogoUrl = WorldLogoService.ResolveAll(world.Logos, WorldListSource.ConfiguredSource(), !string.IsNullOrWhiteSpace(Config.FanartApiKey)).Count > 0 ? "/LocalRecs/Worlds/" + world.Id + "/Logo" : null,
+                    LogoUrl = WorldLogoService.ResolveAll(world.Logos, listSource, hasFanart).Count > 0 ? "/LocalRecs/Worlds/" + world.Id + "/Logo" : null,
                     TrailerItemId = trailer?.Item.Id.ToString("N"),
                     TrailerItemName = trailer?.Item.Name,
                     TrailerId = trailer?.Trailer.Id.ToString("N")

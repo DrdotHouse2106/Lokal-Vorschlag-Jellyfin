@@ -199,14 +199,23 @@ Since 12.6.0: `GET /LocalRecs/Top10?type=all|movies|series&days=60&limit=10` ret
 Public similarity lists are an extra signal on top of the own content similarity – mostly for users with little watch history (there the bonus counts twice):
 
 - TMDB "recommendations" and "similar" per title, optionally Trakt "related" (needs an own Trakt app, client ID). Library titles named as similar to watched or liked titles get a bonus (weight 0.25 by default); card reason „Ähnlich wie „…““.
-- Only the TMDB/IMDb ID of a title is sent – no users, no watch history. The whole library is looked up bit by bit (watched titles first), so the requests reflect the library, not what was watched. Cache 7 days, at most 400 titles per run. Key: own TMDB key (v3 or v4 read token) or the one of Jellyfin's TMDb plugin. Without key or on errors it is silently skipped.
-- **Personal Trakt recommendations** for users with a Trakt account (`/recommendations/movies` and `/shows`, weight 0.5, reason „Für dich bei Trakt empfohlen“): own login in Quallenkino (profile menu „Trakt-Empfehlungen“, device code; needs client ID and secret of an own Trakt app) or – read only – the link of the Trakt plugin (`Trakt.xml`, never refreshed or written back). Each user can switch it off; only the recommendation list is fetched every 12 hours, nothing is sent to Trakt. API: `GET/POST /LocalRecs/Trakt/Me`, `POST/DELETE /LocalRecs/Trakt/Me/Login`.
+- Only the TMDB/IMDb ID of a title is sent – no users, no watch history. The whole library is looked up bit by bit (watched titles first), so the requests reflect the library, not what was watched. Cache 7 days, at most 400 titles per run. Key: own TMDB key (v3 or v4 read token), otherwise the key in Jellyfin's TMDb settings or Jellyfin's built-in key – the settings page shows which one is used; switch „Ohne eigenen Schlüssel den von Jellyfin mitbenutzen“ turns that off. Without key or on errors it is silently skipped.
+- **Personal Trakt recommendations** for users with a Trakt account (`/recommendations/movies` and `/shows`, weight 0.5, reason „Für dich bei Trakt empfohlen“): own login in Quallenkino (profile menu „Trakt-Empfehlungen“, device code; needs client ID and secret of an own Trakt app) or – read only – the link of the Trakt plugin (`Trakt.xml`, never refreshed or written back). Off by default (since 12.34.0): only users who switch it on themselves; the Trakt plugin's link is read only after that. Only the recommendation list is fetched every 12 hours, nothing is sent to Trakt. API: `GET/POST /LocalRecs/Trakt/Me`, `POST/DELETE /LocalRecs/Trakt/Me/Login`.
 - Concept for voluntarily shared watch histories (not built yet): [docs/konzept-gemeinsame-empfehlungen.md](docs/konzept-gemeinsame-empfehlungen.md) (German).
+
+### Performance and visibility (since 12.34.0)
+
+- Worlds: what a user may see comes from one library query, cached for 15 minutes and renewed at once when the user's access changes; last watched 5 minutes; the world membership is computed by one request only (single flight).
+- Top 10: ranking cached server-wide per type and period for 10 minutes; per user only the visibility filter.
+- Similar titles (TMDB/Trakt) are fetched after the recommendations are stored.
+- Fixed: worlds and Top 10 showed titles from libraries the user has no access to (Jellyfin's `IsVisible` does not check library access).
+- Configuration backups contain no keys (TMDB, Trakt client secret, fanart.tv); restore via `GET /LocalRecs/Config/Backups` and `POST /LocalRecs/Config/Backups/{name}/Restore` (admin) keeps the current keys.
 
 ### Privacy
 
 - All computation happens on your server; no tracking or telemetry
-- Outgoing: only title IDs to TMDB/Trakt (similar titles, see above) and, for linked users, the request of their Trakt recommendation list
+- Outgoing: only title IDs to TMDB/Trakt (similar titles, see above) and, for users who switched it on, the request of their Trakt recommendation list
+- Configuration backups without keys
 
 ### Live TV
 

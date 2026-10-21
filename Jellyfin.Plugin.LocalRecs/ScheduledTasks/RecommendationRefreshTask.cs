@@ -153,6 +153,10 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
                 _feedback.SaveIfDirty();
                 progress?.Report(95);
 
+                // Ähnliche Titel von TMDB/Trakt erst jetzt holen – die Empfehlungen sind schon gespeichert,
+                // der nächste Lauf nutzt die neuen Listen
+                await _refreshService.RefreshExternalAfterRunAsync(config, cancellationToken).ConfigureAwait(false);
+
                 // Step 4: Report results (100% progress)
                 var duration = DateTime.UtcNow - startTime;
                 _logger.LogInformation(

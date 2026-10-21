@@ -64,6 +64,7 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             ExternalSimilarityCacheDays = 7;
             ExternalSimilarityMaxLookupsPerRun = 400;
             TmdbApiKey = string.Empty;
+            UseJellyfinTmdbKey = true;
             TraktClientId = string.Empty;
             TraktClientSecret = string.Empty;
             EnableTraktPersonal = true;
@@ -391,6 +392,11 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Gets or sets an own TMDB API key (v3 key or v4 read token). Empty = the key of Jellyfin's TMDb plugin.
         /// </summary>
         public string TmdbApiKey { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the key of Jellyfin's TMDb plugin (its setting or its built-in key) is used when no own key is set.
+        /// </summary>
+        public bool UseJellyfinTmdbKey { get; set; }
 
         /// <summary>
         /// Gets or sets the client ID of an own Trakt API app for public "related" lists. Empty = Trakt is not used.

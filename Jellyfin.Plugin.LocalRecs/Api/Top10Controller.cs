@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
@@ -26,6 +28,13 @@ namespace Jellyfin.Plugin.LocalRecs.Api
     public class Top10Controller : ControllerBase
     {
         private const int PlayedItemsPerUser = 300;
+
+        // Größte Rangliste, die eine Anfrage braucht (limit 50 × 3 wegen der Sichtbarkeit)
+        private const int RankedMax = 150;
+
+        private static readonly TimeSpan RankingCacheDuration = TimeSpan.FromMinutes(10);
+        private static readonly ConcurrentDictionary<(bool Movies, bool Series, int Days), (DateTime Created, IReadOnlyList<Guid> Ranked)> RankingCache = new();
+        private static readonly SemaphoreSlim RankingGate = new SemaphoreSlim(1, 1);
 
         private readonly IUserManager _userManager;
         private readonly ILibraryManager _libraryManager;
@@ -97,56 +106,13 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             var since = DateTime.UtcNow.AddDays(-Math.Clamp(days, 1, 365));
             limit = Math.Clamp(limit, 1, 50);
 
-            var kinds = new List<BaseItemKind>();
-            if (includeMovies)
-            {
-                kinds.Add(BaseItemKind.Movie);
-            }
-
-            if (includeSeries)
-            {
-                kinds.Add(BaseItemKind.Episode);
-            }
-
-            var usages = new List<(Guid Key, Guid UserId, int Plays)>();
-            foreach (var user in _userManager.GetUsers().ToList())
-            {
-                try
-                {
-                    var played = _libraryManager.GetItemList(new InternalItemsQuery(user)
-                    {
-                        IncludeItemTypes = kinds.ToArray(),
-                        IsPlayed = true,
-                        Recursive = true,
-                        OrderBy = new[] { (ItemSortBy.DatePlayed, Jellyfin.Database.Implementations.Enums.SortOrder.Descending) },
-                        Limit = PlayedItemsPerUser
-                    });
-
-                    foreach (var item in played)
-                    {
-                        var data = _userDataManager.GetUserData(user, item);
-                        if (data?.LastPlayedDate is not DateTime lastPlayed || lastPlayed < since)
-                        {
-                            continue;
-                        }
-
-                        var key = item is Episode episode ? episode.SeriesId : item.Id;
-                        if (key != Guid.Empty)
-                        {
-                            usages.Add((key, user.Id, data.PlayCount));
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Top 10: Verlauf eines Benutzers konnte nicht gelesen werden");
-                }
-            }
+            var ranked = GetRanking(includeMovies, includeSeries, Math.Clamp(days, 1, 365), since);
 
             // Mehr Kandidaten ranken, weil der anfragende Benutzer nicht alle Titel sehen darf
-            var items = Rank(usages, limit * 3)
+            var items = ranked
+                .Take(limit * 3)
                 .Select(id => _libraryManager.GetItemById(id))
-                .Where(item => item != null && item.IsVisible(requestingUser))
+                .Where(item => item != null && item.IsVisibleStandalone(requestingUser))
                 .Take(limit)
                 .Cast<BaseItem>()
                 .ToList();
@@ -162,6 +128,79 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             var dtos = _dtoService.GetBaseItemDtos(items, options, requestingUser);
             return Ok(new QueryResult<BaseItemDto>(null, dtos.Count, dtos));
+        }
+
+        // Serverweite Rangliste je Typ und Zeitraum, 10 Minuten zwischengespeichert; nur eine Anfrage rechnet
+        private IReadOnlyList<Guid> GetRanking(bool includeMovies, bool includeSeries, int days, DateTime since)
+        {
+            var key = (includeMovies, includeSeries, days);
+            if (RankingCache.TryGetValue(key, out var cached) && DateTime.UtcNow - cached.Created < RankingCacheDuration)
+            {
+                return cached.Ranked;
+            }
+
+            RankingGate.Wait();
+            try
+            {
+                if (RankingCache.TryGetValue(key, out cached) && DateTime.UtcNow - cached.Created < RankingCacheDuration)
+                {
+                    return cached.Ranked;
+                }
+
+                var kinds = new List<BaseItemKind>();
+                if (includeMovies)
+                {
+                    kinds.Add(BaseItemKind.Movie);
+                }
+
+                if (includeSeries)
+                {
+                    kinds.Add(BaseItemKind.Episode);
+                }
+
+                var usages = new List<(Guid Key, Guid UserId, int Plays)>();
+                foreach (var user in _userManager.GetUsers().ToList())
+                {
+                    try
+                    {
+                        var played = _libraryManager.GetItemList(new InternalItemsQuery(user)
+                        {
+                            IncludeItemTypes = kinds.ToArray(),
+                            IsPlayed = true,
+                            Recursive = true,
+                            OrderBy = new[] { (ItemSortBy.DatePlayed, Jellyfin.Database.Implementations.Enums.SortOrder.Descending) },
+                            Limit = PlayedItemsPerUser
+                        });
+
+                        foreach (var item in played)
+                        {
+                            var data = _userDataManager.GetUserData(user, item);
+                            if (data?.LastPlayedDate is not DateTime lastPlayed || lastPlayed < since)
+                            {
+                                continue;
+                            }
+
+                            var itemKey = item is Episode episode ? episode.SeriesId : item.Id;
+                            if (itemKey != Guid.Empty)
+                            {
+                                usages.Add((itemKey, user.Id, data.PlayCount));
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Top 10: Verlauf eines Benutzers konnte nicht gelesen werden");
+                    }
+                }
+
+                var ranked = Rank(usages, RankedMax);
+                RankingCache[key] = (DateTime.UtcNow, ranked);
+                return ranked;
+            }
+            finally
+            {
+                RankingGate.Release();
+            }
         }
     }
 }

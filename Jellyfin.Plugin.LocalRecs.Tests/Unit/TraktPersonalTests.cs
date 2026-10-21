@@ -42,6 +42,7 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             File.WriteAllText(pluginFile, PluginXml("geheim"));
             var before = File.ReadAllText(pluginFile);
             var config = new PluginConfiguration();
+            service.SetEnabled(Ulberding, true);
 
             var first = await service.GetRecommendationsAsync(Ulberding, config, CancellationToken.None);
             var second = await service.GetRecommendationsAsync(Ulberding, config, CancellationToken.None);
@@ -64,17 +65,23 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             var (service, requests, pluginFile) = Service(_ => Json("[]"));
             File.WriteAllText(pluginFile, PluginXml("geheim"));
 
-            (await service.GetRecommendationsAsync(Guid.NewGuid(), new PluginConfiguration(), CancellationToken.None)).Should().BeNull();
-            (await service.GetRecommendationsAsync(Ulberding, new PluginConfiguration { EnableTraktPersonal = false }, CancellationToken.None)).Should().BeNull();
-            service.SetEnabled(Ulberding, false);
+            // Standard: aus – ohne Einschalten wird Trakt.xml nicht genutzt und nichts abgerufen
             (await service.GetRecommendationsAsync(Ulberding, new PluginConfiguration(), CancellationToken.None)).Should().BeNull();
             service.GetStatus(Ulberding, new PluginConfiguration()).Should().BeEquivalentTo(new
             {
                 Enabled = false,
-                Source = TraktPersonalService.SourcePlugin,
-                PluginLinked = true,
+                Source = (string?)null,
+                PluginInstalled = true,
+                PluginLinked = false,
                 CanConnect = false
             });
+
+            service.SetEnabled(Ulberding, true);
+            (await service.GetRecommendationsAsync(Guid.NewGuid(), new PluginConfiguration(), CancellationToken.None)).Should().BeNull();
+            (await service.GetRecommendationsAsync(Ulberding, new PluginConfiguration { EnableTraktPersonal = false }, CancellationToken.None)).Should().BeNull();
+            service.GetStatus(Ulberding, new PluginConfiguration()).Source.Should().Be(TraktPersonalService.SourcePlugin);
+            service.SetEnabled(Ulberding, false);
+            (await service.GetRecommendationsAsync(Ulberding, new PluginConfiguration(), CancellationToken.None)).Should().BeNull();
 
             requests.Should().BeEmpty();
         }
@@ -84,6 +91,7 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
         {
             var (service, _, pluginFile) = Service(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized));
             File.WriteAllText(pluginFile, PluginXml("abgelaufen"));
+            service.SetEnabled(Ulberding, true);
 
             (await service.GetRecommendationsAsync(Ulberding, new PluginConfiguration(), CancellationToken.None)).Should().BeNull();
         }

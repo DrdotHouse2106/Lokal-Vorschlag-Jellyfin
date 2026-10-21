@@ -189,8 +189,18 @@
                         <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="tmdbApiKey">Eigener TMDB-Schlüssel (optional):</label>
                             <input is="emby-input" type="password" id="tmdbApiKey" name="tmdbApiKey" autocomplete="off" />
-                            <div class="fieldDescription">API-Schlüssel (v3) oder Lese-Token (v4) von themoviedb.org. Leer = der Schlüssel aus Jellyfins TMDb-Einstellungen.</div>
+                            <div class="fieldDescription">API-Schlüssel (v3) oder Lese-Token (v4) von themoviedb.org.</div>
                         </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="useJellyfinTmdbKey" />
+                                <span>Ohne eigenen Schlüssel den von Jellyfin mitbenutzen</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Erst der Schlüssel aus Jellyfins TMDb-Einstellungen, sonst Jellyfins eingebauter Schlüssel. Aus = ohne eigenen Schlüssel keine Abfragen bei TMDB.</div>
+                        </div>
+
+                        <div class="fieldDescription" id="similarityStatus" style="margin: -0.5em 0 1.5em;"></div>
 
                         <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="externalSimilarityMaxLookups">Titel je Aktualisierung höchstens:</label>
@@ -217,7 +227,7 @@
                                 <input is="emby-checkbox" type="checkbox" id="enableTraktPersonal" />
                                 <span>Persönliche Trakt-Empfehlungen einbeziehen</span>
                             </label>
-                            <div class="fieldDescription checkboxFieldDescription">Für Benutzer mit Trakt-Konto: eigene Anmeldung in Quallenkino (Profilmenü „Trakt-Empfehlungen“) oder – nur lesend – die Verknüpfung im Trakt-Plugin. Jeder kann es dort für sich ausschalten. Abgerufen wird nur die Empfehlungsliste, alle 12 Stunden; das Scrobbeln macht weiter das Trakt-Plugin. Begründung: „Für dich bei Trakt empfohlen“.</div>
+                            <div class="fieldDescription checkboxFieldDescription">Für Benutzer mit Trakt-Konto – nur wenn sie es im Profilmenü „Trakt-Empfehlungen“ selbst einschalten: eigene Anmeldung in Quallenkino oder – nur lesend – die Verknüpfung im Trakt-Plugin. Standard pro Benutzer: aus. Abgerufen wird nur die Empfehlungsliste, alle 12 Stunden; das Scrobbeln macht weiter das Trakt-Plugin. Begründung: „Für dich bei Trakt empfohlen“.</div>
                         </div>
 
                         <div class="inputContainer">
@@ -954,6 +964,16 @@
                             page.querySelector('#enableExternalSimilarity').checked = config.EnableExternalSimilarity !== false;
                             page.querySelector('#externalSimilarityWeight').value = config.ExternalSimilarityWeight !== undefined ? config.ExternalSimilarityWeight : 0.25;
                             page.querySelector('#tmdbApiKey').value = config.TmdbApiKey || '';
+                            page.querySelector('#useJellyfinTmdbKey').checked = config.UseJellyfinTmdbKey !== false;
+                            ApiClient.getJSON(ApiClient.getUrl('LocalRecs/Similarity/Status')).then(function (st) {
+                                var sources = { 'eigen': 'eigener Schlüssel', 'jellyfin-einstellung': 'Schlüssel aus Jellyfins TMDb-Einstellungen', 'jellyfin-eingebaut': 'Jellyfins eingebauter Schlüssel' };
+                                var text = 'Genutzt wird: ' + (sources[st.TmdbKeySource] || 'kein TMDB-Schlüssel – TMDB wird nicht abgefragt') + '. '
+                                    + 'Trakt „Related“: ' + (st.TraktRelated ? 'an' : 'aus (keine Client-ID)') + '. '
+                                    + 'Zwischengespeichert: ' + st.CachedTitles + ' Titel' + (st.NewestFetch ? ', zuletzt ' + new Date(st.NewestFetch).toLocaleString('de-DE') : '') + '.';
+                                page.querySelector('#similarityStatus').textContent = text;
+                            }).catch(function () {
+                                page.querySelector('#similarityStatus').textContent = '';
+                            });
                             page.querySelector('#externalSimilarityMaxLookups').value = config.ExternalSimilarityMaxLookupsPerRun !== undefined ? config.ExternalSimilarityMaxLookupsPerRun : 400;
                             page.querySelector('#traktClientId').value = config.TraktClientId || '';
                             page.querySelector('#traktClientSecret').value = config.TraktClientSecret || '';
@@ -1069,6 +1089,7 @@
                             var externalWeight = parseFloat(page.querySelector('#externalSimilarityWeight').value);
                             config.ExternalSimilarityWeight = isNaN(externalWeight) ? 0.25 : Math.min(1, Math.max(0, externalWeight));
                             config.TmdbApiKey = page.querySelector('#tmdbApiKey').value.trim();
+                            config.UseJellyfinTmdbKey = page.querySelector('#useJellyfinTmdbKey').checked;
                             var maxLookups = parseInt(page.querySelector('#externalSimilarityMaxLookups').value, 10);
                             config.ExternalSimilarityMaxLookupsPerRun = isNaN(maxLookups) ? 400 : Math.min(5000, Math.max(0, maxLookups));
                             config.TraktClientId = page.querySelector('#traktClientId').value.trim();

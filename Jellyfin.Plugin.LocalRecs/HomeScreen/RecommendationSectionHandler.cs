@@ -167,7 +167,7 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
                 }
 
                 var item = _libraryManager.GetItemById(id);
-                if (item == null || !item.IsVisible(user))
+                if (item == null || !item.IsVisibleStandalone(user))
                 {
                     continue;
                 }

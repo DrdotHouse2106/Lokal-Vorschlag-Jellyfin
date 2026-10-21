@@ -4,6 +4,8 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml;
+using System.Xml.Linq;
 using Jellyfin.Plugin.LocalRecs.Configuration;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
@@ -25,6 +27,9 @@ namespace Jellyfin.Plugin.LocalRecs
 
         private const int MaxBackups = 10;
 
+        // Schlüssel und Geheimnisse kommen nicht in die Sicherungen
+        private static readonly string[] SecretFields = { nameof(PluginConfiguration.TmdbApiKey), nameof(PluginConfiguration.TraktClientSecret), nameof(PluginConfiguration.FanartApiKey) };
+
         private static readonly Guid _id = new Guid("2d2a8fdf-0593-4258-a83c-31c4b14e0110");
 
         private readonly IXmlSerializer _xmlSerializer;
@@ -39,6 +44,18 @@ namespace Jellyfin.Plugin.LocalRecs
         {
             _xmlSerializer = xmlSerializer;
             Instance = this;
+            try
+            {
+                var folder = BackupFolder(ConfigurationFilePath);
+                if (Directory.Exists(folder))
+                {
+                    CleanBackups(folder);
+                }
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                // beim nächsten Speichern erneut
+            }
         }
 
         /// <summary>
@@ -54,6 +71,29 @@ namespace Jellyfin.Plugin.LocalRecs
 
         /// <inheritdoc />
         public override string Description => "Persönliche Empfehlungen, Live-TV mit eigenem Fernsehprogramm-Anbieter, Erinnerungen, Profile und eine Oberfläche im Quallenkino-Stil für Jellyfin Web";
+
+        /// <summary>
+        /// Removes the secrets (API keys, client secret) from a configuration file's content.
+        /// </summary>
+        /// <param name="xml">Content of the configuration file.</param>
+        /// <returns>The content without secrets, or null if it is no valid XML.</returns>
+        public static string? WithoutSecrets(string xml)
+        {
+            try
+            {
+                var document = XDocument.Parse(xml);
+                foreach (var element in document.Descendants().Where(e => SecretFields.Contains(e.Name.LocalName, StringComparer.Ordinal)).ToList())
+                {
+                    element.Value = string.Empty;
+                }
+
+                return document.Declaration + Environment.NewLine + document.ToString();
+            }
+            catch (XmlException)
+            {
+                return null;
+            }
+        }
 
         /// <inheritdoc />
         public IEnumerable<PluginPageInfo> GetPages()
@@ -101,14 +141,80 @@ namespace Jellyfin.Plugin.LocalRecs
             base.SaveConfiguration(config);
         }
 
+        /// <summary>
+        /// Gets the backups of the configuration (newest first).
+        /// </summary>
+        /// <returns>File names (without folder).</returns>
+        public IReadOnlyList<string> GetBackups()
+        {
+            var folder = BackupFolder(ConfigurationFilePath);
+            return Directory.Exists(folder)
+                ? Directory.GetFiles(folder, "*.xml").Select(f => Path.GetFileName(f)).OrderByDescending(f => f, StringComparer.Ordinal).ToList()
+                : new List<string>();
+        }
+
+        /// <summary>
+        /// Restores a backup. The backups contain no secrets – the current keys are kept.
+        /// </summary>
+        /// <param name="name">File name of the backup.</param>
+        /// <returns>True if restored.</returns>
+        public bool RestoreBackup(string name)
+        {
+            if (string.IsNullOrEmpty(name) || !GetBackups().Contains(name, StringComparer.Ordinal))
+            {
+                return false;
+            }
+
+            if (_xmlSerializer.DeserializeFromFile(typeof(PluginConfiguration), Path.Combine(BackupFolder(ConfigurationFilePath), name)) is not PluginConfiguration restored)
+            {
+                return false;
+            }
+
+            var current = Configuration;
+            restored.TmdbApiKey = string.IsNullOrEmpty(restored.TmdbApiKey) ? current.TmdbApiKey : restored.TmdbApiKey;
+            restored.TraktClientSecret = string.IsNullOrEmpty(restored.TraktClientSecret) ? current.TraktClientSecret : restored.TraktClientSecret;
+            restored.FanartApiKey = string.IsNullOrEmpty(restored.FanartApiKey) ? current.FanartApiKey : restored.FanartApiKey;
+            UpdateConfiguration(restored);
+            return true;
+        }
+
+        private static string BackupFolder(string path) => Path.Combine(Path.GetDirectoryName(path)!, Path.GetFileNameWithoutExtension(path) + ".sicherungen");
+
         private static void Backup(string path)
         {
-            var folder = Path.Combine(Path.GetDirectoryName(path)!, Path.GetFileNameWithoutExtension(path) + ".sicherungen");
+            var folder = BackupFolder(path);
             Directory.CreateDirectory(folder);
-            File.Copy(path, Path.Combine(folder, DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture) + ".xml"), true);
+            var target = Path.Combine(folder, DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture) + ".xml");
+            var clean = WithoutSecrets(File.ReadAllText(path));
+            if (clean != null)
+            {
+                File.WriteAllText(target, clean);
+            }
+            else
+            {
+                // Unlesbare Datei: unverändert sichern (genau dafür gibt es die Sicherung)
+                File.Copy(path, target, true);
+            }
+
             foreach (var old in Directory.GetFiles(folder, "*.xml").OrderByDescending(f => f, StringComparer.Ordinal).Skip(MaxBackups))
             {
                 File.Delete(old);
+            }
+
+            CleanBackups(folder);
+        }
+
+        // Sicherungen älterer Versionen enthielten noch Schlüssel – nachträglich entfernen
+        private static void CleanBackups(string folder)
+        {
+            foreach (var file in Directory.GetFiles(folder, "*.xml"))
+            {
+                var content = File.ReadAllText(file);
+                var clean = WithoutSecrets(content);
+                if (clean != null && !string.Equals(clean, content, StringComparison.Ordinal))
+                {
+                    File.WriteAllText(file, clean);
+                }
             }
         }
 

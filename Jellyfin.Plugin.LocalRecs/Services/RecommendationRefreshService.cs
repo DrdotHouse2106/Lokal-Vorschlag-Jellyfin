@@ -35,6 +35,8 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         private readonly ExternalSimilarityService? _external;
         private readonly TraktPersonalService? _traktPersonal;
         private readonly ConcurrentDictionary<Guid, WorldRankings> _worldRankings = new ConcurrentDictionary<Guid, WorldRankings>();
+        private IReadOnlyList<Guid> _lastSeeds = Array.Empty<Guid>();
+        private IReadOnlyDictionary<Guid, MediaItemMetadata>? _lastMetadata;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RecommendationRefreshService"/> class.
@@ -193,7 +195,9 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 }
             }
 
-            await RefreshExternalAsync(profiles.Values, metadata, config, cancellationToken).ConfigureAwait(false);
+            // Für den Abgleich mit TMDB/Trakt nach dem Speichern (RefreshExternalAfterRunAsync)
+            _lastSeeds = profiles.Values.Where(p => p != null).SelectMany(p => p!.PositiveItemIds).Distinct().ToList();
+            _lastMetadata = metadata;
 
             foreach (var userId in userIds)
             {
@@ -216,6 +220,20 @@ namespace Jellyfin.Plugin.LocalRecs.Services
             _logger.LogInformation("Successfully generated recommendations for {Count}/{Total} users", results.Count, userIds.Count);
 
             return results;
+        }
+
+        /// <summary>
+        /// Fetches missing or outdated public similarity lists (TMDB/Trakt) for the library of the last run.
+        /// Runs after the recommendations are stored, so a long first fetch never delays them; the next run uses the new lists.
+        /// </summary>
+        /// <param name="config">Plugin configuration.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task.</returns>
+        public Task RefreshExternalAfterRunAsync(PluginConfiguration config, CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(config);
+            var metadata = _lastMetadata;
+            return metadata == null ? Task.CompletedTask : RefreshExternalAsync(_lastSeeds, metadata, config, cancellationToken);
         }
 
         /// <summary>
@@ -391,7 +409,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
 
         // Öffentliche Ähnlichkeitslisten auffrischen: gesehene/gemochte Titel zuerst, dann der übrige Bestand
         private async Task RefreshExternalAsync(
-            IEnumerable<UserProfile?> profiles,
+            IReadOnlyList<Guid> seedIds,
             IReadOnlyDictionary<Guid, MediaItemMetadata> metadata,
             PluginConfiguration config,
             CancellationToken cancellationToken)
@@ -401,7 +419,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 return;
             }
 
-            var seeds = profiles.Where(p => p != null).SelectMany(p => p!.PositiveItemIds).Where(metadata.ContainsKey).Distinct().ToList();
+            var seeds = seedIds.Where(metadata.ContainsKey).Distinct().ToList();
             var seedSet = seeds.ToHashSet();
             var ordered = seeds.Select(id => metadata[id])
                 .Concat(metadata.Values.Where(m => !seedSet.Contains(m.Id)).OrderBy(m => m.Id));

@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.34.0.0",
+        "changelog": "Sicherheit und Tempo\n- Welten und Top 10 zeigen keine Titel mehr aus gesperrten Bibliotheken\n- Persönliche Trakt-Empfehlungen nur nach Einschalten durch den Benutzer\n- Sicherungen der Einstellungen ohne Schlüssel, Wiederherstellung behält die Schlüssel\n- Startseite schneller: Welten und Top 10 zwischengespeichert, TMDB/Trakt-Abgleich nach dem Speichern\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.34.0.zip",
+        "checksum": "61ce9188076d95b8408dbe5fff57994e",
+        "timestamp": "2026-10-21T08:00:00Z"
+      },
+      {
         "version": "12.33.0.0",
         "changelog": "Bessere Empfehlungen\n- Ähnliche Titel von TMDB (und Trakt) als Zusatzsignal, besonders bei wenig Sehverlauf – „Ähnlich wie …“; gesendet werden nur Titel-IDs\n- Persönliche Trakt-Empfehlungen für Benutzer mit Trakt-Konto (eigene Anmeldung oder Verknüpfung des Trakt-Plugins, nur lesend), pro Benutzer abschaltbar\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

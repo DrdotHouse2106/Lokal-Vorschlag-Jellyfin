@@ -4742,10 +4742,11 @@
                 return;
             }
             var stateText = status.Source === 'eigen' ? 'Mit Trakt verbunden.'
-                : status.Source === 'trakt-plugin' ? 'Verbunden über die Verknüpfung im Trakt-Plugin.'
-                    : 'Kein Trakt-Konto verbunden.';
+                : status.Source === 'trakt-plugin' ? 'Verbunden über die Verknüpfung im Trakt-Plugin (nur lesend).'
+                    : status.Enabled ? 'Eingeschaltet, aber kein Trakt-Konto gefunden.'
+                        : 'Ausgeschaltet – es wird nichts bei Trakt abgerufen.';
             box.appendChild(el('p', 'lr-cal-text lr-trakt-status', stateText));
-            if (status.Source) {
+            if (status.Source || status.PluginInstalled || status.OwnConnected) {
                 var label = el('label', 'lr-trakt-toggle');
                 var check = el('input');
                 check.type = 'checkbox';
@@ -4756,6 +4757,9 @@
                 label.appendChild(check);
                 label.appendChild(el('span', null, ' Persönliche Trakt-Empfehlungen nutzen'));
                 box.appendChild(label);
+                if (!status.Enabled && !status.OwnConnected && status.PluginInstalled) {
+                    box.appendChild(el('p', 'lr-cal-hint', 'Beim Einschalten nutzt Quallenkino – nur lesend – deine Verknüpfung im Trakt-Plugin, falls vorhanden.'));
+                }
             }
             if (status.UserCode) {
                 var codeBox = el('div', 'lr-trakt-code');
@@ -4781,7 +4785,7 @@
             if (status.LoginError) {
                 box.appendChild(el('p', 'lr-cal-hint', status.LoginError));
             }
-            if (!status.Source && !status.CanConnect) {
+            if (!status.Source && !status.CanConnect && !status.PluginInstalled) {
                 box.appendChild(el('p', 'lr-cal-hint', 'Verknüpfe dein Konto im Trakt-Plugin (Dashboard → Plugins → Trakt) – oder der Admin hinterlegt eine eigene Trakt-App in den Quallenkino-Einstellungen.'));
             }
             box.appendChild(el('p', 'lr-cal-hint', 'Änderungen wirken bei der nächsten Aktualisierung der Empfehlungen.'));

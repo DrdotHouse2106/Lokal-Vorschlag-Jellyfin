@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.34.0] - 2026-10-21
+
+### Security
+
+- **Worlds and Top 10 showed titles from libraries the user has no access to** (names, images, counts). Jellyfin's `BaseItem.IsVisible` only checks parental rating and tags, not library access; and library access is only applied to queries without item IDs. Worlds now use one query of everything the user may see (cached, renewed at once when the access changes); Top 10, home screen sections and film series use `IsVisibleStandalone`.
+- **Personal Trakt recommendations only after the user switches them on** (default off). The Trakt plugin's `Trakt.xml` is only read after that.
+- **Configuration backups contain no keys** (TMDB key, Trakt client secret, fanart.tv key); existing backups are cleaned at start. New admin API to list and restore backups (`GET /LocalRecs/Config/Backups`, `POST /LocalRecs/Config/Backups/{name}/Restore`); restoring keeps the current keys.
+- The settings page shows which TMDB key is used (own, Jellyfin's setting, Jellyfin's built-in key); new switch to not use Jellyfin's key (`GET /LocalRecs/Similarity/Status`, admin).
+
+### Changed
+
+- **Faster start page:** worlds cache what a user may see for 15 minutes (one library query instead of one lookup per title) and the last watched titles for 5 minutes; the world membership is computed by one request only (single flight). Top 10 ranking is cached server-wide per type and period for 10 minutes.
+- The TMDB/Trakt similarity lists are fetched after the recommendations are stored, so a long first fetch no longer delays them.
+
 ## [12.33.0] - 2026-10-20
 
 ### Added

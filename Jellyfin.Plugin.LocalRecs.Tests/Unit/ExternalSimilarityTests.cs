@@ -212,6 +212,8 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
 
             // Ohne eigenen Schlüssel greift der von Jellyfins TMDb-Plugin – im Test ist das nicht geladen
             none.Skipped.Should().NotBeNull();
+            ExternalSimilarityService.ResolveTmdbKeyWithSource(new PluginConfiguration { TmdbApiKey = " k " }).Should().Be(("k", ExternalSimilarityService.KeyOwn));
+            ExternalSimilarityService.ResolveTmdbKeyWithSource(new PluginConfiguration { UseJellyfinTmdbKey = false }).Should().Be(((string?)null, (string?)null));
             limited.Fetched.Should().Be(2);
             limited.Pending.Should().Be(0);
         }

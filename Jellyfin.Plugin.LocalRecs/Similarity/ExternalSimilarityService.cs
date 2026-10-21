@@ -23,12 +23,21 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
     /// </summary>
     public class ExternalSimilarityService
     {
-        /// <summary>Pause between two requests (TMDB and Trakt allow far more; this keeps the server quiet).</summary>
-        public static readonly TimeSpan RequestInterval = TimeSpan.FromMilliseconds(260);
+        /// <summary>Key source: own setting.</summary>
+        public const string KeyOwn = "eigen";
+
+        /// <summary>Key source: key in Jellyfin's TMDb settings.</summary>
+        public const string KeyJellyfinSetting = "jellyfin-einstellung";
+
+        /// <summary>Key source: Jellyfin's built-in key.</summary>
+        public const string KeyJellyfinBuiltIn = "jellyfin-eingebaut";
 
         private const string TmdbBase = "https://api.themoviedb.org/3/";
         private const string TraktBase = "https://api.trakt.tv/";
         private const int MaxConsecutiveFailures = 5;
+
+        // Pause zwischen zwei Anfragen (TMDB und Trakt erlauben weit mehr; so bleibt der Server ruhig)
+        private static readonly TimeSpan RequestInterval = TimeSpan.FromMilliseconds(260);
 
         private static readonly HttpClient SharedClient = new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(10) })
         {
@@ -69,16 +78,28 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
         }
 
         /// <summary>
-        /// Gets the TMDB key to use: own setting, otherwise the key of Jellyfin's TMDb plugin (its setting or its built-in key).
+        /// Gets the TMDB key to use: own setting, otherwise (if allowed) the key of Jellyfin's TMDb plugin (its setting or its built-in key).
         /// </summary>
         /// <param name="config">Plugin configuration.</param>
         /// <returns>The key, or null.</returns>
-        public static string? ResolveTmdbKey(PluginConfiguration config)
+        public static string? ResolveTmdbKey(PluginConfiguration config) => ResolveTmdbKeyWithSource(config).Key;
+
+        /// <summary>
+        /// Gets the TMDB key and where it comes from (for the settings page).
+        /// </summary>
+        /// <param name="config">Plugin configuration.</param>
+        /// <returns>Key and source: "eigen", "jellyfin-einstellung", "jellyfin-eingebaut" or null.</returns>
+        public static (string? Key, string? Source) ResolveTmdbKeyWithSource(PluginConfiguration config)
         {
             ArgumentNullException.ThrowIfNull(config);
             if (!string.IsNullOrWhiteSpace(config.TmdbApiKey))
             {
-                return config.TmdbApiKey.Trim();
+                return (config.TmdbApiKey.Trim(), KeyOwn);
+            }
+
+            if (!config.UseJellyfinTmdbKey)
+            {
+                return (null, null);
             }
 
             try
@@ -87,7 +108,7 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
                     .FirstOrDefault(a => string.Equals(a.GetName().Name, "MediaBrowser.Providers", StringComparison.Ordinal));
                 if (assembly == null)
                 {
-                    return null;
+                    return (null, null);
                 }
 
                 var pluginType = assembly.GetType("MediaBrowser.Providers.Plugins.Tmdb.Plugin");
@@ -96,17 +117,30 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
                 var own = configuration?.GetType().GetProperty("TmdbApiKey")?.GetValue(configuration) as string;
                 if (!string.IsNullOrWhiteSpace(own))
                 {
-                    return own.Trim();
+                    return (own.Trim(), KeyJellyfinSetting);
                 }
 
                 var builtIn = assembly.GetType("MediaBrowser.Providers.Plugins.Tmdb.TmdbUtils")
                     ?.GetField("ApiKey", BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as string;
-                return string.IsNullOrWhiteSpace(builtIn) ? null : builtIn;
+                return string.IsNullOrWhiteSpace(builtIn) ? (null, null) : (builtIn, KeyJellyfinBuiltIn);
             }
             catch (Exception ex) when (ex is TargetInvocationException || ex is InvalidOperationException || ex is NotSupportedException
                 || ex is AmbiguousMatchException || ex is TypeLoadException || ex is FileNotFoundException || ex is BadImageFormatException)
             {
-                return null;
+                return (null, null);
+            }
+        }
+
+        /// <summary>
+        /// Gets the number of cached lists and the newest fetch time (for the settings page).
+        /// </summary>
+        /// <returns>Count and newest fetch time.</returns>
+        public (int Count, DateTime? Newest) CacheInfo()
+        {
+            lock (_lock)
+            {
+                LoadCache();
+                return (_cache!.Count, _cache.Count == 0 ? null : _cache.Values.Max(e => e.Fetched));
             }
         }
 

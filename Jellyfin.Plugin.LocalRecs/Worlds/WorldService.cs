@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using Jellyfin.Data;
 using Jellyfin.Data.Enums;
 using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Database.Implementations.Enums;
@@ -24,6 +27,8 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         private const int MaxRecentEpisodes = 500;
         private const int TrailerRotation = 7;
         private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(30);
+        private static readonly TimeSpan VisibleCacheDuration = TimeSpan.FromMinutes(15);
+        private static readonly TimeSpan LastWatchedCacheDuration = TimeSpan.FromMinutes(5);
 
         private readonly ILogger<WorldService> _logger;
         private readonly ILibraryManager _libraryManager;
@@ -31,6 +36,10 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         private readonly object _lock = new object();
         private readonly WorldListSource? _listSource;
         private readonly Dictionary<(Guid User, string World), (DateTime Day, WorldMembership Data, (Guid Item, Guid Trailer)? Choice)> _trailerCache = new();
+        private readonly SemaphoreSlim _computeGate = new SemaphoreSlim(1, 1);
+        private readonly ConcurrentDictionary<Guid, (DateTime Created, Dictionary<Guid, DateTime> Data)> _lastWatchedCache = new();
+        private readonly ConcurrentDictionary<(Guid User, int MinItems), (DateTime Created, WorldMembership Data, string Access, IReadOnlyList<VisibleWorld> Worlds)> _visibleCache = new();
+        private readonly ConcurrentDictionary<Guid, (DateTime Created, string Access, IReadOnlyDictionary<Guid, BaseItem> Items)> _accessibleCache = new();
         private (DateTime Created, string Key, WorldMembership Data)? _cache;
 
         /// <summary>
@@ -64,6 +73,52 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         }
 
         /// <summary>
+        /// Builds a fingerprint of what a user may see (libraries, parental rating, tags), so that changed access
+        /// takes effect at once instead of after the cache time.
+        /// </summary>
+        /// <param name="user">The user.</param>
+        /// <returns>The fingerprint.</returns>
+        public static string AccessFingerprint(User user)
+        {
+            ArgumentNullException.ThrowIfNull(user);
+            return string.Join(
+                "|",
+                user.HasPermission(PermissionKind.EnableAllFolders),
+                string.Join(",", user.GetPreferenceValues<Guid>(PreferenceKind.EnabledFolders).OrderBy(g => g)),
+                user.MaxParentalRatingScore,
+                user.MaxParentalRatingSubScore,
+                string.Join(",", user.GetPreference(PreferenceKind.BlockedTags)),
+                string.Join(",", user.GetPreference(PreferenceKind.AllowedTags)),
+                string.Join(",", user.GetPreference(PreferenceKind.BlockUnratedItems)));
+        }
+
+        /// <summary>
+        /// Gets all movies and series a user may see (library access, parental rating, tags) – one library query,
+        /// cached for 15 minutes and renewed at once when the user's access changes. Jellyfin applies the library
+        /// access only to queries without item IDs, and <c>BaseItem.IsVisible</c> does not check it at all.
+        /// </summary>
+        /// <param name="user">The user.</param>
+        /// <returns>The items by ID.</returns>
+        public IReadOnlyDictionary<Guid, BaseItem> AccessibleItems(User user)
+        {
+            ArgumentNullException.ThrowIfNull(user);
+            var access = AccessFingerprint(user);
+            if (_accessibleCache.TryGetValue(user.Id, out var cached) && cached.Access == access && DateTime.UtcNow - cached.Created < VisibleCacheDuration)
+            {
+                return cached.Items;
+            }
+
+            var items = _libraryManager.GetItemList(new InternalItemsQuery(user)
+            {
+                IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Series },
+                IsVirtualItem = false,
+                Recursive = true
+            }).GroupBy(i => i.Id).ToDictionary(g => g.Key, g => g.First());
+            _accessibleCache[user.Id] = (DateTime.UtcNow, access, items);
+            return items;
+        }
+
+        /// <summary>
         /// Gets the configured worlds and their members (movie and series IDs). Cached for 30 minutes.
         /// </summary>
         /// <returns>Worlds and members by world ID.</returns>
@@ -88,6 +143,57 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
             {
                 _cache = null;
             }
+
+            _visibleCache.Clear();
+            _accessibleCache.Clear();
+        }
+
+        /// <summary>
+        /// Gets the worlds a user can see (at least <paramref name="minItems"/> visible titles) with their visible members
+        /// and the tile image. All members are checked with one library query; cached per user for 15 minutes
+        /// (and renewed when the membership changes).
+        /// </summary>
+        /// <param name="user">The user.</param>
+        /// <param name="minItems">Minimum number of visible titles.</param>
+        /// <returns>The visible worlds in list order.</returns>
+        public IReadOnlyList<VisibleWorld> GetVisibleWorlds(User user, int minItems)
+        {
+            ArgumentNullException.ThrowIfNull(user);
+            var data = GetData();
+            var key = (user.Id, minItems);
+            var access = AccessFingerprint(user);
+            if (_visibleCache.TryGetValue(key, out var cached) && ReferenceEquals(cached.Data, data) && cached.Access == access
+                && DateTime.UtcNow - cached.Created < VisibleCacheDuration)
+            {
+                return cached.Worlds;
+            }
+
+            var visibleItems = AccessibleItems(user);
+
+            var result = new List<VisibleWorld>();
+            foreach (var world in data.Worlds)
+            {
+                var visible = data.Members[world.Id].Where(visibleItems.ContainsKey).ToList();
+                if (visible.Count < minItems)
+                {
+                    continue;
+                }
+
+                var image = visible
+                    .Select(id => visibleItems[id])
+                    .Where(i => i.HasImage(ImageType.Backdrop))
+                    .OrderByDescending(i => i.CommunityRating ?? 0)
+                    .FirstOrDefault();
+                result.Add(new VisibleWorld(world, visible, image?.Id));
+            }
+
+            if (_visibleCache.Count > 5000)
+            {
+                _visibleCache.Clear();
+            }
+
+            _visibleCache[key] = (DateTime.UtcNow, data, access, result);
+            return result;
         }
 
         /// <summary>
@@ -110,6 +216,13 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         public Dictionary<Guid, DateTime> GetLastWatched(User user)
         {
             ArgumentNullException.ThrowIfNull(user);
+
+            // 5 Minuten zwischenspeichern: Welten-Reihen fragen das bei jedem Aufruf der Startseite ab
+            if (_lastWatchedCache.TryGetValue(user.Id, out var cached) && DateTime.UtcNow - cached.Created < LastWatchedCacheDuration)
+            {
+                return cached.Data;
+            }
+
             var result = new Dictionary<Guid, DateTime>();
 
             var movies = _libraryManager.GetItemList(new InternalItemsQuery(user)
@@ -146,6 +259,7 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                 }
             }
 
+            _lastWatchedCache[user.Id] = (DateTime.UtcNow, result);
             return result;
         }
 
@@ -160,7 +274,7 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         {
             ArgumentNullException.ThrowIfNull(user);
             ArgumentNullException.ThrowIfNull(item);
-            if (!item.IsVisible(user))
+            if (!AccessibleItems(user).ContainsKey(item.Id))
             {
                 return false;
             }
@@ -189,7 +303,7 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         {
             return members
                 .Select(id => _libraryManager.GetItemById(id))
-                .Where(i => i != null && i.IsVisible(user) && i.HasImage(ImageType.Backdrop))
+                .Where(i => i != null && i.IsVisibleStandalone(user) && i.HasImage(ImageType.Backdrop))
                 .OrderByDescending(i => i!.CommunityRating ?? 0)
                 .Select(i => (Guid?)i!.Id)
                 .FirstOrDefault();
@@ -258,7 +372,7 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
 
         private static (BaseItem Item, BaseItem Trailer)? FindTrailer(User user, BaseItem item)
         {
-            if (!item.IsVisible(user) || item is not IHasTrailers hasTrailers)
+            if (!item.IsVisibleStandalone(user) || item is not IHasTrailers hasTrailers)
             {
                 return null;
             }
@@ -280,6 +394,28 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                 }
             }
 
+            // Nur einer rechnet; wer gleichzeitig kommt, wartet und nimmt dessen Ergebnis
+            _computeGate.Wait();
+            try
+            {
+                lock (_lock)
+                {
+                    if (_cache is { } cache && cache.Key == key && DateTime.UtcNow - cache.Created < CacheDuration)
+                    {
+                        return cache.Data;
+                    }
+                }
+
+                return Compute(listWorlds, key);
+            }
+            finally
+            {
+                _computeGate.Release();
+            }
+        }
+
+        private WorldMembership Compute(IReadOnlyList<WorldDefinition>? listWorlds, string key)
+        {
             var worlds = listWorlds ?? WorldDefinition.Parse(Config.WorldDefinitions);
             WorldMembership data;
             try

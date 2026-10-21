@@ -8,7 +8,7 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
         /// <summary>Gets or sets a value indicating whether the admin switched the feature on.</summary>
         public bool FeatureEnabled { get; set; }
 
-        /// <summary>Gets or sets a value indicating whether the user uses the personal recommendations.</summary>
+        /// <summary>Gets or sets a value indicating whether the user switched the personal recommendations on (default off).</summary>
         public bool Enabled { get; set; }
 
         /// <summary>Gets or sets the access in use: "eigen", "trakt-plugin" or null (no access).</summary>
@@ -20,7 +20,10 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
         /// <summary>Gets or sets a value indicating whether the user has an own connection.</summary>
         public bool OwnConnected { get; set; }
 
-        /// <summary>Gets or sets a value indicating whether the user is linked in the Trakt plugin.</summary>
+        /// <summary>Gets or sets a value indicating whether the Trakt plugin is installed (its link can be used after switching on).</summary>
+        public bool PluginInstalled { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether the link of the Trakt plugin is in use (only after switching on).</summary>
         public bool PluginLinked { get; set; }
 
         /// <summary>Gets or sets the code to enter at Trakt while a login is running.</summary>
