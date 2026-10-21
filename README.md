@@ -281,6 +281,16 @@ GET  /LocalRecs/Epg/Test?search=&kind=series|movie|other|kids|news|sports&limit=
 
 ### Schnittstelle für TV-Apps
 
+**Identitätsnachweis im Heimnetz (ab 12.35.0):** Bevor eine App ihren Zugangsschlüssel unverschlüsselt (http) an eine lokale Adresse schickt, kann sie prüfen, dass dort wirklich ihr Server antwortet:
+
+```
+GET /LocalRecs/Identity/Challenge?nonce=<32 Zufallsbytes als 64 Hex-Zeichen, klein>
+Header: X-Device-Id: <Jellyfin-Geräte-ID der App>
+→ { "ServerId": "<ohne Bindestriche, klein>", "Host": "<Adresse, wie der Server sie sieht>", "Proofs": ["<hex>", …] }
+```
+
+`Proof = hex(HMAC-SHA256(Schlüssel = SHA-256(UTF-8 Zugangsschlüssel), Nachricht = UTF-8 "nonce|ServerId|host"))`, `host` = die angesprochene Adresse in Kleinbuchstaben mit Port, z. B. `192.168.1.10:8096`. Die App rechnet den Proof selbst aus und schickt ihren Schlüssel nur, wenn er in `Proofs` steht (ein Eintrag je Anmeldung des Geräts) und `ServerId` stimmt. Ohne Anmeldung, aber nur bei **direkter Verbindung aus dem lokalen Netz** (laut Jellyfins Netzwerkeinstellung, keine Weiterleitungs-Header wie `X-Forwarded-For`) – sonst 403. So kann ein falscher Server die Anfrage nicht über das Internet an den echten durchreichen; die angesprochene Adresse ist Teil des Proofs. Höchstens 30 Anfragen pro Minute und Adresse (429). Unbekanntes Gerät: leere `Proofs`.
+
 Apps, die „Home Screen Sections“ nicht anzeigen (z. B. [Jellyfin-TV-Client](https://github.com/DrdotHouse2106/Jellyfin-TV-Client) für Android TV / Fire TV), holen die Empfehlungen direkt:
 
 ```

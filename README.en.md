@@ -184,6 +184,8 @@ Remember single programmes or whole series (all future broadcasts with the same 
 
 ### API for TV apps
 
+Identity proof in the home network (since 12.35.0): `GET /LocalRecs/Identity/Challenge?nonce=<64 lower-case hex>` with header `X-Device-Id` returns `{ "ServerId", "Host", "Proofs": [...] }`, `Proof = hex(HMAC-SHA256(key = SHA-256(access token), msg = "nonce|ServerId|host"))`, host = address the app connected to (lower-case, with port). The app sends its token over http only if its own proof is listed. Anonymous, but only for direct connections from the local network (no forwarding headers), otherwise 403; 30 requests per minute and address.
+
 `GET /LocalRecs/Recommendations?type=movies|series|livetv&limit=20` returns the same items as the home screen rows for the **signed-in user** (regular token, no admin) as `{ "Items": [...], "TotalRecordCount": n }`. Works without Home Screen Sections.
 
 Since 12.7.1 (requires the XMLTV source setting): `GET /LocalRecs/LiveTv/Program/{programId}/Credits` and `GET /LocalRecs/LiveTv/Credits?ids=a,b,c` (max. 200) return `{ "ProgramId", "Matched", "Actors": [{ "Name", "Role" }], "Directors", "Writers", "Year", "Country", "Episode", "ImdbId", "TmdbId" }` for live TV programs (regular token with live TV access). No XMLTV match: `Matched: false` (HTTP 200); unknown ID: 404 or left out of the map.

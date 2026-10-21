@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.35.0] - 2026-10-21
+
+### Added
+
+- **Identity proof for apps in the home network:** `GET /LocalRecs/Identity/Challenge?nonce=…` (header `X-Device-Id`) returns `Proof = HMAC-SHA256(SHA-256(access token), "nonce|ServerId|host")` for each access token of the device, so an app can check that its own server answers before it sends the token over http. Anonymous, but only for direct connections from the local network (no forwarding headers) – a fake server cannot relay the challenge to the real one over the internet, and the host the app connected to is part of the proof. 30 requests per minute and address.
+
 ## [12.34.0] - 2026-10-21
 
 ### Security

@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.35.0.0",
+        "changelog": "Identitätsnachweis für TV-Apps\n- Apps prüfen im Heimnetz vor dem Senden des Zugangs, dass ihr eigener Server antwortet (GET /LocalRecs/Identity/Challenge)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.35.0.zip",
+        "checksum": "44a59a3d326a8da9a286c56607e948bb",
+        "timestamp": "2026-10-21T09:00:00Z"
+      },
+      {
         "version": "12.34.0.0",
         "changelog": "Sicherheit und Tempo\n- Welten und Top 10 zeigen keine Titel mehr aus gesperrten Bibliotheken\n- Persönliche Trakt-Empfehlungen nur nach Einschalten durch den Benutzer\n- Sicherungen der Einstellungen ohne Schlüssel, Wiederherstellung behält die Schlüssel\n- Startseite schneller: Welten und Top 10 zwischengespeichert, TMDB/Trakt-Abgleich nach dem Speichern\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
