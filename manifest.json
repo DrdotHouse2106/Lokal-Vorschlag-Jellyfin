@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.43.0.0",
+        "changelog": "Diagnose für Jellyseerr-Treffer in der Suche\n- Mit eingeschalteter Diagnose protokolliert die Weboberfläche, ob Jellyfin Enhanced in der Suche lädt, seine Jellyseerr-Anfragen beantwortet werden und der Bereich erscheint (ohne Suchbegriffe)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.43.0.zip",
+        "checksum": "30f08552cbf1740db57ceb4bc5e80496",
+        "timestamp": "2026-10-21T17:00:00Z"
+      },
+      {
         "version": "12.42.0.0",
         "changelog": "Banner: Entdecken und Weiterschauen\n- Der Banner mischt neue Empfehlungen mit angefangenen Serien, neuen Folgen und angefangenen Filmen\n- Knopf „Später“: Titel drei Wochen nicht im Banner, bleibt in den Empfehlungen\n- Abends unter der Woche eher kürzere Filme; oft gezeigte, nie geöffnete Titel seltener\n- Schnittstelle /LocalRecs/Billboard für die TV-Apps\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

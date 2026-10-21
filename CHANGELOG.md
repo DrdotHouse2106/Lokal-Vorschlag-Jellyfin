@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.43.0] - 2026-10-21
+
+### Added
+
+- **Diagnostics for the Jellyseerr results of Jellyfin Enhanced in the search** (switch „Diagnose“): requests to `/JellyfinEnhanced/jellyseerr/…` (path, status, time – no search term), Enhanced's Seerr messages (quoted texts removed) and, after a typing pause, whether Enhanced is loaded and configured and whether its „Seerr“ section is visible with how many cards. Helps with results missing only in one app (e.g. the iOS app). Checked: the Quallenkino interface does not change the search page; with Enhanced 12.13 the Seerr results show on desktop and in phone layout.
+
 ## [12.42.0] - 2026-10-21
 
 ### Added

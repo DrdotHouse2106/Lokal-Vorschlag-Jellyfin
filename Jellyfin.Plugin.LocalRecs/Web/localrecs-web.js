@@ -225,6 +225,7 @@
             });
         }
         diagStep('Diagnose aktiv, ' + window.location.hash);
+        diagWatchEnhanced();
         // Vollbild-Umschaltung der iOS-App (verschiebt das Layout, sperrt bzw. erlaubt „Ziehen zum Neuladen“)
         ['enableFullscreen', 'disableFullscreen'].forEach(function (name) {
             var shell = window.NativeShell;
@@ -238,6 +239,68 @@
             }
         });
     }
+
+    // Jellyseerr-Treffer von „Jellyfin Enhanced“ in der Suche: Anfragen (nur Pfad und Status, ohne Suchbegriff),
+    // dessen Seerr-Meldungen und ob der Bereich auf der Suchseite ankommt – für Fehler, die nur in einer App auftreten
+    function diagWatchEnhanced() {
+        if (window.fetch && !window.fetch.lrWrapped) {
+            var originalFetch = window.fetch;
+            var wrapped = function (input) {
+                var target = typeof input === 'string' ? input : (input && input.url) || '';
+                var started = Date.now();
+                var promise = originalFetch.apply(this, arguments);
+                if (/\/JellyfinEnhanced\/jellyseerr\//i.test(target)) {
+                    var path = target.split('?')[0].replace(/^.*\/JellyfinEnhanced\//i, '');
+                    promise.then(function (response) {
+                        diagSend('Enhanced ' + path + ' → HTTP ' + response.status + ' (' + (Date.now() - started) + ' ms)');
+                    }, function (err) {
+                        diagSend('Enhanced ' + path + ' → Fehler ' + errorText(err));
+                    });
+                }
+                return promise;
+            };
+            wrapped.lrWrapped = true;
+            window.fetch = wrapped;
+        }
+        ['log', 'warn', 'error'].forEach(function (level) {
+            var original = console[level];
+            if (typeof original !== 'function' || original.lrWrapped) {
+                return;
+            }
+            var wrappedLog = function (first) {
+                if (typeof first === 'string' && first.indexOf('Jellyfin Enhanced') >= 0 && /seerr/i.test(first)) {
+                    // Zitierte Texte (z. B. der Suchbegriff) nicht ins Serverlog
+                    diagSend('Enhanced ' + level + ': ' + first.replace(/^\W+/, '').replace(/"[^"]*"|„[^“]*“|'[^']*'/g, '"…"').slice(0, 200));
+                }
+                return original.apply(this, arguments);
+            };
+            wrappedLog.lrWrapped = true;
+            console[level] = wrappedLog;
+        });
+    }
+
+    // Nach einer Tipp-Pause auf der Suchseite: Stand von Jellyfin Enhanced und dem Jellyseerr-Bereich
+    var diagSearch = { timer: null };
+    document.addEventListener('input', function (e) {
+        var target = e.target;
+        if (!diagOn() || !target || !target.matches || !target.matches('#searchTextInput') || !/^#\/search/.test(window.location.hash || '')) {
+            return;
+        }
+        window.clearTimeout(diagSearch.timer);
+        diagSearch.timer = window.setTimeout(function () {
+            var je = window.JellyfinEnhanced || window.JE;
+            var config = je && je.pluginConfig;
+            var sections = document.querySelectorAll('.jellyseerr-section');
+            var visible = [].filter.call(sections, function (n) {
+                return !!n.offsetParent;
+            });
+            diagSend('Suche (' + (target.value || '').length + ' Zeichen): Enhanced ' + (je ? 'geladen' : 'NICHT geladen')
+                + (config ? ', Jellyseerr ' + !!config.JellyseerrEnabled + ', Suchtreffer ' + (config.JellyseerrShowSearchResults !== false) : ', keine Plugin-Einstellungen')
+                + ', Suchseiten ' + document.querySelectorAll('#searchPage').length
+                + ', Seerr-Bereich ' + sections.length + ' (sichtbar ' + visible.length + ', Karten '
+                + (visible[0] ? visible[0].querySelectorAll('.card').length : 0) + ')');
+        }, 4000);
+    }, true);
 
     window.addEventListener('error', function (e) {
         var where = e.filename ? ' @ ' + e.filename.split('/').pop().split('?')[0] + ':' + e.lineno + ':' + e.colno : '';
