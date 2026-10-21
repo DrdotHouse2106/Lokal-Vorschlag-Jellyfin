@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using MediaBrowser.Model.Plugins;
 
 namespace Jellyfin.Plugin.LocalRecs.Configuration
@@ -47,7 +49,7 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             EpgMovieByYear = false;
             EpgMovieByImdb = true;
             EpgMovieCategories = "Spielfilm";
-            EpgNoMovieCategories = "Dokumentation, Doku, Dokumentarfilm, Dokumentarreihe, Reportage, Magazin";
+            EpgNoMovieCategories = "Dokumentation, Doku, Dokumentarfilm, Dokumentarreihe, Reportage, Magazin, Reisen";
             EpgOtherCategories = "Teleshopping, Shopping, Dauerwerbesendung, Verkaufssendung";
             EpgOtherChannels = "HSE, QVC, 1-2-3.tv, 123.tv, Juwelo, mediashop, Channel21, Pearl, Sonnenklar";
             EpgKidsCategories = "Kinder, Kindersendung, Kinderserie, Kinderfilm, Kids, Children, Zeichentrick";
@@ -464,6 +466,11 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         public int InterestDecayDays { get; set; }
 
         /// <summary>
+        /// Gets or sets the revision of the stored settings; older settings are updated once when the plugin loads.
+        /// </summary>
+        public int ConfigRevision { get; set; }
+
+        /// <summary>
         /// Gets or sets the public address of the server for calendar links (e.g. https://jellyfin.example.org).
         /// Empty = taken from the request.
         /// </summary>
@@ -473,6 +480,28 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Gets or sets the reminder before a remembered programme in minutes (0 = no alarm).
         /// </summary>
         public int CalendarAlarmMinutes { get; set; }
+
+        /// <summary>
+        /// Updates settings stored by older versions (once): 1 = „Reisen“ added to „Nie Film“.
+        /// </summary>
+        /// <returns>True if something changed.</returns>
+        public bool Migrate()
+        {
+            if (ConfigRevision >= 1)
+            {
+                return false;
+            }
+
+            var categories = (EpgNoMovieCategories ?? string.Empty).Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
+            if (!categories.Contains("Reisen", StringComparer.OrdinalIgnoreCase))
+            {
+                categories.Add("Reisen");
+                EpgNoMovieCategories = string.Join(", ", categories);
+            }
+
+            ConfigRevision = 1;
+            return true;
+        }
 
         /// <summary>
         /// Validates the configuration and returns validation errors.

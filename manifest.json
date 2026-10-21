@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.38.0.0",
+        "changelog": "Metadaten-Check und Live-TV-Dashboard\n- Neuer Reiter „Metadaten“: zeigt je Bibliothek die Lücken (Genres, TMDB/IMDb-ID, Stichwörter, Besetzung …), listet Titel mit wenig oder zu wenig Metadaten und ruft sie gezielt neu ab\n- Dashboard → Live-TV: „LocalRecs EPG“ statt „Unknown“, der Eintrag öffnet die Fernsehprogramm-Einstellungen statt „Seite nicht gefunden“\n- „Reisen“ zählt zu „Nie Film“\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.38.0.zip",
+        "checksum": "42a0b867dfd32c2e3c92447838640d6b",
+        "timestamp": "2026-10-21T12:00:00Z"
+      },
+      {
         "version": "12.37.0.0",
         "changelog": "Längeres Gedächtnis\n- Suchen und geöffnete Titel werden standardmäßig ein Jahr gespeichert (bis zu 1000 Einträge je Art) und wirken wochenlang nach\n- Wiederholtes Interesse am selben Titel zählt mehr\n- Speicherdauer, Anzahl und Nachwirkung in den Einstellungen wählbar\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

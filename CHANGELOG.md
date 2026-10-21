@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.38.0] - 2026-10-21
+
+### Added
+
+- **Metadata check** (settings tab „Metadaten“): per library how many movies and series lack genres, TMDB/IMDb ID, tags, cast, director, year, rating, overview or image; list of titles with „zu wenig“ (genres or ID missing) or „wenig“ metadata, worst first; „Neu abrufen“ per title or for all shown (normal Jellyfin refresh, fills gaps only). API `GET /LocalRecs/Metadata/Check`, `POST /LocalRecs/Metadata/Refresh` (admins).
+- Settings page opens a tab from the address (`#/configurationpage?name=Quallenkino&tab=epg`).
+
+### Fixed
+
+- Dashboard → Live TV: „LocalRecs EPG“ was shown as „Unknown“ and its link led to „Seite nicht gefunden“ (jellyfin-web only knows XMLTV and Schedules Direct). With the web module it now reads „LocalRecs EPG (Quallenkino)“ and opens the „Fernsehprogramm“ tab; the broken address redirects there too.
+
+### Changed
+
+- „Nie Film“ also contains „Reisen“ (travel). Existing settings get it once on update; removing it afterwards sticks.
+
 ## [12.37.0] - 2026-10-21
 
 ### Changed

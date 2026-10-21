@@ -5294,6 +5294,85 @@
         });
     }
 
+    // Dashboard „Live-TV“: jellyfin-web kennt nur XMLTV und Schedules Direct und zeigt jeden anderen Anbieter als
+    // „Unknown“ mit dem Link „#/dashboard/livetv/undefined&id=…“ (Seite nicht gefunden). Für „LocalRecs EPG“ richtig
+    // benennen und zu den Fernsehprogramm-Einstellungen des Plugins führen.
+    var EPG_SETTINGS_ROUTE = '#/configurationpage?name=Quallenkino&tab=epg';
+    var epgProviders = { ids: null, loading: false, observer: null };
+
+    function isOwnEpgLink(href) {
+        var match = /livetv\/undefined&id=([0-9a-f-]+)/i.exec(href || '');
+        return !!(match && epgProviders.ids && epgProviders.ids.indexOf(match[1].replace(/-/g, '').toLowerCase()) >= 0);
+    }
+
+    function labelEpgProviders() {
+        document.querySelectorAll('a[href*="livetv/undefined&id="]').forEach(function (link) {
+            if (!isOwnEpgLink(link.getAttribute('href'))) {
+                return;
+            }
+            link.setAttribute('href', EPG_SETTINGS_ROUTE);
+            var title = link.querySelector('h1, h2, h3, h4, .MuiTypography-h3');
+            if (title && title.textContent !== 'LocalRecs EPG (Quallenkino)') {
+                title.textContent = 'LocalRecs EPG (Quallenkino)';
+            }
+        });
+    }
+
+    function fixEpgDashboard() {
+        var hash = window.location.hash || '';
+        var onList = /^#\/dashboard\/livetv\/?$/.test(hash);
+        var onBrokenLink = /^#\/dashboard\/livetv\/undefined&id=/i.test(hash);
+        if (!onList && !onBrokenLink) {
+            if (epgProviders.observer) {
+                epgProviders.observer.disconnect();
+                epgProviders.observer = null;
+            }
+            return;
+        }
+        var apply = function () {
+            if (onBrokenLink) {
+                if (isOwnEpgLink(hash)) {
+                    window.location.replace(EPG_SETTINGS_ROUTE);
+                }
+                return;
+            }
+            labelEpgProviders();
+            if (!epgProviders.observer && window.MutationObserver) {
+                epgProviders.observer = new MutationObserver(labelEpgProviders);
+                epgProviders.observer.observe(document.body, { childList: true, subtree: true });
+            }
+        };
+        if (epgProviders.ids) {
+            apply();
+            return;
+        }
+        if (epgProviders.loading || !api()) {
+            return;
+        }
+        epgProviders.loading = true;
+        getJson('System/Configuration/livetv').then(function (config) {
+            epgProviders.ids = ((config && config.ListingProviders) || []).filter(function (p) {
+                return p.Type === 'localrecs-epg' && p.Id;
+            }).map(function (p) {
+                return String(p.Id).replace(/-/g, '').toLowerCase();
+            });
+            epgProviders.loading = false;
+            fixEpgDashboard();
+        }).catch(function () {
+            epgProviders.loading = false;
+        });
+    }
+
+    // Klick vor React abfangen, damit der Router nicht die kaputte Adresse öffnet
+    document.addEventListener('click', function (e) {
+        var link = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+        if (link && link.getAttribute('href') === EPG_SETTINGS_ROUTE && /^#\/dashboard\/livetv/.test(window.location.hash || '')) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.location.hash = EPG_SETTINGS_ROUTE.slice(1);
+        }
+    }, true);
+
     function whenReady(callback) {
         var tries = 0;
         var timer = window.setInterval(function () {
@@ -5319,9 +5398,11 @@
     }
 
     document.addEventListener('viewshow', onViewShow);
+    window.setTimeout(fixEpgDashboard, 0);
     window.addEventListener('scroll', updateHeader, { passive: true });
     window.addEventListener('resize', hidePreview, { passive: true });
     window.addEventListener('hashchange', function () {
+        window.setTimeout(fixEpgDashboard, 0);
         window.setTimeout(updateTabBar, 0);
         window.setTimeout(tidyHeader, 0);
     });

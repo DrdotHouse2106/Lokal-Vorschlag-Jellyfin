@@ -34,6 +34,7 @@ Das **Quallenkinoplugin** (bis 12.27 „Local Recommendations“) erweitert Jell
 - **Schnittstellen für TV-Apps** – alles auch für eigene Apps (Quallenkino für Android TV, Fire TV und webOS)
 - **Ähnliche Titel von TMDB und Trakt** – öffentliche Ähnlichkeitslisten als Zusatzsignal, besonders bei wenig Sehverlauf; dazu persönliche Trakt-Empfehlungen für Benutzer mit Trakt-Konto
 - **Verhalten** – mehrfach Gesehenes und Serienfortschritt zählen mehr, Tageszeit bestimmt die Reihenfolge, Suchen und geöffnete Titel wirken wochenlang nach (bis zu einem Jahr gespeichert, pro Benutzer abschaltbar)
+- **Metadaten-Check** – zeigt pro Bibliothek, wie gut Filme und Serien beschrieben sind, listet Titel mit wenig oder zu wenig Metadaten und ruft für sie gezielt neu ab
 - **Datenschutz** – alle Berechnungen laufen lokal auf deinem Server; nach außen gehen nur Titel-IDs (siehe „Ähnliche Titel“), persönliche Trakt-Empfehlungen nur nach Einschalten durch den Benutzer, Sicherungen der Einstellungen ohne Schlüssel
 
 ## Voraussetzungen
@@ -140,6 +141,16 @@ Die eigene Ähnlichkeit (Genres, Darsteller, Regie, Stichwörter) kennt nur, was
 - Schnittstelle (für den angemeldeten Benutzer): `GET/POST /LocalRecs/Trakt/Me`, `POST/DELETE /LocalRecs/Trakt/Me/Login`.
 
 Ausblick: Ein Konzept für freiwillig geteilte Sehverläufe (gemeinsame Empfehlungen über mehrere Server) steht in [docs/konzept-gemeinsame-empfehlungen.md](docs/konzept-gemeinsame-empfehlungen.md) – noch nicht umgesetzt.
+
+### Metadaten-Check (ab 12.38.0)
+
+Empfehlungen sind nur so gut wie die Metadaten. Der Reiter **„Metadaten“** in den Plugin-Einstellungen prüft alle Filme und Serien auf Knopfdruck:
+
+- **Je Bibliothek:** Anzahl der Titel, davon „zu wenig“ und „wenig“, und wie viele ohne Genres, TMDB/IMDb-ID, Stichwörter, Besetzung, Regie (nur Filme), Jahr, Bewertung, Beschreibung oder Bild sind. Ab 20 % ist der Wert orange markiert.
+- **Zu wenig:** Genres oder die TMDB/IMDb-ID fehlen. Ohne Genres lässt sich ein Titel kaum einordnen, und ohne ID fehlen „Ähnlich wie …“ von TMDB und Trakt. **Wenig:** Stichwörter oder Besetzung fehlen oder mehreres Kleinere. Eine einzelne kleine Lücke, z. B. eine fehlende Bewertung, gilt nicht als lückenhaft.
+- **Liste der lückenhaften Titel**, die mit den meisten Lücken zuerst (bis zu 500), filterbar und mit Link zur Detailseite.
+- **„Neu abrufen“** für einen Titel oder für alle angezeigten (höchstens 200 auf einmal). Das startet den normalen Jellyfin-Abruf im Hintergrund: Vorhandene Metadaten und Bilder bleiben, nur Lücken werden gefüllt. Titel ohne ID erkennt Jellyfin oft nicht von selbst; die ordnest du in Jellyfin über **„Identifizieren“** zu.
+- Schnittstelle (nur Admins): `GET /LocalRecs/Metadata/Check`, `POST /LocalRecs/Metadata/Refresh` mit `{"ItemIds": [...]}`.
 
 ### Leistung und Sichtbarkeit (ab 12.34.0)
 
@@ -261,12 +272,14 @@ Der eingebaute XMLTV-Anbieter von Jellyfin entscheidet nur über die Liste „Fi
 
 **LocalRecs EPG** ist ein eigener Fernsehprogramm-Anbieter für XMLTV-Quellen (URL oder Pfad, auch `.gz`). Er ersetzt den eingebauten Anbieter, die Senderzuordnung bleibt erhalten. Statt einer Kategorienliste entscheiden **Regel-Bausteine**, jeder einzeln schaltbar (Reiter **„Fernsehprogramm“**):
 
+> Im Jellyfin-Dashboard unter Live-TV zeigt Jellyfin eigene Anbieter eigentlich als „Unknown“ mit einem Link ins Leere. Mit eingeschalteter Quallenkino-Oberfläche für Jellyfin Web (ab 12.38.0) steht dort **„LocalRecs EPG (Quallenkino)“**, und der Eintrag öffnet diesen Reiter.
+
 | Baustein | Wirkung |
 |---|---|
 | **Serie: Folgennummer** | `episode-num` (xmltv_ns oder onscreen wie `S02E02`, „Staffel 2, Folge 2“, `2x02`) → Serienfolge mit Staffel, Folge und Folgentitel (`sub-title`), egal welche Kategorie |
 | **Film** | ohne Folgennummer, mindestens 75 Minuten (einstellbar) **und** ein Film-Merkmal: Regie (`credits/director`), IMDb-Link (`url`) oder eine Film-Kategorie (Standard „Spielfilm“). Das Produktionsjahr (`date`) allein zählt ab 12.27.0 nur, wenn ausdrücklich eingeschaltet, weil Shows und Teleshopping oft eins haben. Nie bei Sport oder Nachrichten. Lange Sendungen ohne Merkmal bleiben „Sonstiges“ |
 | **Serie: Folgentitel** | kein Film und kein Sport, aber ein `sub-title` → Serienfolge |
-| **Nie Film** (ab 12.29.0) | Kategorien wie Dokumentation, Doku, Reportage, Magazin – auch mit Regie und Überlänge |
+| **Nie Film** (ab 12.29.0) | Kategorien wie Dokumentation, Doku, Reportage, Magazin, Reisen – auch mit Regie und Überlänge |
 | **Weder Film noch Serie** (ab 12.29.0) | Teleshopping über Kategorie (Teleshopping, Shopping …) oder Sender (HSE, QVC, 1-2-3.tv, Juwelo …) |
 | **Kinder / Nachrichten / Sport** | über Kategorie (als ganzes Wort) **oder** Sender (z. B. KiKA = immer Kinder, Sky Sport = Sport) |
 

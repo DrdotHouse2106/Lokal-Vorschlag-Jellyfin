@@ -34,6 +34,7 @@ Please report any issues or feedback on [GitHub Issues](https://github.com/Drdot
 - **Recording** - record a programme or a series right from the info view
 - **Worlds like Disney+** and **"Top 10 bei euch"** - for apps like Quallenkino and the Quallenkino-style start page
 - **APIs for TV apps** - everything also for own apps (Quallenkino for Android TV, Fire TV and webOS)
+- **Metadata check** - shows per library how well movies and series are described, lists titles with little or too little metadata and refreshes just those
 - **Privacy-first** - All processing happens locally on your server
 - **Performance optimized** - Handles 2,000+ item libraries efficiently
 
@@ -165,7 +166,7 @@ API: `GET /LocalRecs/Avatars` (catalog, image URLs via the plugin, `Current` = l
 
 ### Programme guide provider "LocalRecs EPG" (since 12.26.0)
 
-Jellyfin's built-in XMLTV provider marks a programme as a movie as soon as one category is in its „movie categories“ list. With e.g. „Komödie“ there, comedy series become movies: season/episode/episode title are dropped and recordings end up under `Movies/`. **LocalRecs EPG** is an own listings provider for XMLTV sources (URL or path, also `.gz`) that replaces it, keeping the channel mapping. Switchable rule blocks decide instead (tab „Fernsehprogramm“):
+Jellyfin's built-in XMLTV provider marks a programme as a movie as soon as one category is in its „movie categories“ list. With e.g. „Komödie“ there, comedy series become movies: season/episode/episode title are dropped and recordings end up under `Movies/`. **LocalRecs EPG** is an own listings provider for XMLTV sources (URL or path, also `.gz`) that replaces it, keeping the channel mapping. Switchable rule blocks decide instead (tab „Fernsehprogramm“). In the dashboard (Live TV) Jellyfin shows own providers as „Unknown“ with a broken link; with the Quallenkino web module (since 12.38.0) it reads „LocalRecs EPG (Quallenkino)“ and opens this tab.
 
 - **Series by episode number** – `episode-num` (xmltv_ns or on-screen like `S02E02`) → series episode with season, episode and episode title, whatever the categories.
 - **Movie** – no episode number, at least 75 minutes (configurable) and one movie hint: director, IMDb link or a movie category (default „Spielfilm“); the production year alone only if switched on (shows and teleshopping often have one). Never for sports or news. If the programme source is a reduced XMLTV (e.g. m3u-editor) without director/year/IMDb, these come from the „XMLTV-Quelle für Darsteller“ (match by start ±15 min and title, channel IDs may differ) – since 12.27.0.
@@ -211,6 +212,10 @@ Public similarity lists are an extra signal on top of the own content similarity
 - Only the TMDB/IMDb ID of a title is sent – no users, no watch history. The whole library is looked up bit by bit (watched titles first), so the requests reflect the library, not what was watched. Cache 7 days, at most 400 titles per run. Key: own TMDB key (v3 or v4 read token), otherwise the key in Jellyfin's TMDb settings or Jellyfin's built-in key – the settings page shows which one is used; switch „Ohne eigenen Schlüssel den von Jellyfin mitbenutzen“ turns that off. Without key or on errors it is silently skipped.
 - **Personal Trakt recommendations** for users with a Trakt account (`/recommendations/movies` and `/shows`, weight 0.5, reason „Für dich bei Trakt empfohlen“): own login in Quallenkino (profile menu „Trakt-Empfehlungen“, device code; needs client ID and secret of an own Trakt app) or – read only – the link of the Trakt plugin (`Trakt.xml`, never refreshed or written back). Off by default (since 12.34.0): only users who switch it on themselves; the Trakt plugin's link is read only after that. Only the recommendation list is fetched every 12 hours, nothing is sent to Trakt. API: `GET/POST /LocalRecs/Trakt/Me`, `POST/DELETE /LocalRecs/Trakt/Me/Login`.
 - Concept for voluntarily shared watch histories (not built yet): [docs/konzept-gemeinsame-empfehlungen.md](docs/konzept-gemeinsame-empfehlungen.md) (German).
+
+### Metadata check (since 12.38.0)
+
+Tab **„Metadaten“** in the plugin settings checks all movies and series: per library the number of titles without genres, TMDB/IMDb ID, tags, cast, director (movies), year, rating, overview or image. **Too little** = genres or ID missing, **little** = tags or cast missing or several minor gaps. A list of these titles (worst first, up to 500) with „Neu abrufen“ per title or for all shown (at most 200): the normal Jellyfin refresh in the background, existing metadata and images stay. Titles without ID usually need „Identify“ in Jellyfin. API (admins only): `GET /LocalRecs/Metadata/Check`, `POST /LocalRecs/Metadata/Refresh` with `{"ItemIds": [...]}`.
 
 ### Performance and visibility (since 12.34.0)
 

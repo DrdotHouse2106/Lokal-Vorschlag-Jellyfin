@@ -20,6 +20,7 @@
                         <button is="emby-button" type="button" class="raised tab-button-settings" data-tab="settings">Einstellungen</button>
                         <button is="emby-button" type="button" class="raised tab-button-evaluation" data-tab="evaluation">Auswertung</button>
                         <button is="emby-button" type="button" class="raised tab-button-worlds" data-tab="worlds">Welten</button>
+                        <button is="emby-button" type="button" class="raised tab-button-metadata" data-tab="metadata">Metadaten</button>
                         <button is="emby-button" type="button" class="raised tab-button-epg" data-tab="epg">Fernsehprogramm</button>
                         <button is="emby-button" type="button" class="raised tab-button-actions" data-tab="actions">Aktionen</button>
                     </div>
@@ -496,6 +497,27 @@
                         <div id="worldDetails"></div>
                     </div>
 
+                    <!-- Metadaten Tab -->
+                    <div id="tab-metadata" class="tab-content" style="display:none;">
+                        <h2 class="sectionTitle">Metadaten-Check</h2>
+                        <p>Empfehlungen sind nur so gut wie die Metadaten. Am wichtigsten sind <b>Genres</b> und die <b>TMDB/IMDb-ID</b> (richtige Zuordnung, nötig für „Ähnlich wie …“), danach <b>Stichwörter</b> und <b>Besetzung</b>. Jahr, Bewertung, Regie, Beschreibung und Bild zählen weniger.</p>
+                        <p><b>Zu wenig</b> = Genres oder ID fehlen, <b>wenig</b> = Stichwörter oder Besetzung fehlen oder mehreres Kleinere. „Neu abrufen“ startet den normalen Jellyfin-Abruf im Hintergrund – Vorhandenes bleibt, nur Lücken werden gefüllt. Titel ohne ID findet Jellyfin oft nicht von selbst: dann in Jellyfin über „Identifizieren“ zuordnen.</p>
+                        <button is="emby-button" type="button" class="raised" id="runMetadataCheck"><span>Jetzt prüfen</span></button>
+                        <div id="metadataSummary"></div>
+                        <div class="selectContainer" id="metadataFilterContainer" style="display:none;">
+                            <select is="emby-select" id="metadataFilter" label="Anzeigen">
+                                <option value="all">Alle lückenhaften Titel</option>
+                                <option value="zu wenig">Nur „zu wenig“</option>
+                                <option value="wenig">Nur „wenig“</option>
+                            </select>
+                        </div>
+                        <div id="metadataActions" style="display:none; margin: 0.5em 0 1em;">
+                            <button is="emby-button" type="button" class="raised" id="refreshMetadataShown"><span>Angezeigte Titel neu abrufen (höchstens 200)</span></button>
+                            <span id="metadataRefreshState" style="margin-left: 1em;"></span>
+                        </div>
+                        <div id="metadataItems"></div>
+                    </div>
+
                     <!-- Fernsehprogramm Tab -->
                     <div id="tab-epg" class="tab-content" style="display:none;">
                         <h2 class="sectionTitle">Fernsehprogramm-Anbieter „LocalRecs EPG“</h2>
@@ -681,6 +703,7 @@
                         { button: page.querySelector('.tab-button-settings'), tab: 'settings' },
                         { button: page.querySelector('.tab-button-evaluation'), tab: 'evaluation' },
                         { button: page.querySelector('.tab-button-worlds'), tab: 'worlds' },
+                        { button: page.querySelector('.tab-button-metadata'), tab: 'metadata' },
                         { button: page.querySelector('.tab-button-epg'), tab: 'epg' },
                         { button: page.querySelector('.tab-button-actions'), tab: 'actions' }
                     ];
@@ -908,6 +931,87 @@
                 /**
                  * Loads the titles and suggestions of one world (admin).
                  */
+                metadataResult: null,
+                runMetadataCheck: function(page) {
+                    var self = this;
+                    page.querySelector('#metadataSummary').innerHTML = '<p>Prüfe Filme und Serien...</p>';
+                    page.querySelector('#metadataItems').innerHTML = '';
+                    ApiClient.getJSON(ApiClient.getUrl('LocalRecs/Metadata/Check')).then(function(result) {
+                        self.metadataResult = result;
+                        var fields = ['Genres', 'TMDB/IMDb-ID', 'Stichwörter', 'Besetzung', 'Regie', 'Jahr', 'Bewertung', 'Beschreibung', 'Bild'];
+                        var html = '<p>Geprüft ' + self.escapeHtml(new Date(result.Checked).toLocaleString()) + '.</p>';
+                        html += '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse;"><tr style="text-align: left;"><th>Bibliothek</th><th>Titel</th><th>zu wenig</th><th>wenig</th>';
+                        fields.forEach(function(f) {
+                            html += '<th>ohne ' + self.escapeHtml(f) + '</th>';
+                        });
+                        html += '</tr>';
+                        (result.Libraries || []).forEach(function(lib) {
+                            html += '<tr><td>' + self.escapeHtml(lib.Name) + '</td><td>' + lib.Total + '</td><td>' + lib.TooLittle + '</td><td>' + lib.Little + '</td>';
+                            fields.forEach(function(f) {
+                                var n = (lib.Missing || {})[f] || 0;
+                                var share = lib.Total ? Math.round(n * 100 / lib.Total) : 0;
+                                html += '<td' + (share >= 20 ? ' style="color: #ff9800;"' : '') + '>' + n + (n ? ' (' + share + ' %)' : '') + '</td>';
+                            });
+                            html += '</tr>';
+                        });
+                        html += '</table></div>';
+                        if (result.ListedTotal > (result.Items || []).length) {
+                            html += '<p>' + result.ListedTotal + ' lückenhafte Titel, angezeigt die ' + result.Items.length + ' mit den meisten Lücken.</p>';
+                        }
+                        page.querySelector('#metadataSummary').innerHTML = html;
+                        page.querySelector('#metadataFilterContainer').style.display = (result.Items || []).length ? 'block' : 'none';
+                        self.renderMetadataItems(page);
+                    }).catch(function(error) {
+                        console.error('Metadata check failed:', error);
+                        page.querySelector('#metadataSummary').innerHTML = '<p style="color: #ff5252;">Prüfung fehlgeschlagen.</p>';
+                    });
+                },
+                shownMetadataItems: function(page) {
+                    var filter = page.querySelector('#metadataFilter').value;
+                    return ((this.metadataResult || {}).Items || []).filter(function(i) {
+                        return filter === 'all' || i.Level === filter;
+                    });
+                },
+                renderMetadataItems: function(page) {
+                    var self = this;
+                    var items = self.shownMetadataItems(page);
+                    page.querySelector('#metadataActions').style.display = items.length ? 'block' : 'none';
+                    page.querySelector('#metadataRefreshState').textContent = '';
+                    if (!items.length) {
+                        page.querySelector('#metadataItems').innerHTML = self.metadataResult ? '<p>Keine lückenhaften Titel – sehr gut.</p>' : '';
+                        return;
+                    }
+                    var html = '<table style="width: 100%; border-collapse: collapse;"><tr style="text-align: left;"><th>Titel</th><th>Art</th><th>Bibliothek</th><th>Stand</th><th>Es fehlt</th><th></th></tr>';
+                    items.forEach(function(i) {
+                        html += '<tr style="border-top: 1px solid rgba(255,255,255,0.1);"><td><a is="emby-linkbutton" class="button-link" href="#/details?id=' + encodeURIComponent(i.Id) + '">' + self.escapeHtml(i.Name) + (i.Year ? ' (' + i.Year + ')' : '') + '</a></td>'
+                            + '<td>' + self.escapeHtml(i.Type) + '</td><td>' + self.escapeHtml(i.Library) + '</td>'
+                            + '<td' + (i.Level === 'zu wenig' ? ' style="color: #ff5252;"' : ' style="color: #ff9800;"') + '>' + self.escapeHtml(i.Level) + '</td>'
+                            + '<td>' + self.escapeHtml((i.Missing || []).join(', ')) + '</td>'
+                            + '<td><button is="emby-button" type="button" class="raised metadataRefreshOne" data-id="' + self.escapeHtml(i.Id) + '"><span>Neu abrufen</span></button></td></tr>';
+                    });
+                    html += '</table>';
+                    page.querySelector('#metadataItems').innerHTML = html;
+                    page.querySelectorAll('.metadataRefreshOne').forEach(function(btn) {
+                        btn.addEventListener('click', function() {
+                            btn.disabled = true;
+                            self.refreshMetadata([btn.getAttribute('data-id')]).then(function(r) {
+                                btn.querySelector('span').textContent = r.Queued ? 'Angestoßen' : 'Nicht möglich';
+                            });
+                        });
+                    });
+                },
+                refreshMetadata: function(ids) {
+                    return ApiClient.ajax({
+                        type: 'POST',
+                        url: ApiClient.getUrl('LocalRecs/Metadata/Refresh'),
+                        data: JSON.stringify({ ItemIds: ids }),
+                        contentType: 'application/json',
+                        dataType: 'json'
+                    }).catch(function(error) {
+                        console.error('Metadata refresh failed:', error);
+                        return { Queued: 0 };
+                    });
+                },
                 loadWorldDetails: function(page, worldId) {
                     var self = this;
                     var container = page.querySelector('#worldDetails');
@@ -1329,6 +1433,13 @@
                 
                 // Load configuration for settings tab
                 LocalRecsConfig.loadConfiguration(page);
+
+                // Reiter aus der Adresse öffnen (z. B. &tab=epg vom Fernsehprogramm-Anbieter im Dashboard)
+                var tabMatch = /[?&]tab=([a-z]+)/.exec(window.location.hash || '');
+                var tabButton = tabMatch ? page.querySelector('.tab-button-' + tabMatch[1]) : null;
+                if (tabButton) {
+                    tabButton.click();
+                }
                 
                 // Setup event listeners for settings
                 page.querySelector('#enableRatingProximity').addEventListener('change', function() {
@@ -1360,6 +1471,25 @@
 
                 page.querySelector('#worldSelect').addEventListener('change', function() {
                     LocalRecsConfig.loadWorldDetails(page, this.value);
+                });
+
+                page.querySelector('#runMetadataCheck').addEventListener('click', function() {
+                    LocalRecsConfig.runMetadataCheck(page);
+                });
+
+                page.querySelector('#metadataFilter').addEventListener('change', function() {
+                    LocalRecsConfig.renderMetadataItems(page);
+                });
+
+                page.querySelector('#refreshMetadataShown').addEventListener('click', function() {
+                    var ids = LocalRecsConfig.shownMetadataItems(page).slice(0, 200).map(function(i) {
+                        return i.Id;
+                    });
+                    var state = page.querySelector('#metadataRefreshState');
+                    state.textContent = 'Stoße Abruf an...';
+                    LocalRecsConfig.refreshMetadata(ids).then(function(r) {
+                        state.textContent = 'Abruf für ' + r.Queued + ' Titel angestoßen – läuft im Hintergrund, danach erneut prüfen.';
+                    });
                 });
 
                 page.querySelector('#reloadWorldList').addEventListener('click', function() {

@@ -56,6 +56,18 @@ namespace Jellyfin.Plugin.LocalRecs
             {
                 // beim nächsten Speichern erneut
             }
+
+            try
+            {
+                if (Configuration.Migrate())
+                {
+                    SaveConfiguration();
+                }
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is InvalidOperationException)
+            {
+                // beim nächsten Start erneut
+            }
         }
 
         /// <summary>
@@ -122,8 +134,14 @@ namespace Jellyfin.Plugin.LocalRecs
             {
                 if (File.Exists(path) && new FileInfo(path).Length > 0)
                 {
+                    // Standardwerte auch in der Form nach Migrate(), sonst würde ein fehlgeschlagenes Laden beim Start überschrieben
                     var defaults = Serialize(new PluginConfiguration());
-                    if (Serialize(config).SequenceEqual(defaults) && !File.ReadAllBytes(path).SequenceEqual(defaults))
+                    var migrated = new PluginConfiguration();
+                    migrated.Migrate();
+                    var current = Serialize(config);
+                    var existing = File.ReadAllBytes(path);
+                    if ((current.SequenceEqual(defaults) || current.SequenceEqual(Serialize(migrated)))
+                        && !existing.SequenceEqual(defaults) && !existing.SequenceEqual(current))
                     {
                         // Laden ist fehlgeschlagen – Datei behalten und gleich noch einmal laden
                         _ = Task.Run(ReloadAfterFailedLoadAsync);
