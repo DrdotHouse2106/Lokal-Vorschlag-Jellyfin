@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.44.0.0",
+        "changelog": "Diagnose der Jellyseerr-Suche, Teil 2\n- Mit eingeschalteter Diagnose zeigt das Log, wann der Seerr-Bereich in der Suche eingefügt oder entfernt wird und durch welchen Code\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.44.0.zip",
+        "checksum": "4347ec66debac868c90914eaab098319",
+        "timestamp": "2026-10-21T18:00:00Z"
+      },
+      {
         "version": "12.43.0.0",
         "changelog": "Diagnose für Jellyseerr-Treffer in der Suche\n- Mit eingeschalteter Diagnose protokolliert die Weboberfläche, ob Jellyfin Enhanced in der Suche lädt, seine Jellyseerr-Anfragen beantwortet werden und der Bereich erscheint (ohne Suchbegriffe)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

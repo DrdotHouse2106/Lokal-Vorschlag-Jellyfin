@@ -180,6 +180,7 @@ Im Browser und in den Jellyfin-Apps für iOS und Android kann die Startseite wie
 - **Diagnose (ab 12.30.0)** – Schalter „Diagnose: Fehler der Weboberfläche ins Serverlog schreiben“ im Reiter „Einstellungen“ (Standard aus). Browser und Apps melden dann Skriptfehler und, nach einem Absturz (z. B. wenn die iOS-App die Seite neu lädt), die letzten Schritte davor: Ansicht, Abspielen, Player, Video-Ereignisse, Lebenszeichen alle 5 s. Im Serverlog als Warnung „Quallenkino-Diagnose [Benutzer · App Version · Gerät]“. Zugangsschlüssel werden entfernt. Ab 12.43.0 auch für die Jellyseerr-Treffer von **Jellyfin Enhanced** in der Suche:
   - dessen Anfragen an `/JellyfinEnhanced/jellyseerr/…` (nur Pfad, Status und Dauer)
   - seine Seerr-Meldungen (zitierte Texte wie der Suchbegriff werden entfernt)
+  - ab 12.44.0: wann der Bereich „Entdecken auf Seerr“ eingefügt, verschoben oder entfernt wird (mit Aufrufstelle), Neuaufbau der Suchseite und Adresswechsel mit Stand von Suchfeld und Bereich
   - nach einer Tipp-Pause: ob Enhanced geladen ist, ob Jellyseerr und Suchtreffer eingeschaltet sind und ob der Bereich „Entdecken auf Seerr“ sichtbar ist und wie viele Karten er hat
 
   Nach der Fehlersuche wieder ausschalten.

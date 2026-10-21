@@ -226,6 +226,7 @@
         }
         diagStep('Diagnose aktiv, ' + window.location.hash);
         diagWatchEnhanced();
+        diagWatchSeerrSection();
         // Vollbild-Umschaltung der iOS-App (verschiebt das Layout, sperrt bzw. erlaubt „Ziehen zum Neuladen“)
         ['enableFullscreen', 'disableFullscreen'].forEach(function (name) {
             var shell = window.NativeShell;
@@ -276,6 +277,92 @@
             };
             wrappedLog.lrWrapped = true;
             console[level] = wrappedLog;
+        });
+    }
+
+    // Wo der Jellyseerr-Bereich hinkommt und wer ihn wieder entfernt (Aufrufstelle), dazu Ansichtswechsel der Suchseite
+    function diagWatchSeerrSection() {
+        if (diag.seerrWatched || !window.MutationObserver || !document.body) {
+            return;
+        }
+        diag.seerrWatched = true;
+        var short = function (node) {
+            if (!node || !node.tagName) {
+                return '-';
+            }
+            return node.tagName.toLowerCase() + (node.id ? '#' + node.id : '') + (typeof node.className === 'string' && node.className
+                ? '.' + node.className.trim().split(/\s+/).slice(0, 3).join('.') : '');
+        };
+        var caller = function () {
+            var stack = (new Error().stack || '').split('\n').map(function (line) {
+                return line.trim();
+            }).filter(function (line) {
+                return line && line.indexOf('localrecs-web') < 0 && line !== 'Error';
+            });
+            return stack.slice(0, 4).map(function (line) {
+                return line.replace(/https?:\/\/[^\s)]*\/([^/?\s)]+)(\?[^:\s)]*)?/g, '$1');
+            }).join(' < ') || '?';
+        };
+        var isSeerr = function (node) {
+            return node && node.nodeType === 1 && (node.classList.contains('jellyseerr-section') || !!node.querySelector('.jellyseerr-section'));
+        };
+        new MutationObserver(function (records) {
+            records.forEach(function (record) {
+                [].forEach.call(record.addedNodes, function (node) {
+                    if (node.nodeType === 1 && node.classList.contains('jellyseerr-section')) {
+                        diagSend('Seerr-Bereich eingefügt in ' + short(record.target));
+                    } else if (node.nodeType === 1 && (node.id === 'searchPage' || node.querySelector && node.querySelector('#searchPage'))) {
+                        diagSend('Suchseite neu aufgebaut (' + short(record.target) + ')');
+                    }
+                });
+                [].forEach.call(record.removedNodes, function (node) {
+                    if (isSeerr(node)) {
+                        diagSend('Seerr-Bereich entfernt: ' + short(node) + ' aus ' + short(record.target));
+                    } else if (node.nodeType === 1 && (node.id === 'searchPage' || node.querySelector && node.querySelector('#searchPage'))) {
+                        diagSend('Suchseite entfernt (' + short(record.target) + ')');
+                    }
+                });
+            });
+        }).observe(document.body, { childList: true, subtree: true });
+        var originalRemove = Element.prototype.remove;
+        Element.prototype.remove = function () {
+            if (this.classList && this.classList.contains('jellyseerr-section') && this.isConnected) {
+                diagSend('Seerr-Bereich .remove() durch ' + caller());
+            }
+            return originalRemove.apply(this, arguments);
+        };
+        var originalRemoveChild = Node.prototype.removeChild;
+        Node.prototype.removeChild = function (child) {
+            if (isSeerr(child)) {
+                diagSend('Seerr-Bereich removeChild aus ' + short(this) + ' durch ' + caller());
+            }
+            return originalRemoveChild.apply(this, arguments);
+        };
+        var navigation = function (kind) {
+            if (/^#\/search/.test(window.location.hash || '') || document.querySelector('.jellyseerr-section')) {
+                var visibleInput = document.querySelector('#searchPage:not(.hide) #searchTextInput');
+                diagSend('Navigation ' + kind + ' ' + (window.location.hash || '').split('?')[0] + ', Suchseiten ' + document.querySelectorAll('#searchPage').length
+                    + ', sichtbares Suchfeld ' + !!visibleInput + ', Seerr-Bereich ' + document.querySelectorAll('.jellyseerr-section').length);
+            }
+        };
+        ['pushState', 'replaceState'].forEach(function (name) {
+            var original = window.history[name];
+            if (typeof original === 'function' && !original.lrWrapped) {
+                var wrappedHistory = function () {
+                    var result = original.apply(this, arguments);
+                    window.setTimeout(function () {
+                        navigation(name);
+                    }, 250);
+                    return result;
+                };
+                wrappedHistory.lrWrapped = true;
+                window.history[name] = wrappedHistory;
+            }
+        });
+        window.addEventListener('hashchange', function () {
+            window.setTimeout(function () {
+                navigation('hashchange');
+            }, 250);
         });
     }
 

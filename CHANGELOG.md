@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.44.0] - 2026-10-21
+
+### Added
+
+- **Diagnostics of the Jellyseerr section in the search, part 2:** when Jellyfin Enhanced's „Seerr“ section is inserted, moved or removed (with the calling code for `remove()`/`removeChild`), rebuilds of the search page and address changes (pushState/replaceState/hashchange) with the state of the search field and the section. The first round from the iOS app showed: Enhanced loads, the search answers with 200 and is rendered, but the section is gone afterwards – this round shows what removes it. Reproduced in vain with the iOS app's NativeShell script, mobile layout, slow Jellyfin search and existing results (programmes, episodes): there the section stays.
+
 ## [12.43.0] - 2026-10-21
 
 ### Added
