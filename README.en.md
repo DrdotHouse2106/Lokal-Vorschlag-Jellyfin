@@ -261,12 +261,26 @@ Tab **„Metadaten“** in the plugin settings checks all movies and series: per
 
 ## Troubleshooting
 
-### The rows do not appear
+Each entry: symptom, cause, fix. Kept up to date.
 
-- Check the plugin's **Startseite** tab: Home Screen Sections must be installed and the sections registered.
-- Make sure Home Screen Sections is enabled and the two sections are switched on (admin settings or "Modular Home").
-- Force-refresh the browser page (Ctrl+F5).
-- If no recommendations were calculated yet, run Dashboard → Scheduled Tasks → "Empfehlungen aktualisieren".
+- **Plugin not in the catalog:** add the repository `https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/manifest.json` (remove the old single repository if the plugin shows up twice).
+- **Nothing changes after install/update:** Jellyfin loads plugins only at startup – restart the server (check `GET /Sessions` first that nobody is watching), then reload the browser (Ctrl+F5) or pull down in the iOS app.
+- **All `/LocalRecs` addresses return 500 after an update:** two versions are loaded – uninstall the old one under Dashboard → Plugins and restart again.
+- **Settings gone after an update:** restore a backup from `plugins/configurations/Jellyfin.Plugin.LocalRecs.sicherungen/` with `POST /LocalRecs/Config/Backups/{name}/Restore` (keys are kept).
+- **The rows do not appear:** the plugin's **Startseite** tab shows what is missing (Home Screen Sections, File Transformation, Plugin Pages, sections switched on); run Dashboard → Scheduled Tasks → "Empfehlungen aktualisieren". Native apps (Android TV, Fire TV, Roku, Swiftfin) never show the rows.
+- **Quallenkino interface missing:** File Transformation installed? Jellyfin Web switches on? Reload (Ctrl+F5 / pull down in the iOS app).
+- **Banner always shows the same titles:** before 12.41.0 it took the top recommendations; since then it changes daily (stable within a day and an open tab). Use „Später“ for titles that don't fit now; titles without backdrop never appear – see the metadata check.
+- **Recommendations look stale, task "Aborted":** a restart interrupted the nightly run – start the task by hand (data older than 24 h is recomputed at the next start anyway).
+- **Poor recommendations:** run the **Metadaten** check, refresh incomplete titles and identify unmatched ones.
+- **No Jellyseerr results in the search:** they come from **Jellyfin Enhanced**, not from Quallenkino – Jellyseerr and its search results must be on there, reachable from the server, and the user linked in Jellyseerr (`GET /JellyfinEnhanced/jellyseerr/status` → `{"active":true}`). A case in the iOS app „Jellyfin Mobile“ where the section is rendered and then disappears (desktop fine) is still being investigated; use **Diagnostics** to see what happens.
+- **Series recorded as movies:** use the provider **„LocalRecs EPG“** and its rules (tab „Fernsehprogramm“), then refresh the guide data. Long documentaries or travel shows taken as movies: add their category to **„Nie Film“**.
+- **Provider shows as "Unknown" with a broken link in the dashboard:** fixed since 12.38.0 with the Quallenkino interface; otherwise open the plugin settings → „Fernsehprogramm“.
+- **No cast/director/year for programmes:** set an **„XMLTV-Quelle für Darsteller“** (path or URL, `.xml`/`.xml.gz`, at most 250 MB unpacked); optional, the plugin does not wait for it at startup.
+- **Calendar link points to an internal address:** set the public address for calendar links or add the proxy under Networking → Known proxies.
+- **No personal Trakt recommendations:** off by default per user – each user switches them on in the profile menu; an own connection needs a Trakt app (client ID/secret) set by the admin. Tokens stay on the server in `trakt-konten.json` (mode 600), never in the browser, logs or backups; „Verbindung trennen“ deletes and revokes them.
+- **„Ähnlich wie …“ stays empty:** no TMDB key (the settings show which key is used), TMDB not reachable, or titles lack TMDB/IMDb IDs.
+- **Diagnostics:** settings → „Diagnose: Fehler der Weboberfläche ins Serverlog schreiben“ → save; reload the affected app, reproduce, search the server log for „Quallenkino-Diagnose“. Access keys and search terms are removed. Switch it off again afterwards.
+- **Administrator must enter the password in „Wer schaut?“ every time:** intended since 12.39.0 – use a non-admin profile for everyday use.
 
 ## Building from Source
 

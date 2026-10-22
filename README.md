@@ -398,6 +398,130 @@ GET /LocalRecs/Worlds/{id}/Items?sort=year|year-asc|name|rating|added&type=movie
 - Beim Umstieg von einer älteren Version entfernt das Plugin die alten Bibliotheken „Empfohlene Filme/Serien – Name“ und den Ordner mit den Verknüpfungen. Die Medien selbst werden nicht angefasst. Doppelte Einträge bei „Weiterschauen“ verschwinden nach dem nächsten Bibliotheks-Scan.
 - Benutzer, die durch Version 12.1 von „Zugriff auf alle Bibliotheken“ auf eine Liste umgestellt wurden, behalten diese Liste. Falls gewünscht, den Haken unter Dashboard → Benutzer → Bibliothekszugriff wieder setzen.
 
+## Häufige Probleme
+
+Jeweils **Symptom**, **Ursache** und **Lösung**. Wird laufend ergänzt.
+
+### Installation und Update
+
+**Das Plugin taucht im Katalog nicht auf.**
+- Ursache: Das Repository ist nicht eingetragen, oder die Adresse ist falsch.
+- Lösung: Dashboard → Plugins → Repositories → `https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/manifest.json` eintragen und den Katalog neu laden. Ist zusätzlich das alte Einzel-Repository eingetragen, erscheint das Plugin doppelt. Dann das alte entfernen.
+
+**Nach Installation oder Update ändert sich nichts.**
+- Ursache: Jellyfin lädt Plugins nur beim Start.
+- Lösung: Den Jellyfin-Server neu starten. Vorher unter Dashboard → Aktivität bzw. `GET /Sessions` prüfen, dass niemand gerade schaut. Danach den Browser mit Strg+F5 neu laden, in der iOS-App nach unten ziehen, in der Android-App die App neu starten.
+
+**Nach einem Update melden alle `/LocalRecs`-Adressen Fehler 500.**
+- Ursache: Zwei Versionen des Plugins sind gleichzeitig geladen, meist nach einer Umbenennung.
+- Lösung: Unter Dashboard → Plugins die alte Version deinstallieren und Jellyfin noch einmal neu starten. Ab 12.29.0 räumt das Plugin alte Ordner beim Start selbst weg.
+
+**Die Einstellungen sind nach einem Update weg.**
+- Ursache: Ältere Versionen konnten bei doppelt geladenem Plugin die Einstellungsdatei überschreiben.
+- Lösung: Vor jedem Speichern liegt eine Sicherung unter `plugins/configurations/Jellyfin.Plugin.LocalRecs.sicherungen/`. Wiederherstellen per `POST /LocalRecs/Config/Backups/{name}/Restore`. Schlüssel (TMDB, Trakt, fanart.tv) sind darin nicht enthalten und bleiben beim Wiederherstellen erhalten.
+
+### Startseite und Banner
+
+**Die Empfehlungszeilen erscheinen nicht.**
+- Ursache:
+  - Home Screen Sections, File Transformation oder Plugin Pages fehlen, oder die Bereiche sind nicht eingeschaltet.
+  - Oder es wurde noch nichts berechnet.
+- Lösung:
+  - Im Plugin den Reiter **„Startseite“** öffnen; er zeigt, was fehlt.
+  - In Home Screen Sections die Bereiche einschalten.
+  - Dashboard → Geplante Aufgaben → „Empfehlungen aktualisieren“ starten.
+  - Native Apps (Android TV, Fire TV, Roku, Swiftfin) zeigen die Zeilen grundsätzlich nicht.
+
+**Die Quallenkino-Oberfläche erscheint nicht.**
+- Ursache: File Transformation fehlt, der Schalter für die Oberfläche ist aus, oder der Browser bzw. die App zeigt noch die alte Seite.
+- Lösung: File Transformation installieren, im Reiter „Einstellungen“ die Jellyfin-Web-Schalter prüfen, dann neu laden (Strg+F5, in der iOS-App nach unten ziehen).
+
+**Der große Banner zeigt immer dasselbe.**
+- Ursache:
+  - Vor 12.41.0 kam der Banner aus den obersten Empfehlungen, und die bleiben bei gleichem Sehverhalten gleich.
+  - Ab 12.41.0 wechselt er täglich. Innerhalb eines Tages und eines geöffneten Tabs bleibt er aber absichtlich gleich.
+  - Bei sehr wenigen Empfehlungen gibt es kaum etwas zum Wechseln.
+- Lösung:
+  - Auf mindestens 12.41.0 aktualisieren.
+  - Titel, die gerade nicht passen, mit **„Später“** für drei Wochen aus dem Banner nehmen.
+  - Titel ohne Hintergrundbild kommen nicht in den Banner. Lücken findet der **Metadaten-Check**.
+
+**Die Empfehlungen wirken veraltet, die Aufgabe „Empfehlungen aktualisieren“ steht auf „Abgebrochen“.**
+- Ursache: Ein Neustart (z. B. beim Plugin-Update) hat den nächtlichen Lauf unterbrochen.
+- Lösung: Die Aufgabe unter Dashboard → Geplante Aufgaben von Hand starten. Sind die Daten älter als 24 Stunden, startet sie nach dem nächsten Serverstart von selbst.
+
+**Die Empfehlungen passen schlecht.**
+- Ursache: Den Titeln fehlen Metadaten (Genres, Stichwörter, TMDB/IMDb-ID), oder es ist noch wenig gesehen.
+- Lösung: Im Reiter **„Metadaten“** den Check laufen lassen, lückenhafte Titel neu abrufen und nicht erkannte Titel in Jellyfin über „Identifizieren“ zuordnen.
+
+### Suche und Jellyseerr
+
+**In der Suche erscheinen keine Jellyseerr-Treffer.**
+- Ursache:
+  - Die Jellyseerr-Treffer kommen nicht von Quallenkino, sondern vom Plugin **Jellyfin Enhanced**. Dort müssen Jellyseerr und „Suchergebnisse anzeigen“ eingeschaltet sein, die Jellyseerr-Adresse muss vom Server aus erreichbar sein, und der Benutzer muss in Jellyseerr mit Jellyfin verknüpft sein.
+  - Speziell in der iOS-App „Jellyfin Mobile“ ist ein Fall bekannt, in dem Enhanced die Treffer abruft und aufbaut, der Bereich danach aber wieder verschwindet. Im Desktop-Browser funktioniert es. Die Ursache wird noch untersucht; dieser Eintrag wird ergänzt.
+- Lösung:
+  - Die Einstellungen von Jellyfin Enhanced prüfen. `GET /JellyfinEnhanced/jellyseerr/status` muss `{"active":true}` liefern.
+  - Bei Problemen in nur einer App die **Diagnose** einschalten (siehe unten). Sie protokolliert die Jellyseerr-Anfragen von Enhanced und ob der Bereich erscheint.
+
+### Live-TV und Fernsehprogramm
+
+**Serien landen als Filme in der Aufnahme bzw. bei den Filmen.**
+- Ursache: Der eingebaute XMLTV-Anbieter von Jellyfin entscheidet nur über eine Kategorienliste.
+- Lösung: Den Anbieter **„LocalRecs EPG“** verwenden (Dashboard → Live-TV → Fernsehprogramm-Anbieter → hinzufügen) und die Regeln im Reiter **„Fernsehprogramm“** anpassen. Danach „TV-Programmdaten aktualisieren“.
+
+**Eine Sendung wird falsch als Film erkannt (z. B. eine lange Doku oder Reisesendung).**
+- Ursache: Regie und Überlänge sehen nach Film aus.
+- Lösung: Die Kategorie der Sendung unter **„Nie Film“** eintragen (Standard: Dokumentation, Doku, Dokumentarfilm, Dokumentarreihe, Reportage, Magazin, Reisen) und das Programm aktualisieren. Mit „Regeln testen“ im Reiter „Fernsehprogramm“ lässt sich die Einordnung der Sendungen prüfen.
+
+**Der Anbieter steht im Dashboard als „Unknown“, ein Klick führt zu „Seite nicht gefunden“.**
+- Ursache: jellyfin-web kennt nur seine eingebauten Anbieter.
+- Lösung: Ab 12.38.0 heißt der Eintrag mit eingeschalteter Quallenkino-Oberfläche „LocalRecs EPG (Quallenkino)“ und öffnet die Einstellungen. Sonst: Dashboard → Plugins → Quallenkino → „Fernsehprogramm“.
+
+**Darsteller, Regie oder Jahr fehlen bei Sendungen.**
+- Ursache: Die Programmquelle liefert diese Angaben nicht.
+- Lösung:
+  - Im Reiter „Startseite“ eine **„XMLTV-Quelle für Darsteller“** eintragen: Pfad im Jellyfin-Container oder URL, `.xml` oder `.xml.gz`, höchstens 250 MB entpackt.
+  - Bei Docker den Ordner einbinden, am besten nur lesend.
+  - Die Quelle ist optional. Beim Start wartet das Plugin nicht auf sie.
+
+**Der Kalender-Link zeigt auf eine interne Adresse.**
+- Ursache: Hinter einem Reverse-Proxy sieht Jellyfin nur die interne Adresse.
+- Lösung: Im Reiter „Einstellungen“ die **„Öffentliche Adresse für Kalender-Links“** eintragen oder den Proxy in Jellyfin unter Netzwerk → „Bekannte Proxys“ eintragen.
+
+### Trakt und TMDB
+
+**Persönliche Trakt-Empfehlungen erscheinen nicht.**
+- Ursache: Sie sind pro Benutzer **standardmäßig aus** und laufen nur, nachdem der Benutzer sie selbst eingeschaltet hat.
+- Lösung:
+  - Im Profilmenü „Trakt-Empfehlungen“ einschalten.
+  - Für eine eigene Verbindung muss der Admin unter „Ähnliche Titel von TMDB und Trakt“ eine Trakt-App eintragen (Client-ID und Client-Secret). Der Benutzer meldet sich dann per Gerätecode auf trakt.tv an.
+  - Alternativ wird die Verknüpfung des Trakt-Plugins nur lesend mitgenutzt.
+
+**Wo liegt der Trakt-Zugang, wie werde ich ihn los?**
+- Antwort: Er liegt nur auf dem Server in `plugins/LocalRecs/trakt-konten.json`, nur für Jellyfin lesbar. Er geht nie an den Browser und steht in keinem Log und keiner Sicherung. „Verbindung trennen“ löscht ihn und widerruft ihn bei Trakt.
+
+**„Ähnlich wie …“ von TMDB/Trakt bleibt leer.**
+- Ursache: Es gibt keinen TMDB-Schlüssel, der Server erreicht TMDB nicht, oder den Titeln fehlt die TMDB/IMDb-ID.
+- Lösung:
+  - Der Reiter „Einstellungen“ zeigt, welcher Schlüssel genutzt wird. Ohne eigenen Schlüssel wird der von Jellyfin mitbenutzt.
+  - Fehlende IDs findet der **Metadaten-Check**.
+  - Der erste Abgleich läuft nach der nächtlichen Berechnung und braucht bei großen Bibliotheken mehrere Läufe.
+
+### Diagnose
+
+**Wofür ist der Schalter „Diagnose“?**
+- Antwort: Für Fehler, die nur in einem Browser oder einer App auftreten (z. B. Abstürze der iOS-App, Player-Probleme, fehlende Jellyseerr-Treffer). Browser und Apps schreiben dann Skriptfehler und die letzten Schritte ins Serverlog.
+- Einschalten: Dashboard → Plugins → Quallenkino → „Einstellungen“ → **„Diagnose: Fehler der Weboberfläche ins Serverlog schreiben“** → Speichern. Danach in der betroffenen App einmal neu laden, den Fehler auslösen und im Serverlog nach **„Quallenkino-Diagnose“** suchen.
+- Datenschutz: Zugangsschlüssel und Suchbegriffe werden entfernt.
+- Ausschalten: Denselben Schalter wieder aus und speichern. Die Diagnose ist nur für die Fehlersuche gedacht.
+
+### Profile
+
+**Ein Administrator muss in „Wer schaut?“ jedes Mal das Passwort eingeben.**
+- Ursache: Gewollt. Ab 12.39.0 werden Administratoren nie im Browser gemerkt.
+- Lösung: Für den Alltag ein eigenes Profil ohne Administratorrechte verwenden.
+
 ## Selbst bauen
 
 **Voraussetzungen:** .NET 10.0 SDK, Git
