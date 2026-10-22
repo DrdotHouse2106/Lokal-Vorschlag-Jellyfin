@@ -95,6 +95,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 Billboard = true,
                 MovieSeries = Config.EnableMovieSeriesSection,
                 Seasonal = Config.EnableSeasonal,
+                Moments = Moments.MomentsService.Keys.Any(k => Moments.MomentsService.IsEnabled(k, Config)),
                 MovieSeriesTitle = string.IsNullOrWhiteSpace(Config.MovieSeriesSectionTitle) ? "Filmreihen für dich" : Config.MovieSeriesSectionTitle,
                 Version = WebIntegration.Version
             };
@@ -146,6 +147,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets a value indicating whether „Passend zur Jahreszeit“ is on (GET /LocalRecs/Seasonal, since 12.45.0).</summary>
             public bool Seasonal { get; set; }
+
+            /// <summary>Gets or sets a value indicating whether at least one time-based row is on (GET /LocalRecs/Moments, since 12.46.0).</summary>
+            public bool Moments { get; set; }
 
             /// <summary>Gets or sets the plugin version.</summary>
             public string Version { get; set; } = string.Empty;

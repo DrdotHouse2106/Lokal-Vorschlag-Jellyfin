@@ -74,6 +74,8 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             DaypartWeight = 0.15;
             EnableBehaviorSignals = true;
             InterestWeight = 0.35;
+            EnableWatchRhythm = true;
+            WatchRhythmWeight = 0.3;
             BehaviorRetentionDays = 365;
             BehaviorMaxEntries = 1000;
             InterestDecayDays = 30;
@@ -94,6 +96,12 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             EnableSeasonal = true;
             SeasonalMinItems = 4;
             SeasonalValentine = false;
+            MomentsNewThisWeek = true;
+            NewThisWeekDays = 14;
+            MomentsCinema = true;
+            MomentsAnniversaries = true;
+            MomentsYearAgo = true;
+            MomentsOnTvToday = true;
             LiveTvLookaheadHours = 24;
             LiveTvRecommendationCount = 20;
             LiveTvTimeZone = "Europe/Berlin";
@@ -177,6 +185,24 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Gets or sets a value indicating whether Valentine's Day (7–14 February) counts as season.
         /// </summary>
         public bool SeasonalValentine { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether „Neu diese Woche“ is shown (since 12.46.0).</summary>
+        public bool MomentsNewThisWeek { get; set; }
+
+        /// <summary>Gets or sets the days „Neu diese Woche“ looks back (7–30).</summary>
+        public int NewThisWeekDays { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether „Vor dem Kinostart“ is shown (since 12.46.0).</summary>
+        public bool MomentsCinema { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether „Heute vor X Jahren“ is shown (since 12.46.0).</summary>
+        public bool MomentsAnniversaries { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether „Vor einem Jahr hast du …“ is shown (since 12.46.0).</summary>
+        public bool MomentsYearAgo { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether „Läuft heute im TV – auch hier“ is shown (since 12.46.0).</summary>
+        public bool MomentsOnTvToday { get; set; }
 
         /// <summary>
         /// Gets or sets how many hours ahead the live TV section looks.
@@ -479,6 +505,17 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Gets or sets how strongly recent searches and viewed titles move similar titles up (0 = off).
         /// </summary>
         public double InterestWeight { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the learned watch rhythm counts: weekday evenings and close to the usual
+        /// bedtime shorter titles move up (since 12.46.0).
+        /// </summary>
+        public bool EnableWatchRhythm { get; set; }
+
+        /// <summary>
+        /// Gets or sets how strongly the watch rhythm moves titles (0 = off).
+        /// </summary>
+        public double WatchRhythmWeight { get; set; }
 
         /// <summary>
         /// Gets or sets how many days searches and viewed titles are kept (7–1095, since 12.37.0).

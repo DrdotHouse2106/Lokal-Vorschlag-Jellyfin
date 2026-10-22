@@ -103,6 +103,180 @@ namespace Jellyfin.Plugin.LocalRecs.Collections
         }
 
         /// <summary>
+        /// Reads the parts of a series from TMDB's answer to <c>collection/{id}</c>.
+        /// </summary>
+        /// <param name="json">The answer.</param>
+        /// <returns>The parts (TMDB ID, title, release date as „yyyy-MM-dd“ or empty).</returns>
+        public static List<CollectionPart> ParseCollectionParts(string json)
+        {
+            using var document = JsonDocument.Parse(json);
+            if (!document.RootElement.TryGetProperty("parts", out var parts) || parts.ValueKind != JsonValueKind.Array)
+            {
+                return new List<CollectionPart>();
+            }
+
+            return parts.EnumerateArray()
+                .Where(p => p.TryGetProperty("id", out var id) && id.ValueKind == JsonValueKind.Number)
+                .Select(p => new CollectionPart
+                {
+                    TmdbId = p.GetProperty("id").GetInt64().ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    Title = p.TryGetProperty("title", out var title) ? title.GetString() ?? string.Empty : string.Empty,
+                    ReleaseDate = p.TryGetProperty("release_date", out var date) && date.ValueKind == JsonValueKind.String ? date.GetString() ?? string.Empty : string.Empty
+                })
+                .ToList();
+        }
+
+        /// <summary>
+        /// Reads the cinema start in a country from TMDB's answer to <c>movie/{id}/release_dates</c> (theatrical, otherwise the earliest).
+        /// </summary>
+        /// <param name="json">The answer.</param>
+        /// <param name="country">Country code, e.g. „DE“.</param>
+        /// <returns>Date as „yyyy-MM-dd“, or null.</returns>
+        public static string? ParseRegionRelease(string json, string country)
+        {
+            using var document = JsonDocument.Parse(json);
+            if (!document.RootElement.TryGetProperty("results", out var results) || results.ValueKind != JsonValueKind.Array)
+            {
+                return null;
+            }
+
+            foreach (var result in results.EnumerateArray())
+            {
+                if (!result.TryGetProperty("iso_3166_1", out var code) || !string.Equals(code.GetString(), country, StringComparison.OrdinalIgnoreCase)
+                    || !result.TryGetProperty("release_dates", out var dates) || dates.ValueKind != JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                var all = dates.EnumerateArray()
+                    .Select(d => (Type: d.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.Number ? type.GetInt32() : 0,
+                        Date: d.TryGetProperty("release_date", out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null))
+                    .Where(d => d.Date != null && d.Date.Length >= 10)
+                    .ToList();
+                var theatrical = all.Where(d => d.Type is 2 or 3).Select(d => d.Date!.Substring(0, 10)).OrderBy(d => d, StringComparer.Ordinal).FirstOrDefault();
+                return theatrical ?? all.Select(d => d.Date!.Substring(0, 10)).OrderBy(d => d, StringComparer.Ordinal).FirstOrDefault();
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the parts of a series from the cache (with the cinema start in the server's country where known).
+        /// </summary>
+        /// <param name="seriesId">TMDB collection ID.</param>
+        /// <returns>The parts, or null if not looked up.</returns>
+        public IReadOnlyList<CollectionPart>? GetParts(string seriesId)
+        {
+            lock (_lock)
+            {
+                LoadCache();
+                return _cache!.Parts.TryGetValue(seriesId, out var entry) ? entry.Parts : null;
+            }
+        }
+
+        /// <summary>
+        /// Notes the parts of a series.
+        /// </summary>
+        /// <param name="seriesId">TMDB collection ID.</param>
+        /// <param name="parts">The parts.</param>
+        /// <param name="fetched">Time of the lookup.</param>
+        public void StoreParts(string seriesId, List<CollectionPart> parts, DateTime fetched)
+        {
+            lock (_lock)
+            {
+                LoadCache();
+                _cache!.Parts[seriesId] = new PartsEntry { Parts = parts, Fetched = fetched };
+                Interlocked.Increment(ref _version);
+            }
+        }
+
+        /// <summary>
+        /// Looks up the parts of the series in the library at TMDB (every 7 days), and for parts starting within 60 days
+        /// the cinema start in the server's country. Used for „Vor dem Kinostart“.
+        /// </summary>
+        /// <param name="seriesIds">TMDB collection IDs of the series in the library.</param>
+        /// <param name="config">Plugin configuration (TMDB key).</param>
+        /// <param name="language">Language, optional.</param>
+        /// <param name="country">Country for the cinema start (e.g. „DE“), optional.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Number of series looked up.</returns>
+        public async Task<int> RefreshPartsAsync(IEnumerable<string> seriesIds, PluginConfiguration config, string? language, string? country, CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(seriesIds);
+            ArgumentNullException.ThrowIfNull(config);
+            var key = ExternalSimilarityService.ResolveTmdbKey(config);
+            if (key == null || !await _running.WaitAsync(0, cancellationToken).ConfigureAwait(false))
+            {
+                return 0;
+            }
+
+            try
+            {
+                var now = DateTime.UtcNow;
+                List<string> pending;
+                lock (_lock)
+                {
+                    LoadCache();
+                    pending = seriesIds.Where(id => !string.IsNullOrEmpty(id) && id.All(char.IsDigit)).Distinct()
+                        .Where(id => !_cache!.Parts.TryGetValue(id, out var entry) || now - entry.Fetched > TimeSpan.FromDays(7))
+                        .Take(MaxLookupsPerRun)
+                        .ToList();
+                }
+
+                var done = 0;
+                var failures = 0;
+                foreach (var id in pending)
+                {
+                    if (failures >= MaxConsecutiveFailures)
+                    {
+                        break;
+                    }
+
+                    try
+                    {
+                        var json = await GetJsonAsync(key, "collection/" + id, language, cancellationToken).ConfigureAwait(false);
+                        if (json == null)
+                        {
+                            failures++;
+                            continue;
+                        }
+
+                        var parts = ParseCollectionParts(json);
+                        if (!string.IsNullOrEmpty(country))
+                        {
+                            foreach (var part in parts.Where(p => DateOnly.TryParse(p.ReleaseDate, System.Globalization.CultureInfo.InvariantCulture, out var date)
+                                && date >= DateOnly.FromDateTime(now.AddDays(-30)) && date <= DateOnly.FromDateTime(now.AddDays(60))))
+                            {
+                                var dates = await GetJsonAsync(key, "movie/" + part.TmdbId + "/release_dates", null, cancellationToken).ConfigureAwait(false);
+                                part.RegionDate = dates == null ? null : ParseRegionRelease(dates, country);
+                            }
+                        }
+
+                        StoreParts(id, parts, DateTime.UtcNow);
+                        failures = 0;
+                        done++;
+                    }
+                    catch (Exception ex) when (ex is HttpRequestException || ex is JsonException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+                    {
+                        failures++;
+                        _logger.LogDebug("Filmreihen: Teile nicht abrufbar: {Message}", ex.Message);
+                    }
+                }
+
+                if (done > 0)
+                {
+                    SaveCache();
+                }
+
+                return done;
+            }
+            finally
+            {
+                _running.Release();
+            }
+        }
+
+        /// <summary>
         /// Gets the series of a movie from the cache.
         /// </summary>
         /// <param name="tmdbMovieId">TMDB ID of the movie.</param>
@@ -305,6 +479,21 @@ namespace Jellyfin.Plugin.LocalRecs.Collections
             }
         }
 
+        private async Task<string?> GetJsonAsync(string key, string path, string? language, CancellationToken cancellationToken)
+        {
+            await _delay(RequestInterval, cancellationToken).ConfigureAwait(false);
+            var url = TmdbBase + path + (string.IsNullOrEmpty(language) ? "?" : "?language=" + Uri.EscapeDataString(language) + "&");
+            using var request = new HttpRequestMessage(HttpMethod.Get, key.Length > 40 ? url.TrimEnd('?', '&') : url + "api_key=" + Uri.EscapeDataString(key));
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            if (key.Length > 40)
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
+            }
+
+            using var response = await _send(request, cancellationToken).ConfigureAwait(false);
+            return response.IsSuccessStatusCode ? await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false) : null;
+        }
+
         private void SaveCache()
         {
             string json;
@@ -383,9 +572,38 @@ namespace Jellyfin.Plugin.LocalRecs.Collections
             public DateTime Fetched { get; set; }
         }
 
+        /// <summary>A part of a series at TMDB.</summary>
+        public class CollectionPart
+        {
+            /// <summary>Gets or sets the TMDB movie ID.</summary>
+            public string TmdbId { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the title.</summary>
+            public string Title { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the primary release date („yyyy-MM-dd“ or empty).</summary>
+            public string ReleaseDate { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the cinema start in the server's country, if known.</summary>
+            public string? RegionDate { get; set; }
+        }
+
+        /// <summary>Parts of a series.</summary>
+        public class PartsEntry
+        {
+            /// <summary>Gets or sets the parts.</summary>
+            public List<CollectionPart> Parts { get; set; } = new List<CollectionPart>();
+
+            /// <summary>Gets or sets the time of the lookup.</summary>
+            public DateTime Fetched { get; set; }
+        }
+
         /// <summary>Content of the cache file.</summary>
         public class CacheFile
         {
+            /// <summary>Gets or sets the parts by TMDB collection ID.</summary>
+            public Dictionary<string, PartsEntry> Parts { get; set; } = new Dictionary<string, PartsEntry>();
+
             /// <summary>Gets or sets the lookups by TMDB movie ID.</summary>
             public Dictionary<string, MovieEntry> Movies { get; set; } = new Dictionary<string, MovieEntry>();
 

@@ -88,7 +88,77 @@ namespace Jellyfin.Plugin.LocalRecs.Seasonal
         }
 
         /// <summary>
-        /// Gets the titles of a season for a user: unwatched first, then by taste and rating; at most <see cref="MaxItems"/>.
+        /// Gets whether the file name of a special (season 0) agrees with the season. Specials are often numbered differently
+        /// at TVDB and TMDB, so the title in Jellyfin may belong to another file. A file name without its own title counts as agreeing.
+        /// </summary>
+        /// <param name="season">The season.</param>
+        /// <param name="path">Path of the file.</param>
+        /// <param name="seriesName">Name of the series (removed from the file name).</param>
+        /// <returns>True if the file name has no title of its own or contains a word of the season.</returns>
+        public static bool FileNameAgrees(SeasonCalendar.Season season, string? path, string? seriesName)
+        {
+            ArgumentNullException.ThrowIfNull(season);
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return true;
+            }
+
+            var name = System.IO.Path.GetFileNameWithoutExtension(path).Replace('.', ' ').Replace('_', ' ');
+            if (!string.IsNullOrWhiteSpace(seriesName))
+            {
+                name = name.Replace(seriesName, " ", StringComparison.OrdinalIgnoreCase);
+            }
+
+            name = System.Text.RegularExpressions.Regex.Replace(name, @"\b[sS]\d{1,2}\s*[eE]\d{1,3}\b|\b\d{1,2}x\d{1,3}\b|\b(19|20)\d{2}\b|\b\d{3,4}p\b", " ");
+            return name.Count(char.IsLetter) < 4 || season.MatchesTitle(name);
+        }
+
+        /// <summary>
+        /// Orders the titles of a season: unwatched first, movies and series before episodes, then by taste and rating. First one episode
+        /// per series, further episodes (up to <see cref="MaxEpisodesPerSeries"/>) behind all of them.
+        /// </summary>
+        /// <param name="items">The titles.</param>
+        /// <param name="played">Whether a title was watched.</param>
+        /// <param name="taste">Position in the recommendations (smaller fits better).</param>
+        /// <returns>The ordered titles, at most <see cref="MaxItems"/>.</returns>
+        public static List<BaseItem> Order(IEnumerable<BaseItem> items, Func<BaseItem, bool> played, IReadOnlyDictionary<Guid, int> taste)
+        {
+            ArgumentNullException.ThrowIfNull(items);
+            ArgumentNullException.ThrowIfNull(played);
+            ArgumentNullException.ThrowIfNull(taste);
+            var front = new List<BaseItem>();
+            var later = new List<BaseItem>();
+            var perSeries = new Dictionary<Guid, int>();
+            foreach (var item in items
+                .OrderBy(i => played(i) ? 1 : 0)
+                .ThenBy(i => i is Episode ? 1 : 0)
+                .ThenBy(i => taste.TryGetValue(i is Episode e ? e.SeriesId : i.Id, out var position) ? position : int.MaxValue)
+                .ThenByDescending(i => i.CommunityRating ?? 0)
+                .ThenBy(i => i.SortName ?? i.Name, StringComparer.Ordinal))
+            {
+                if (item is not Episode episode)
+                {
+                    front.Add(item);
+                    continue;
+                }
+
+                var count = perSeries.GetValueOrDefault(episode.SeriesId);
+                if (count >= MaxEpisodesPerSeries)
+                {
+                    continue;
+                }
+
+                perSeries[episode.SeriesId] = count + 1;
+                (count == 0 ? front : later).Add(item);
+            }
+
+            // Weitere Folgen derselben Serie erst hinter allen ersten Folgen der anderen Serien
+            front.AddRange(later);
+            return front.Take(MaxItems).ToList();
+        }
+
+        /// <summary>
+        /// Gets the titles of a season for a user (see <see cref="Order"/>), at most <see cref="MaxItems"/>.
         /// Empty when fewer than the configured minimum are found.
         /// </summary>
         /// <param name="user">The user.</param>
@@ -109,32 +179,7 @@ namespace Jellyfin.Plugin.LocalRecs.Seasonal
                 var taste = _store.Get(user.Id) is { } recs
                     ? recs.Movies.Concat(recs.Series).Select((id, index) => (id, index)).GroupBy(x => x.id).ToDictionary(g => g.Key, g => g.Min(x => x.index))
                     : new Dictionary<Guid, int>();
-                var perSeries = new Dictionary<Guid, int>();
-                var result = new List<BaseItem>();
-                foreach (var item in items
-                    .OrderBy(i => lookup.Get(i)?.Played == true ? 1 : 0)
-                    .ThenBy(i => taste.TryGetValue(i is Episode e ? e.SeriesId : i.Id, out var position) ? position : int.MaxValue)
-                    .ThenByDescending(i => i.CommunityRating ?? 0)
-                    .ThenBy(i => i.SortName ?? i.Name, StringComparer.Ordinal))
-                {
-                    if (item is Episode episode)
-                    {
-                        var count = perSeries.GetValueOrDefault(episode.SeriesId);
-                        if (count >= MaxEpisodesPerSeries)
-                        {
-                            continue;
-                        }
-
-                        perSeries[episode.SeriesId] = count + 1;
-                    }
-
-                    result.Add(item);
-                    if (result.Count >= MaxItems)
-                    {
-                        break;
-                    }
-                }
-
+                var result = Order(items, i => lookup.Get(i)?.Played == true, taste);
                 return result.Count >= Math.Max(1, Config.SeasonalMinItems) ? result : Array.Empty<BaseItem>();
             }
             catch (Exception ex)
@@ -183,7 +228,10 @@ namespace Jellyfin.Plugin.LocalRecs.Seasonal
                     NameContains = stem
                 }))
                 {
-                    if (season.MatchesTitle(episode.Name) && !ids.Contains(episode.Id))
+                    // Specials (Staffel 0) nur, wenn auch der Dateiname passt – die Nummerierung weicht zwischen TVDB und TMDB oft ab
+                    var special = episode is Episode e && e.ParentIndexNumber == 0;
+                    if (season.MatchesTitle(episode.Name) && !ids.Contains(episode.Id)
+                        && (!special || FileNameAgrees(season, episode.Path, ((Episode)episode).SeriesName)))
                     {
                         ids.Add(episode.Id);
                     }

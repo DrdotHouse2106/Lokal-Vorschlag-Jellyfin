@@ -174,6 +174,61 @@ namespace Jellyfin.Plugin.LocalRecs.Collections
         }
 
         /// <summary>
+        /// Gets the series with a new part coming to cinemas soon (cinema start in the server's country where known), of which
+        /// the user has at least one part: „Vor dem Kinostart: Hol die Reihe nach“. Soonest start first.
+        /// </summary>
+        /// <param name="user">The user.</param>
+        /// <param name="today">The local day.</param>
+        /// <param name="days">Days ahead.</param>
+        /// <returns>The series with the upcoming part.</returns>
+        public IReadOnlyList<(MovieSeries Series, string UpcomingTitle, DateOnly UpcomingDate)> GetUpcoming(User user, DateOnly today, int days)
+        {
+            ArgumentNullException.ThrowIfNull(user);
+            var result = new List<(MovieSeries Series, string UpcomingTitle, DateOnly UpcomingDate)>();
+            try
+            {
+                var members = Membership();
+                var owned = _libraryManager.GetItemList(new InternalItemsQuery { IncludeItemTypes = new[] { BaseItemKind.Movie }, Recursive = true, IsVirtualItem = false })
+                    .Select(m => m.GetProviderId(MetadataProvider.Tmdb))
+                    .OfType<string>()
+                    .ToHashSet(StringComparer.Ordinal);
+                var worldCollections = WorldCollections();
+                var taste = TastePositions(user);
+                foreach (var (id, entry) in members)
+                {
+                    var upcoming = (_lookup.GetParts(id) ?? Array.Empty<MovieSeriesLookup.CollectionPart>())
+                        .Where(p => !owned.Contains(p.TmdbId))
+                        .Select(p => (Part: p, Date: DateOnly.TryParse(p.RegionDate ?? p.ReleaseDate, System.Globalization.CultureInfo.InvariantCulture, out var date) ? date : (DateOnly?)null))
+                        .Where(p => p.Date > today && p.Date <= today.AddDays(days))
+                        .OrderBy(p => p.Date)
+                        .FirstOrDefault();
+                    if (upcoming.Part == null)
+                    {
+                        continue;
+                    }
+
+                    var series = BuildOne(user, id, entry.Name, entry.Movies, worldCollections, taste, null, 1);
+                    if (series != null)
+                    {
+                        result.Add((series, upcoming.Part.Title, upcoming.Date!.Value));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Kinostarts der Filmreihen konnten nicht ausgewertet werden");
+            }
+
+            return result.OrderBy(r => r.UpcomingDate).ToList();
+        }
+
+        /// <summary>
+        /// Gets the IDs of all series in the library (also with only one part), for the nightly lookup of their parts.
+        /// </summary>
+        /// <returns>TMDB collection IDs.</returns>
+        public IReadOnlyList<string> AllSeriesIds() => Membership().Keys.ToList();
+
+        /// <summary>
         /// Forgets the cached series of all users (after a new lookup).
         /// </summary>
         public void Invalidate()
@@ -220,7 +275,7 @@ namespace Jellyfin.Plugin.LocalRecs.Collections
             }
         }
 
-        private MovieSeries? BuildOne(User user, string id, string name, List<Guid> movieIds, HashSet<string> worldCollections, Dictionary<Guid, double> taste, Dictionary<string, double>? genres)
+        private MovieSeries? BuildOne(User user, string id, string name, List<Guid> movieIds, HashSet<string> worldCollections, Dictionary<Guid, double> taste, Dictionary<string, double>? genres, int minParts = MinParts)
         {
             var accessible = _worlds.AccessibleItems(user);
             var parts = movieIds
@@ -231,7 +286,7 @@ namespace Jellyfin.Plugin.LocalRecs.Collections
                 .OrderBy(ReleaseDate)
                 .ThenBy(p => p.SortName ?? p.Name, StringComparer.Ordinal)
                 .ToList();
-            if (parts.Count < MinParts)
+            if (parts.Count < minParts)
             {
                 return null;
             }
@@ -365,13 +420,13 @@ namespace Jellyfin.Plugin.LocalRecs.Collections
                 members[seriesId] = entry;
             }
 
-            var filtered = members.Where(m => m.Value.Movies.Count >= MinParts).ToDictionary(m => m.Key, m => m.Value, StringComparer.Ordinal);
+            // Auch Reihen mit nur einem Teil (für „Vor dem Kinostart“); die Zeile verlangt je Benutzer mindestens zwei
             lock (_membershipLock)
             {
-                _membership = (DateTime.UtcNow, version, filtered);
+                _membership = (DateTime.UtcNow, version, members);
             }
 
-            return filtered;
+            return members;
         }
 
         /// <summary>

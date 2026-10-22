@@ -109,6 +109,55 @@
                             </label>
                         </div>
 
+                        <h3>Zeitabhängige Zeilen</h3>
+                        <div class="fieldDescription">Jeder sieht nur Titel aus seinen Bibliotheken und innerhalb seiner Altersfreigabe. Für Home Screen Sections heißen die Bereiche wie die Zeilen (dort einschalten, wirksam nach Neustart).</div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="momentsOnTvToday" />
+                                <span>„Läuft heute im TV – hier ohne Werbung“</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Filme und Serien, die heute (bis 2 Uhr nachts) noch im Live-TV laufen und hier in der Bibliothek liegen. Abgleich über IMDb/TMDB/TVDB, sonst über Titel und Jahr. Nur für Profile mit Live-TV-Zugriff.</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="momentsNewThisWeek" />
+                                <span>„Neu diese Woche“</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Neu hinzugekommene, ungesehene Filme und Serien mit neuen Folgen, nach Geschmack sortiert.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="newThisWeekDays">Zeitraum für „Neu diese Woche“ (Tage):</label>
+                            <input is="emby-input" type="number" id="newThisWeekDays" name="newThisWeekDays" min="7" max="30" step="1" />
+                            <div class="fieldDescription">7 bis 30 (Standard: 14)</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="momentsCinema" />
+                                <span>„Vor dem Kinostart: Hol die Reihe nach“</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Kommt in den nächsten 4 Wochen ein neuer Teil einer Filmreihe ins Kino, steht hier der nächste ungesehene Teil aus der Bibliothek. Kinostart im Metadaten-Land des Servers (Standard Deutschland), wöchentlich bei TMDB abgefragt (nur IDs werden gesendet, TMDB-Schlüssel nötig).</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="momentsAnniversaries" />
+                                <span>„Heute vor X Jahren“</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Filme und Serien, die heute vor 10, 20, 25, 30 … Jahren erschienen sind (höchstens 6).</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="momentsYearAgo" />
+                                <span>„Vor einem Jahr hast du …“</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Was das Profil vor etwa einem Jahr gesehen hat (ohne „Daumen runter“ und ohne seitdem Wiederholtes).</div>
+                        </div>
+
                         <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="liveTvLookaheadHours">Vorschau (Stunden):</label>
                             <input is="emby-input" type="number" id="liveTvLookaheadHours" name="liveTvLookaheadHours" min="1" max="168" />
@@ -211,13 +260,27 @@
                                 <input is="emby-checkbox" type="checkbox" id="enableDaypart" />
                                 <span>Tageszeit berücksichtigen</span>
                             </label>
-                            <div class="fieldDescription checkboxFieldDescription">Was jemand morgens, tagsüber, abends und nachts schaut (aus den Wiedergabezeiten): Die Empfehlungszeilen auf der Quallenkino-Startseite stehen in passender Reihenfolge, tageszeit-typische Genres rücken etwas nach vorne. Wirkt ab 15 Wiedergaben in der jeweiligen Tageszeit.</div>
+                            <div class="fieldDescription checkboxFieldDescription">Was jemand morgens, tagsüber, abends und nachts schaut (aus den Wiedergabezeiten): Die Empfehlungszeilen auf der Quallenkino-Startseite stehen in passender Reihenfolge, tageszeit-typische Genres rücken etwas nach vorne. Wirkt ab 15 Wiedergaben in der jeweiligen Tageszeit, vorher gelten Startwerte (tagsüber Familie und Animation, nachts Horror und Thriller).</div>
                         </div>
 
                         <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="daypartWeight">Gewicht der Tageszeit:</label>
                             <input is="emby-input" type="number" id="daypartWeight" name="daypartWeight" min="0" max="1" step="0.05" />
                             <div class="fieldDescription">0 = aus (Standard: 0.15)</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="enableWatchRhythm" />
+                                <span>Wochentag und Restzeit am Abend berücksichtigen</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Lernt pro Profil, ob unter der Woche abends eher Kurzes und am Wochenende Längeres läuft und wann abends üblicherweise Schluss ist. Kurz vor dieser Zeit rücken Filme, die nicht mehr hineinpassen, nach hinten (auch im Banner). Ohne genug Historie gilt: Freitag und Samstag abends darf es lang sein, Schluss um 23:30.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="watchRhythmWeight">Gewicht von Wochentag und Restzeit:</label>
+                            <input is="emby-input" type="number" id="watchRhythmWeight" name="watchRhythmWeight" min="0" max="1" step="0.05" />
+                            <div class="fieldDescription">0 = aus (Standard: 0.3)</div>
                         </div>
 
                         <div class="checkboxContainer checkboxContainer-withDescription">
@@ -1149,6 +1212,8 @@
                             page.querySelector('#enableExternalSimilarity').checked = config.EnableExternalSimilarity !== false;
                             page.querySelector('#enableDaypart').checked = config.EnableDaypart !== false;
                             page.querySelector('#daypartWeight').value = config.DaypartWeight !== undefined ? config.DaypartWeight : 0.15;
+                            page.querySelector('#enableWatchRhythm').checked = config.EnableWatchRhythm !== false;
+                            page.querySelector('#watchRhythmWeight').value = config.WatchRhythmWeight !== undefined ? config.WatchRhythmWeight : 0.3;
                             page.querySelector('#enableBehaviorSignals').checked = config.EnableBehaviorSignals !== false;
                             page.querySelector('#interestWeight').value = config.InterestWeight !== undefined ? config.InterestWeight : 0.35;
                             page.querySelector('#interestDecayDays').value = config.InterestDecayDays || 30;
@@ -1234,6 +1299,12 @@
                             page.querySelector('#enableSeasonal').checked = config.EnableSeasonal !== false;
                             page.querySelector('#seasonalMinItems').value = config.SeasonalMinItems || 4;
                             page.querySelector('#seasonalValentine').checked = !!config.SeasonalValentine;
+                            page.querySelector('#momentsOnTvToday').checked = config.MomentsOnTvToday !== false;
+                            page.querySelector('#momentsNewThisWeek').checked = config.MomentsNewThisWeek !== false;
+                            page.querySelector('#newThisWeekDays').value = config.NewThisWeekDays || 14;
+                            page.querySelector('#momentsCinema').checked = config.MomentsCinema !== false;
+                            page.querySelector('#momentsAnniversaries').checked = config.MomentsAnniversaries !== false;
+                            page.querySelector('#momentsYearAgo').checked = config.MomentsYearAgo !== false;
                             page.querySelector('#liveTvLookaheadHours').value = config.LiveTvLookaheadHours !== undefined ? config.LiveTvLookaheadHours : 24;
                             page.querySelector('#liveTvTimeZone').value = config.LiveTvTimeZone !== undefined && config.LiveTvTimeZone !== null ? config.LiveTvTimeZone : 'Europe/Berlin';
                             page.querySelector('#liveTvRegularDays').value = config.LiveTvRegularDays !== undefined ? config.LiveTvRegularDays : 3;
@@ -1286,6 +1357,9 @@
                             config.EnableDaypart = page.querySelector('#enableDaypart').checked;
                             var daypartWeight = parseFloat(page.querySelector('#daypartWeight').value);
                             config.DaypartWeight = isNaN(daypartWeight) ? 0.15 : Math.min(1, Math.max(0, daypartWeight));
+                            config.EnableWatchRhythm = page.querySelector('#enableWatchRhythm').checked;
+                            var rhythmWeight = parseFloat(page.querySelector('#watchRhythmWeight').value);
+                            config.WatchRhythmWeight = isNaN(rhythmWeight) ? 0.3 : Math.min(1, Math.max(0, rhythmWeight));
                             config.EnableBehaviorSignals = page.querySelector('#enableBehaviorSignals').checked;
                             var interestWeight = parseFloat(page.querySelector('#interestWeight').value);
                             config.InterestWeight = isNaN(interestWeight) ? 0.35 : Math.min(1, Math.max(0, interestWeight));
@@ -1365,6 +1439,13 @@
                             var seasonalMin = parseInt(page.querySelector('#seasonalMinItems').value, 10);
                             config.SeasonalMinItems = isNaN(seasonalMin) ? 4 : Math.min(20, Math.max(1, seasonalMin));
                             config.SeasonalValentine = page.querySelector('#seasonalValentine').checked;
+                            config.MomentsOnTvToday = page.querySelector('#momentsOnTvToday').checked;
+                            config.MomentsNewThisWeek = page.querySelector('#momentsNewThisWeek').checked;
+                            var newDays = parseInt(page.querySelector('#newThisWeekDays').value, 10);
+                            config.NewThisWeekDays = isNaN(newDays) ? 14 : Math.min(30, Math.max(7, newDays));
+                            config.MomentsCinema = page.querySelector('#momentsCinema').checked;
+                            config.MomentsAnniversaries = page.querySelector('#momentsAnniversaries').checked;
+                            config.MomentsYearAgo = page.querySelector('#momentsYearAgo').checked;
                             config.LiveTvLookaheadHours = parseInt(page.querySelector('#liveTvLookaheadHours').value) || 24;
                             config.LiveTvTimeZone = page.querySelector('#liveTvTimeZone').value.trim();
                             config.LiveTvRegularDays = Math.max(2, parseInt(page.querySelector('#liveTvRegularDays').value) || 3);

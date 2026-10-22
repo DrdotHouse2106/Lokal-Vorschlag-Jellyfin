@@ -109,6 +109,8 @@ namespace Jellyfin.Plugin.LocalRecs
                     Path.Combine(GetPluginDataPath(sp), "jahreszeit-stichwoerter.json")));
             serviceCollection.AddSingleton<Seasonal.SeasonalService>();
             serviceCollection.AddSingleton<SeasonalSectionHandler>();
+            serviceCollection.AddSingleton<Moments.MomentsService>();
+            serviceCollection.AddSingleton<MomentsSectionHandler>();
             serviceCollection.AddSingleton<RecommendationSectionHandler>();
             serviceCollection.AddSingleton<LiveTvSectionHandler>();
 

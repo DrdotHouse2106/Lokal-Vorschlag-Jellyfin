@@ -53,6 +53,7 @@ namespace Jellyfin.Plugin.LocalRecs.Banner
         private readonly IUserDataManager _userDataManager;
         private readonly FeedbackStore? _feedback;
         private readonly BehaviorStore? _behavior;
+        private readonly BehaviorService? _rhythm;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BannerService"/> class.
@@ -63,14 +64,17 @@ namespace Jellyfin.Plugin.LocalRecs.Banner
         /// <param name="userDataManager">User data manager.</param>
         /// <param name="feedback">What was recommended since when, optional.</param>
         /// <param name="behavior">Opened titles, optional.</param>
+        /// <param name="rhythm">Learned watch rhythm, optional.</param>
         public BannerService(
             RecommendationSectionHandler recommendations,
             BannerStore store,
             ILibraryManager libraryManager,
             IUserDataManager userDataManager,
             FeedbackStore? feedback = null,
-            BehaviorStore? behavior = null)
+            BehaviorStore? behavior = null,
+            BehaviorService? rhythm = null)
         {
+            _rhythm = rhythm;
             _recommendations = recommendations ?? throw new ArgumentNullException(nameof(recommendations));
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _libraryManager = libraryManager ?? throw new ArgumentNullException(nameof(libraryManager));
@@ -177,7 +181,11 @@ namespace Jellyfin.Plugin.LocalRecs.Banner
                 return keep.Take(count).Select(i => (i, reasons.GetValueOrDefault(i.Id) ?? string.Empty)).ToList();
             }
 
-            var preferShort = PreferShort(local);
+            // Gelernter Sehrhythmus (Wochentag, Schlafenszeit), ohne ihn die feste Regel für Abende unter der Woche
+            var offset = BehaviorService.ResolveOffset(utcOffsetMinutes);
+            var rhythm = Plugin.Instance?.Configuration?.EnableWatchRhythm != false ? _rhythm?.GetProfile(user).Rhythm : null;
+            var preferShort = rhythm?.PreferShort(local, offset) ?? PreferShort(local);
+            var remaining = rhythm?.RemainingMinutes(local, offset);
             var recent = _store.RecentlyShown(user.Id, day);
             var shownDays = _store.ShownDays(user.Id, day, 7);
             var opened = _behavior?.Get(user.Id).Views.Select(v => v.ItemId).ToHashSet() ?? new HashSet<Guid>();
@@ -186,7 +194,9 @@ namespace Jellyfin.Plugin.LocalRecs.Banner
                 RecentFactor(recent.TryGetValue(item.Id, out var ago) ? ago : null)
                 * NeverOpenedFactor(shownDays.GetValueOrDefault(item.Id), opened.Contains(item.Id))
                 * IgnoredFactor(shownSince.TryGetValue(item.Id.ToString("N"), out var since) ? (now - since).TotalDays : null)
-                * (item is Movie ? RuntimeFactor(item.RunTimeTicks / (double)TimeSpan.TicksPerMinute, preferShort) : 1);
+                * (rhythm != null
+                    ? WatchRhythm.RuntimeFactor(item.RunTimeTicks > 0 ? item.RunTimeTicks / (double)TimeSpan.TicksPerMinute : null, remaining, preferShort)
+                    : item is Movie ? RuntimeFactor(item.RunTimeTicks / (double)TimeSpan.TicksPerMinute, preferShort) : 1);
 
             var taken = keep.Select(i => i.Id).ToHashSet();
             bool Free(BaseItem item) => !taken.Contains(item.Id) && !later.ContainsKey(item.Id) && HasBackdrop(item);

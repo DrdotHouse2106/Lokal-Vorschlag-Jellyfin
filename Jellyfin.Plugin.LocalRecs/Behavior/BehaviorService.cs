@@ -91,6 +91,7 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
                     if (_userDataManager.GetUserData(user, movie)?.LastPlayedDate is { } played)
                     {
                         profile.Add(played, DaypartProfile.Movies, movie.Genres);
+                        profile.Rhythm.Add(played, RuntimeMinutes(movie));
                     }
                 }
 
@@ -100,6 +101,7 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
                     {
                         var genres = episode.Series?.Genres is { Length: > 0 } seriesGenres ? seriesGenres : episode.Genres;
                         profile.Add(played, DaypartProfile.Series, genres);
+                        profile.Rhythm.Add(played, RuntimeMinutes(episode));
                     }
                 }
 
@@ -192,13 +194,26 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
             var offset = ResolveOffset(utcOffsetMinutes);
             var now = DateTime.UtcNow;
             var daypart = DaypartProfile.DaypartAt(now, offset);
-            var profile = config.EnableDaypart && config.DaypartWeight > 0 ? GetProfile(user) : null;
+            var daypartOn = config.EnableDaypart && config.DaypartWeight > 0;
+            var rhythmOn = config.EnableWatchRhythm && config.WatchRhythmWeight > 0;
+            var profile = daypartOn || rhythmOn ? GetProfile(user) : null;
+            var priorOnly = profile != null && profile.PlaysIn(daypart, offset) < DaypartProfile.MinPlays;
+            var local = now.AddMinutes(offset);
+            var remaining = rhythmOn ? profile!.Rhythm.RemainingMinutes(local, offset) : null;
+            var preferShort = rhythmOn && profile!.Rhythm.PreferShort(local, offset);
             var interests = config.EnableBehaviorSignals && config.InterestWeight > 0 && _store.IsEnabled(user.Id) ? Interests(user, now) : new List<Interest>();
 
             var reasons = new Dictionary<Guid, string>();
             var reranked = InterestScoring.Rerank(items, item =>
             {
-                var bonus = profile == null ? 0 : config.DaypartWeight * profile.GenreScore(item.Genres, daypart, offset);
+                var bonus = !daypartOn || profile == null ? 0
+                    : config.DaypartWeight * (priorOnly ? DaypartProfile.PriorGenreScore(item.Genres, daypart) : profile.GenreScore(item.Genres, daypart, offset));
+                if (rhythmOn)
+                {
+                    // Spät abends und unter der Woche: was noch in den Abend passt, rückt vor
+                    bonus -= config.WatchRhythmWeight * (1 - WatchRhythm.RuntimeFactor(RuntimeMinutes(item), remaining, preferShort));
+                }
+
                 if (interests.Count > 0)
                 {
                     var features = Features(item);
@@ -248,6 +263,9 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
             _reasons.TryRemove(userId, out _);
             _interests.TryRemove(userId, out _);
         }
+
+        // Laufzeit in Minuten; bei Serien die übliche Folgenlänge
+        private static double? RuntimeMinutes(BaseItem item) => item.RunTimeTicks is long ticks && ticks > 0 ? ticks / (double)TimeSpan.TicksPerMinute : null;
 
         private static IReadOnlyCollection<string> Features(BaseItem item) => (item.Genres ?? Array.Empty<string>()).Concat(item.Tags ?? Array.Empty<string>()).ToList();
 

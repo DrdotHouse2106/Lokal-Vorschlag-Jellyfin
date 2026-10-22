@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.46.0.0",
+        "changelog": "Zeitabhängige Empfehlungen\n- Neue Zeilen: „Läuft heute im TV – hier ohne Werbung“, „Neu diese Woche“, „Vor dem Kinostart: Hol die Reihe nach“, „Heute vor X Jahren“, „Vor einem Jahr hast du …“ (einzeln abschaltbar)\n- Wochentag und übliche Schlafenszeit pro Profil gelernt: abends rückt nach hinten, was nicht mehr passt\n- „Passend zur Jahreszeit“: Filme vor Folgen, erst eine Folge je Serie, Specials nur mit passendem Dateinamen\n- Bibliotheken und Altersfreigaben je Profil werden beachtet\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.46.0.zip",
+        "checksum": "e3f667216023114a0c65466a6defe0ce",
+        "timestamp": "2026-10-22T22:00:00Z"
+      },
+      {
         "version": "12.45.0.0",
         "changelog": "Filmreihen und Jahreszeit\n- Neue Zeile „Filmreihen für dich“: angefangene Reihen mit dem nächsten Teil, passende Reihen, alle Teile in der richtigen Reihenfolge, „Weitere Teile der Reihe“ in der Detailansicht\n- Neue Zeile „Passend zur Jahreszeit“: Weihnachtsfilme im Advent, Silvester, Halloween, Ostern (optional Valentinstag), erkannt über TMDB-Stichwörter und Titel\n- Bibliotheken und Altersfreigaben je Profil werden beachtet\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

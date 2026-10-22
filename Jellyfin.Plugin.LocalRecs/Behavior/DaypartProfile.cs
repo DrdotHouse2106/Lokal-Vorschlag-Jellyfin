@@ -24,12 +24,17 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
 
         private static readonly string[] Kinds = { Movies, Series, LiveTv };
         private static readonly string[] Labels = { "morgens", "tagsüber", "abends", "nachts" };
+        private static readonly HashSet<string> PriorDaytime = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Familie", "Family", "Kinder", "Kids", "Children", "Animation", "Zeichentrick" };
+        private static readonly HashSet<string> PriorNight = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Horror", "Thriller", "Mystery" };
 
         private readonly Dictionary<string, int[]> _kindHours = Kinds.ToDictionary(k => k, _ => new int[24], StringComparer.Ordinal);
         private readonly Dictionary<string, int[]> _genreHours = new Dictionary<string, int[]>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>Gets the total number of plays.</summary>
         public int Total { get; private set; }
+
+        /// <summary>Gets the watch rhythm (runtime by weekday evening, usual bedtime).</summary>
+        public WatchRhythm Rhythm { get; } = new WatchRhythm();
 
         /// <summary>
         /// Gets the daypart of a local hour: 0 = morning (5–11), 1 = daytime (11–17), 2 = evening (17–22), 3 = night (22–5).
@@ -50,6 +55,28 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
         /// <param name="daypart">Daypart (0–3).</param>
         /// <returns>The name.</returns>
         public static string Label(int daypart) => Labels[Math.Clamp(daypart, 0, 3)];
+
+        /// <summary>
+        /// Default for profiles with too little history: daytime family and children, at night horror and thriller (0 or 0.5).
+        /// </summary>
+        /// <param name="genres">Genres of the title.</param>
+        /// <param name="daypart">Daypart.</param>
+        /// <returns>Score between 0 and 0.5.</returns>
+        public static double PriorGenreScore(IEnumerable<string>? genres, int daypart)
+        {
+            if (genres == null)
+            {
+                return 0;
+            }
+
+            var set = daypart switch
+            {
+                1 => PriorDaytime,
+                3 => PriorNight,
+                _ => null
+            };
+            return set != null && genres.Any(g => g != null && set.Contains(g)) ? 0.5 : 0;
+        }
 
         /// <summary>
         /// Gets the daypart of a time for a UTC offset.

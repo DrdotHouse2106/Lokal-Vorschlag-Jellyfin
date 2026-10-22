@@ -36,6 +36,7 @@ Das **Quallenkinoplugin** (bis 12.27 „Local Recommendations“) erweitert Jell
 - **Verhalten** – mehrfach Gesehenes und Serienfortschritt zählen mehr, Tageszeit bestimmt die Reihenfolge, Suchen und geöffnete Titel wirken wochenlang nach (bis zu einem Jahr gespeichert, pro Benutzer abschaltbar)
 - **Filmreihen für dich** – angefangene Reihen mit dem nächsten Teil, passende Reihen, alle Teile in der richtigen Reihenfolge
 - **Passend zur Jahreszeit** – Weihnachtsfilme im Advent, Halloween, Silvester, Ostern
+- **Zeitabhängige Zeilen** – „Läuft heute im TV – hier ohne Werbung“, „Neu diese Woche“, „Vor dem Kinostart: Hol die Reihe nach“, „Heute vor 25 Jahren“, „Vor einem Jahr hast du …“; abends rückt nach hinten, was vor der üblichen Schlafenszeit nicht mehr passt
 - **Metadaten-Check** – zeigt pro Bibliothek, wie gut Filme und Serien beschrieben sind, listet Titel mit wenig oder zu wenig Metadaten und ruft für sie gezielt neu ab
 - **Datenschutz** – alle Berechnungen laufen lokal auf deinem Server; nach außen gehen nur Titel-IDs (siehe „Ähnliche Titel“), persönliche Trakt-Empfehlungen nur nach Einschalten durch den Benutzer, Sicherungen der Einstellungen ohne Schlüssel
 
@@ -185,12 +186,42 @@ Zur Weihnachtszeit eine Zeile „Weihnachtsfilme“, an Halloween „Halloween�
   - **Ganze Wörter im Titel** (z. B. „Weihnachten“, „Weihnachtsspecial“, „Christmas“, „Halloween“, „Silvester“). Teilwörter zählen nicht, „Adventure“ ist also kein Advent.
   - **Folgen und Specials** von Serien mit solchen Titeln, höchstens 3 je Serie.
 - **Rechte:** Jeder Benutzer sieht nur Titel aus seinen Bibliotheken und innerhalb seiner Altersfreigabe. Titel aus einer Bibliothek, die ein Profil nicht sehen darf, erscheinen dort nie.
-- **Reihenfolge:** Ungesehenes zuerst, dann nach Geschmack (Position in den Empfehlungen), dann nach Bewertung. Höchstens 20 Titel. Die Zeile erscheint erst ab einer Mindestanzahl (Standard 4).
+- **Reihenfolge:** Ungesehenes zuerst, Filme und Serien vor einzelnen Folgen, dann nach Geschmack (Position in den Empfehlungen) und Bewertung. Erst eine Folge je Serie, weitere Folgen derselben Serie (höchstens 3) dahinter. Höchstens 20 Titel. Die Zeile erscheint erst ab einer Mindestanzahl (Standard 4).
+- **Specials (Staffel 0)** zählen ab 12.46.0 nur, wenn auch der Dateiname passt. Die Nummerierung von Specials weicht zwischen TVDB und TMDB oft ab, dann gehört der Titel in Jellyfin zu einer anderen Datei. Ein Dateiname ohne eigenen Titel (nur `S00E03`) gilt als passend.
 - **Einstellungen:** Reiter „Startseite“ → „Passend zur Jahreszeit“ an/aus, Mindestanzahl, Valentinstag. Für Home Screen Sections heißt die Zeile „Passend zur Jahreszeit“ und ist außerhalb der Zeitfenster leer.
 - **Schnittstelle:**
   - `GET /LocalRecs/Seasonal?utcOffsetMinutes=120` → `{ "Active", "Id", "Title", "Items": [...] }`
   - `?season=weihnachten` (bzw. `silvester`, `halloween`, `ostern`, `valentinstag`) zeigt eine Jahreszeit auch außerhalb ihres Fensters, z. B. zum Ausprobieren
   - `/LocalRecs/Web/Config` meldet `"Seasonal": true`
+
+### Zeitabhängige Empfehlungen (ab 12.46.0)
+
+**Wochentag und Restzeit am Abend.** Zusätzlich zur Tageszeit (ab 12.36.0) lernt Quallenkino pro Profil:
+
+- **Wochentag:** Läuft unter der Woche abends weniger Langes (über 100 Minuten) als am Wochenende, rücken lange Filme unter der Woche nach hinten. Gelernt ab 10 Wiedergaben je Bereich. Vorher gilt: Freitag und Samstag abends darf es lang sein, an anderen Abenden eher kurz.
+- **Schlafenszeit:** Aus dem Ende der letzten Wiedergabe je Abend (80. Perzentil, ab 5 Abenden, sonst 23:30). Ab 19 Uhr rückt nach hinten, was bis dahin nicht mehr passt. Das gilt für die Empfehlungszeilen und den Banner.
+- **Startwerte für die Tageszeit:** Solange ein Profil zu wenig Wiedergaben in einer Tageszeit hat, kommen tagsüber Familie und Animation, nachts Horror und Thriller etwas nach vorne.
+- **Einstellungen:** Reiter „Einstellungen“ → „Wochentag und Restzeit am Abend berücksichtigen“ und das Gewicht (Standard 0.3).
+
+**Neue Zeilen** (Quallenkino-Startseite oben, nach „Passend zur Jahreszeit“; einzeln abschaltbar im Reiter „Startseite“ unter „Zeitabhängige Zeilen“):
+
+| Zeile | Inhalt | Begründung auf der Karte |
+|---|---|---|
+| Läuft heute im TV – hier ohne Werbung | Filme und Serien, die heute (bis 2 Uhr nachts) noch im Live-TV laufen und in der Bibliothek liegen. Abgleich über IMDb, TMDB oder TVDB, sonst über Titel und Jahr. Nur für Profile mit Live-TV-Zugriff. | „Heute 20:15 auf ZDF – hier ohne Werbung“ |
+| Neu diese Woche | Neu hinzugekommene ungesehene Filme und Serien mit neuen Folgen, nach Geschmack sortiert. Zeitraum 7–30 Tage (Standard 14). | „Neu seit 19.10.“, „3 neue Folgen“ |
+| Vor dem Kinostart: Hol die Reihe nach | Kommt in den nächsten 4 Wochen ein neuer Teil einer Filmreihe ins Kino, steht hier der nächste ungesehene Teil, bei ganz gesehenen Reihen der letzte zum Auffrischen. Kinostart im Metadaten-Land des Servers (sonst Deutschland). | „„Teil 4“ ab 19.11. im Kino“ |
+| Heute vor X Jahren | Filme und Serien, die heute vor 10, 20, 25, 30 … Jahren erschienen sind, höchstens 6. | „Heute vor 25 Jahren erschienen“ |
+| Vor einem Jahr hast du … | Was das Profil vor 330 bis 400 Tagen gesehen hat; ohne „Daumen runter“ und ohne seitdem Wiederholtes. | „Vor einem Jahr gesehen – am 22.10.2025“ |
+
+- **Rechte:** Alle Abfragen laufen im Namen des Benutzers. Jeder sieht nur Titel aus seinen Bibliotheken und innerhalb seiner Altersfreigabe.
+- **Kinostart:** Die Teile der Filmreihen und ihre Starttermine werden wöchentlich nachts bei TMDB abgefragt (`collection/{id}`, `movie/{id}/release_dates`). Gesendet werden nur TMDB-IDs; ein TMDB-Schlüssel ist nötig.
+- **Nicht dabei:** Geburtstage von Schauspielern (bräuchte für jeden Titel die Besetzung samt Geburtsdaten und wirkt schnell beliebig), Ereignisse wie Preisverleihungen oder Sportturniere, Schulferien und „Verlässt bald“.
+- **Home Screen Sections:** je Zeile ein Bereich (`LocalRecsOnTvToday`, `LocalRecsNewThisWeek`, `LocalRecsCinema`, `LocalRecsAnniversary`, `LocalRecsYearAgo`), dort einschalten, wirksam nach Neustart.
+- **Schnittstelle:**
+  - `GET /LocalRecs/Moments?utcOffsetMinutes=120` → `{ "Rows": [ { "Key", "Title", "Items": [...], "Reasons": { "<ItemId>": "…" } } ] }`, nur eingeschaltete und nicht leere Zeilen in Anzeigereihenfolge
+  - `Key`: `ontv`, `newthisweek`, `cinema`, `anniversary`, `yearago`; `?key=cinema` liefert nur diese Zeile
+  - `/LocalRecs/Web/Config` meldet `"Moments": true`
+  - Die Zeilen werden 10 Minuten zwischengespeichert.
 
 ### Metadaten-Check (ab 12.38.0)
 
@@ -451,6 +482,16 @@ GET /LocalRecs/Worlds/{id}/Items?sort=year|year-asc|name|rating|added&type=movie
 ## Häufige Probleme
 
 Jeweils **Symptom**, **Ursache** und **Lösung**. Wird laufend ergänzt.
+
+### Zeitabhängige Zeilen
+
+**„Vor dem Kinostart“ erscheint nie.**
+- Ursache: Ohne TMDB-Schlüssel gibt es keine Starttermine. Die Teile werden nur einmal pro Woche nachts abgefragt, und die Zeile erscheint nur, wenn in den nächsten 4 Wochen ein Teil einer Reihe aus der Bibliothek startet.
+- Lösung: Den TMDB-Schlüssel eintragen und die Aufgabe „Empfehlungen aktualisieren“ einmal von Hand starten.
+
+**„Läuft heute im TV“ bleibt leer.**
+- Ursache: Das Profil hat keinen Live-TV-Zugriff, das Fernsehprogramm reicht nicht bis heute Abend, oder Sendungen und Bibliothek haben weder gemeinsame IDs noch denselben Titel (bei Filmen zusätzlich das Jahr ±1).
+- Lösung: Den Live-TV-Zugriff im Benutzerprofil prüfen und das Fernsehprogramm aktualisieren. Weichen nur die Titel ab, hilft eine EPG-Quelle mit IMDb- oder TMDB-IDs.
 
 ### Installation und Update
 

@@ -453,6 +453,13 @@ body.lr-home.lr-scrolled header.MuiAppBar-root {
     object-fit: cover;
 }
 
+/* Hochformat-Bild im Querformat-Rahmen: ganz zeigen, links ausgerichtet, Titel daneben */
+.lr-card-img.lr-card-img-poster {
+    object-fit: contain;
+    object-position: left center;
+    background: #111;
+}
+
 .lr-card-logo {
     position: absolute;
     left: 8%;
@@ -3103,4 +3110,12 @@ html.lr-profiles-open body {
 
 .lr-movieseries .lr-info-section > .lr-btn-play {
     margin-bottom: 1em;
+}
+
+.lr-card-img-poster ~ .lr-card-title {
+    left: 38%;
+    top: 0;
+    display: flex;
+    align-items: flex-end;
+    background: none;
 }

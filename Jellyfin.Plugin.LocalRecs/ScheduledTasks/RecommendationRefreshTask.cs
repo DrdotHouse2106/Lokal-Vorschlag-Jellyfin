@@ -276,6 +276,12 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
                 {
                     _movieSeries?.Invalidate();
                 }
+
+                // Teile der Reihen (für „Vor dem Kinostart“), wöchentlich, Kinostart im Land des Servers
+                if (_movieSeries != null && config.MomentsCinema)
+                {
+                    await _movieSeriesLookup.RefreshPartsAsync(_movieSeries.AllSeriesIds(), config, language, server?.MetadataCountryCode, cancellationToken).ConfigureAwait(false);
+                }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

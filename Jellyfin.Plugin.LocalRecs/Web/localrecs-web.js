@@ -12,7 +12,7 @@
     }
     window.__localRecsWeb = true;
 
-    var CACHE_VERSION = 2;
+    var CACHE_VERSION = 3;
     var ROW_LIMIT = 24;
     var GENRE_ROWS = 6;
     var GENRE_MIN_ITEMS = 8;
@@ -528,6 +528,7 @@
             ChannelId: item.ChannelId,
             ChannelName: item.ChannelName,
             ChannelPrimaryImageTag: item.ChannelPrimaryImageTag,
+            PrimaryImageAspectRatio: item.PrimaryImageAspectRatio,
             StartDate: item.StartDate,
             EndDate: item.EndDate,
             EpisodeTitle: item.EpisodeTitle,
@@ -637,6 +638,9 @@
                 parts.push(item.EpisodeTitle);
             }
             return parts.join(' · ');
+        }
+        if (item.MomentReason) {
+            return item.MomentReason;
         }
         return showReason ? state.reasons[item.Id] || '' : '';
     }
@@ -1453,7 +1457,8 @@
         var tags = item.ImageTags || {};
         var backdrop = item.BackdropImageTags && item.BackdropImageTags.length;
         var parentBackdrop = item.ParentBackdropItemId && item.ParentBackdropImageTags && item.ParentBackdropImageTags.length;
-        if (item.Type === 'Episode' && tags.Primary) {
+        // Folgenbild nur im Querformat – manche Specials haben ein Hochformat-Bild
+        if (item.Type === 'Episode' && tags.Primary && !(item.PrimaryImageAspectRatio && item.PrimaryImageAspectRatio < 1.2)) {
             return { src: imageUrl(item.Id, 'Primary', tags.Primary, 640), clean: true };
         }
         if (item.Type === 'Program' || item.Type === 'TvChannel') {
@@ -1472,11 +1477,13 @@
         if (item.ParentThumbItemId && item.ParentThumbImageTag) {
             return { src: imageUrl(item.ParentThumbItemId, 'Thumb', item.ParentThumbImageTag, 640), clean: false };
         }
+        // Hochformat-Bilder im Querformat-Rahmen: ganz zeigen statt abschneiden, Kartenformat bleibt gleich
+        var portrait = item.PrimaryImageAspectRatio && item.PrimaryImageAspectRatio < 1.2;
         if (tags.Primary) {
-            return { src: imageUrl(item.Id, 'Primary', tags.Primary, 640), clean: true };
+            return { src: imageUrl(item.Id, 'Primary', tags.Primary, 640), clean: true, poster: !!portrait };
         }
         if (item.SeriesId && item.SeriesPrimaryImageTag) {
-            return { src: imageUrl(item.SeriesId, 'Primary', item.SeriesPrimaryImageTag, 640), clean: true };
+            return { src: imageUrl(item.SeriesId, 'Primary', item.SeriesPrimaryImageTag, 640), clean: true, poster: true };
         }
         return { src: null, clean: true };
     }
@@ -1486,7 +1493,7 @@
         var image = cardImage(item);
         var frame = el('div', 'lr-card-frame');
         if (image.src) {
-            var img = el('img', 'lr-card-img');
+            var img = el('img', image.poster ? 'lr-card-img lr-card-img-poster' : 'lr-card-img');
             img.loading = 'lazy';
             img.alt = '';
             img.src = image.src;
@@ -2733,6 +2740,26 @@
         }
         // Zeitzone des Browsers: Tageszeit für die Reihenfolge der Zeilen und tageszeit-typische Titel
         var offset = utcOffset();
+        // Zeitabhängige Zeilen (Läuft heute im TV, Neu diese Woche, Kinostart, Jubiläen, Vor einem Jahr) – Titel und Begründung vom Server
+        if (state.config && state.config.Moments) {
+            var momentsPlaceholder = { key: 'moments', title: '', kind: 'group', items: [] };
+            rows.push(momentsPlaceholder);
+            tasks.push(safe(getJson('LocalRecs/Moments?utcOffsetMinutes=' + offset)).then(function (result) {
+                ((result && result.Rows) || []).forEach(function (row) {
+                    var reasons = row.Reasons || {};
+                    momentsPlaceholder.items.push({
+                        key: 'moment-' + row.Key,
+                        title: row.Title,
+                        kind: 'landscape',
+                        items: (row.Items || []).map(function (item) {
+                            var entry = slim(item);
+                            entry.MomentReason = reasons[item.Id] || '';
+                            return entry;
+                        })
+                    });
+                });
+            }));
+        }
         tasks.push(add('movies', 'Empfohlene Filme für dich', 'landscape', getJson('LocalRecs/Recommendations?type=movies&limit=' + ROW_LIMIT + '&utcOffsetMinutes=' + offset)));
         tasks.push(add('series', 'Empfohlene Serien für dich', 'landscape', getJson('LocalRecs/Recommendations?type=series&limit=' + ROW_LIMIT + '&utcOffsetMinutes=' + offset)));
         // Banner des Tages vom Server (täglich neu, auf allen Geräten gleich, Entdecken und Weiterschauen gemischt) – keine eigene Reihe

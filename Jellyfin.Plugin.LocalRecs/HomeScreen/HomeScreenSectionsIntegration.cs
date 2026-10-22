@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -7,6 +8,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.LocalRecs.Configuration;
+using Jellyfin.Plugin.LocalRecs.Moments;
 using Jellyfin.Plugin.LocalRecs.ScheduledTasks;
 using Jellyfin.Plugin.LocalRecs.Services;
 using MediaBrowser.Common.Configuration;
@@ -49,6 +51,18 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
         /// Section ID of „Passend zur Jahreszeit“.
         /// </summary>
         public const string SeasonalSectionId = "LocalRecsSeasonal";
+
+        /// <summary>
+        /// Section IDs of the time-based rows (since 12.46.0), by row key.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<string, (string Id, string Title, string Method)> MomentSections = new Dictionary<string, (string Id, string Title, string Method)>
+        {
+            [MomentsService.OnTvToday] = ("LocalRecsOnTvToday", "Läuft heute im TV – hier ohne Werbung", nameof(MomentsSectionHandler.GetOnTvResults)),
+            [MomentsService.NewThisWeek] = ("LocalRecsNewThisWeek", "Neu diese Woche", nameof(MomentsSectionHandler.GetNewThisWeekResults)),
+            [MomentsService.Cinema] = ("LocalRecsCinema", "Vor dem Kinostart: Hol die Reihe nach", nameof(MomentsSectionHandler.GetCinemaResults)),
+            [MomentsService.Anniversary] = ("LocalRecsAnniversary", "Heute vor X Jahren", nameof(MomentsSectionHandler.GetAnniversaryResults)),
+            [MomentsService.YearAgo] = ("LocalRecsYearAgo", "Vor einem Jahr hast du …", nameof(MomentsSectionHandler.GetYearAgoResults))
+        };
 
         private const string HomeScreenSectionsAssemblyName = "Jellyfin.Plugin.HomeScreenSections";
         private const int MaxRegistrationAttempts = 30;
@@ -154,6 +168,14 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
                 if (config.EnableSeasonal)
                 {
                     Register(registerMethod, SeasonalSectionId, "Passend zur Jahreszeit", typeof(SeasonalSectionHandler), nameof(SeasonalSectionHandler.GetSeasonalResults));
+                }
+
+                foreach (var (key, section) in MomentSections)
+                {
+                    if (MomentsService.IsEnabled(key, config))
+                    {
+                        Register(registerMethod, section.Id, section.Title, typeof(MomentsSectionHandler), section.Method);
+                    }
                 }
 
                 SectionsRegistered = true;

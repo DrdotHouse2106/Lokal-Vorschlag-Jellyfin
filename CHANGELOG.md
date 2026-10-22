@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.46.0] - 2026-10-22
+
+### Added
+
+- **Time-based rows** (`GET /LocalRecs/Moments?utcOffsetMinutes=&key=`, rows with `Key`, `Title`, `Items`, `Reasons`; Home Screen Sections one section per row; each switchable):
+  - „Läuft heute im TV – hier ohne Werbung“ (`ontv`): library titles airing on live TV until 02:00, matched by IMDb/TMDB/TVDB or title (+ year for movies), only with live TV access.
+  - „Neu diese Woche“ (`newthisweek`): new unwatched movies and series with new episodes, 7–30 days (default 14), by taste.
+  - „Vor dem Kinostart: Hol die Reihe nach“ (`cinema`): a new part of a movie series in cinemas within 4 weeks → next unwatched part (or the last one to refresh). Parts and release dates in the server's metadata country looked up weekly at TMDB (`collection/{id}`, `movie/{id}/release_dates`, only IDs sent).
+  - „Heute vor X Jahren“ (`anniversary`): released 10, 20, 25, 30 … years ago today, at most 6.
+  - „Vor einem Jahr hast du …“ (`yearago`): watched 330–400 days ago, without thumbs down and without rewatches since.
+- **Weekday and bedtime:** per profile learned share of long content on weekday vs. weekend evenings and the usual bedtime; from 19:00 titles that no longer fit move back in recommendation rows and the banner (`EnableWatchRhythm`, `WatchRhythmWeight` 0.3). Defaults until learned.
+- **Time-of-day defaults:** family/animation in the daytime, horror/thriller at night while a daypart has too few plays.
+- `/LocalRecs/Web/Config`: `Moments`.
+
+### Changed
+
+- „Passend zur Jahreszeit“: movies and series before episodes, first one episode per series; specials (season 0) only when the file name agrees.
+- Web cards: portrait images (e.g. series posters for episodes without a landscape image) are shown whole in the landscape frame; episode images only when landscape.
+
 ## [12.45.0] - 2026-10-22
 
 ### Added
