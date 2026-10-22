@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [12.45.0] - 2026-10-22
+
+### Added
+
+- **„Filmreihen für dich“:** own row for movie series (TMDB collections) with at least two parts in the user's libraries – started series with the next part first, then series that fit the taste, series forming a world last. Card with series backdrop, „x von y gesehen · Weiter mit Teil n“; a click shows all parts in release order; „Weitere Teile der Reihe“ in a movie's info view. Membership from the TMDB collection on the movie, Jellyfin collections with TMDB ID or a nightly TMDB lookup (`filmreihen.json`, only movie IDs are sent); series images cached on the server. Home Screen Sections section „Filmreihen für dich“. API `GET /LocalRecs/MovieSeries`, `/{id}`, `/ByItem/{itemId}`, `/{id}/Images/Poster|Backdrop`.
+- **„Passend zur Jahreszeit“:** Christmas (first Sunday of Advent–26 Dec), New Year's Eve (27 Dec–1 Jan), Halloween (15–31 Oct), Easter (Good Friday–Easter Monday), optionally Valentine's Day. Detected by TMDB keywords (nightly, `jahreszeit-stichwoerter.json`), equal tags, whole words in titles and episodes/specials with such titles; libraries and parental ratings per user respected; from 4 titles. Home Screen Sections section „Passend zur Jahreszeit“. API `GET /LocalRecs/Seasonal`.
+- `/LocalRecs/Web/Config`: `MovieSeries`, `MovieSeriesTitle`, `Seasonal`.
 
 ### Documentation
 

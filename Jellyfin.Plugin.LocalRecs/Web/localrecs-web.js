@@ -1544,6 +1544,99 @@
         return card;
     }
 
+    // ---------------------------------------------------------------- Filmreihen
+
+    function movieSeriesImage(series, backdrop) {
+        return url('LocalRecs/MovieSeries/' + encodeURIComponent(series.Id) + '/Images/' + (backdrop ? 'Backdrop' : 'Poster'));
+    }
+
+    function movieSeriesLine(series) {
+        return series.Watched ? series.Watched + ' von ' + series.Total + ' gesehen · ' + series.Reason : series.Reason;
+    }
+
+    // Karte einer Reihe: Hintergrund der Reihe (sonst des nächsten Teils), Name, „x von y gesehen · Weiter mit Teil n“
+    function movieSeriesCard(series) {
+        var card = el('div', 'lr-card lr-card-landscape lr-card-movieseries');
+        var frame = el('div', 'lr-card-frame');
+        var src = series.HasBackdrop ? movieSeriesImage(series, true) : (series.Next ? backdropImage(series.Next, 640) : null);
+        if (src) {
+            var img = el('img', 'lr-card-img');
+            img.loading = 'lazy';
+            img.alt = '';
+            img.src = src;
+            img.addEventListener('error', function () {
+                var fallback = series.Next ? backdropImage(series.Next, 640) : null;
+                if (fallback && img.src.indexOf('LocalRecs/MovieSeries') >= 0) {
+                    img.src = fallback;
+                } else {
+                    img.remove();
+                    frame.classList.add('lr-card-noimg');
+                }
+            });
+            frame.appendChild(img);
+        } else {
+            frame.classList.add('lr-card-noimg');
+        }
+        frame.appendChild(el('div', 'lr-card-title', series.Name));
+        if (series.Total) {
+            var bar = el('div', 'lr-progress');
+            var fill = el('div', 'lr-progress-fill');
+            fill.style.width = Math.round((series.Watched || 0) * 100 / series.Total) + '%';
+            bar.appendChild(fill);
+            frame.appendChild(bar);
+        }
+        card.appendChild(frame);
+        card.appendChild(el('div', 'lr-card-sub', movieSeriesLine(series)));
+        onActivate(card, function () {
+            openMovieSeries(series.Id);
+        });
+        return card;
+    }
+
+    // Alle vorhandenen Teile einer Reihe in Erscheinungsreihenfolge
+    function movieSeriesGrid(detail, currentId) {
+        var grid = el('div', 'lr-grid lr-movieseries-grid');
+        (detail.Parts || []).forEach(function (part, i) {
+            var cell = el('div', 'lr-movieseries-part' + (part.Id === currentId ? ' lr-movieseries-current' : '') + (i === detail.NextIndex ? ' lr-movieseries-next' : ''));
+            cell.appendChild(el('div', 'lr-movieseries-number', 'Teil ' + (i + 1) + (part.UserData && part.UserData.Played ? ' · gesehen' : (i === detail.NextIndex ? ' · als Nächstes' : ''))));
+            cell.appendChild(posterCard(part));
+            grid.appendChild(cell);
+        });
+        return grid;
+    }
+
+    function openMovieSeries(id) {
+        var dialog = overlayShell('lr-info lr-movieseries');
+        dialog.appendChild(el('div', 'lr-spinner'));
+        getJson('LocalRecs/MovieSeries/' + encodeURIComponent(id)).then(function (detail) {
+            dialog.querySelector('.lr-spinner').remove();
+            var next = detail.NextIndex >= 0 ? detail.Parts[detail.NextIndex] : null;
+            var heroItem = next || detail.Parts[0];
+            dialog.appendChild(heroElement(heroItem, {
+                compact: true,
+                noInfo: true,
+                title: detail.Name,
+                logo: null,
+                image: detail.HasBackdrop ? movieSeriesImage(detail, true) : undefined,
+                overview: null,
+                meta: detail.Watched + ' von ' + detail.Total + ' gesehen',
+                badge: next && detail.Watched ? 'Weiter mit Teil ' + (detail.NextIndex + 1) : null,
+                actions: false
+            }));
+            var section = el('div', 'lr-info-section');
+            if (next) {
+                section.appendChild(button('lr-btn-play', 'play_arrow', (detail.Watched ? 'Weiter mit Teil ' : 'Starten mit Teil ') + (detail.NextIndex + 1), function () {
+                    play(next);
+                }));
+            }
+            section.appendChild(movieSeriesGrid(detail));
+            dialog.appendChild(section);
+        }).catch(function () {
+            dialog.querySelector('.lr-spinner').remove();
+            dialog.appendChild(el('p', 'lr-cal-text', 'Die Reihe konnte nicht geladen werden.'));
+        });
+    }
+
     function portraitCard(item) {
         var card = el('div', 'lr-card lr-card-poster lr-card-portrait');
         var frame = el('div', 'lr-card-frame lr-poster');
@@ -1949,7 +2042,7 @@
         hero.appendChild(media);
         hero.appendChild(el('div', 'lr-hero-shade'));
         var content = el('div', 'lr-hero-content');
-        var logo = options.logo || logoImage(item, 800);
+        var logo = options.logo !== undefined ? options.logo : logoImage(item, 800);
         if (logo) {
             var logoImg = el('img', 'lr-hero-logo');
             logoImg.alt = options.title || displayTitle(item);
@@ -2194,6 +2287,21 @@
         } else if (isEpisode && item.SeriesId) {
             renderSeasons(dialog, { Id: item.SeriesId }, item.SeasonId, item.Id);
         } else if (item.Type === 'Movie') {
+            // Weitere Teile der Reihe (vor „Ähnliche Titel“, Platzhalter hält die Reihenfolge)
+            var seriesHolder = el('div');
+            dialog.appendChild(seriesHolder);
+            if (state.config && state.config.MovieSeries) {
+                safe(getJson('LocalRecs/MovieSeries/ByItem/' + item.Id)).then(function (detail) {
+                    if (!detail || !detail.Parts || detail.Parts.length < 2) {
+                        return;
+                    }
+                    var section = el('div', 'lr-info-section');
+                    var heading = el('h3', 'lr-info-heading', 'Weitere Teile der Reihe „' + detail.Name + '“ (' + detail.Watched + ' von ' + detail.Total + ' gesehen)');
+                    section.appendChild(heading);
+                    section.appendChild(movieSeriesGrid(detail, item.Id));
+                    seriesHolder.appendChild(section);
+                });
+            }
             getJson(itemsQuery('Items/' + item.Id + '/Similar?limit=12')).then(function (result) {
                 var similar = itemsOf(result);
                 if (similar.length) {
@@ -2462,7 +2570,7 @@
         var heroItem = { Id: world.ImageItemId || '', Name: world.Name, Type: 'World', TrailerId: world.TrailerId };
         var hero = heroElement(heroItem, {
             image: world.ImageItemId ? imageUrl(world.ImageItemId, 'Backdrop', null, 1920) : null,
-            logo: world.LogoUrl ? url(world.LogoUrl) : null,
+            logo: world.LogoUrl ? url(world.LogoUrl) : undefined,
             title: world.Name,
             meta: world.ItemCount + ' Titel',
             overview: null,
@@ -2612,6 +2720,17 @@
         }
         tasks.push(add('resume', 'Weiterschauen für ' + user.Name, 'landscape', getJson(itemsQuery('UserItems/Resume?MediaTypes=Video&Limit=' + ROW_LIMIT))));
         tasks.push(add('nextup', 'Als Nächstes', 'landscape', getJson(itemsQuery('Shows/NextUp?Limit=' + ROW_LIMIT + '&EnableResumable=false'))));
+        // Passend zur Jahreszeit (Weihnachten, Silvester, Halloween, Ostern) – nur im Zeitfenster, Titel kommt vom Server
+        if (state.config && state.config.Seasonal) {
+            var seasonalRow = { key: 'seasonal', title: '', kind: 'landscape', items: [] };
+            rows.push(seasonalRow);
+            tasks.push(safe(getJson('LocalRecs/Seasonal?utcOffsetMinutes=' + utcOffset())).then(function (result) {
+                if (result && result.Active) {
+                    seasonalRow.title = result.Title;
+                    seasonalRow.items = itemsOf(result).map(slim);
+                }
+            }));
+        }
         // Zeitzone des Browsers: Tageszeit für die Reihenfolge der Zeilen und tageszeit-typische Titel
         var offset = utcOffset();
         tasks.push(add('movies', 'Empfohlene Filme für dich', 'landscape', getJson('LocalRecs/Recommendations?type=movies&limit=' + ROW_LIMIT + '&utcOffsetMinutes=' + offset)));
@@ -2633,6 +2752,26 @@
         }));
         if (liveTv) {
             tasks.push(add('livetv', 'Heute im TV für dich', 'landscape', getJson('LocalRecs/Recommendations?type=livetv&limit=' + ROW_LIMIT)));
+        }
+        // Filmreihen (TMDB-Sammlungen): angefangene mit dem nächsten Teil, dann passende
+        if (state.config && state.config.MovieSeries) {
+            var seriesRow = { key: 'movieseries', title: state.config.MovieSeriesTitle || 'Filmreihen für dich', kind: 'movieseries', items: [] };
+            rows.push(seriesRow);
+            tasks.push(safe(getJson('LocalRecs/MovieSeries?limit=12')).then(function (result) {
+                seriesRow.items = ((result && result.Items) || []).map(function (s) {
+                    return {
+                        Id: s.Id,
+                        Name: s.Name,
+                        Total: s.Total,
+                        Watched: s.Watched,
+                        Started: s.Started,
+                        Reason: s.Reason,
+                        HasBackdrop: s.HasBackdrop,
+                        HasPoster: s.HasPoster,
+                        Next: s.Next ? slim(s.Next) : null
+                    };
+                });
+            }));
         }
         tasks.push(add('top10', 'Top 10 bei euch', 'top10', getJson('LocalRecs/Top10?limit=10')));
         var worldsEntry = { key: 'worlds', title: 'Welten', kind: 'worlds', items: [] };
@@ -2857,6 +2996,9 @@
         }
         if (row.kind === 'worlds') {
             return rowElement(row.title, row.items.map(worldCard), 'lr-row-worlds');
+        }
+        if (row.kind === 'movieseries') {
+            return rowElement(row.title, row.items.map(movieSeriesCard), 'lr-row-movieseries');
         }
         if (row.kind === 'libraries') {
             return rowElement(row.title, row.items.map(libraryCard), 'lr-row-libraries');

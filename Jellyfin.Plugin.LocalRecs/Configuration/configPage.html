@@ -76,6 +76,39 @@
                             <input is="emby-input" type="text" id="liveTvSectionTitle" name="liveTvSectionTitle" />
                         </div>
 
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="enableMovieSeriesSection" name="enableMovieSeriesSection" />
+                                <span>Zeile „Filmreihen für dich“ anzeigen</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Filmreihen (TMDB-Sammlungen) mit mindestens zwei Teilen in der Bibliothek: angefangene Reihen mit dem nächsten Teil zuerst, danach passende Reihen. Welche Reihe ein Film ist, kommt von Jellyfins Sammlungen bzw. nachts von TMDB (nur die TMDB-ID des Films wird gesendet). In Home Screen Sections einschalten; Änderung wird nach einem Neustart wirksam.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="movieSeriesSectionTitle">Titel für Filmreihen:</label>
+                            <input is="emby-input" type="text" id="movieSeriesSectionTitle" name="movieSeriesSectionTitle" />
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="enableSeasonal" name="enableSeasonal" />
+                                <span>„Passend zur Jahreszeit“ anzeigen</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Weihnachtsfilme vom 1. Advent bis 26.12., Silvester 27.12.–1.1., Halloween 15.–31.10., Ostern Karfreitag bis Ostermontag. Erkannt über TMDB-Stichwörter (nachts abgefragt, nur die TMDB-ID wird gesendet), gleichlautende Tags und ganze Wörter im Titel, dazu Folgen und Specials wie Weihnachtsfolgen. Jeder sieht nur Titel aus seinen Bibliotheken und innerhalb seiner Altersfreigabe. Für Home Screen Sections heißt die Zeile „Passend zur Jahreszeit“ (dort einschalten, wirksam nach Neustart).</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="seasonalMinItems">Mindestanzahl Titel für „Passend zur Jahreszeit“:</label>
+                            <input is="emby-input" type="number" id="seasonalMinItems" name="seasonalMinItems" min="1" max="20" step="1" />
+                        </div>
+
+                        <div class="checkboxContainer">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="seasonalValentine" name="seasonalValentine" />
+                                <span>Auch zum Valentinstag (7.–14.2.)</span>
+                            </label>
+                        </div>
+
                         <div class="inputContainer">
                             <label class="inputLabel inputLabelUnfocused" for="liveTvLookaheadHours">Vorschau (Stunden):</label>
                             <input is="emby-input" type="number" id="liveTvLookaheadHours" name="liveTvLookaheadHours" min="1" max="168" />
@@ -1196,6 +1229,11 @@
                             page.querySelector('#enableLiveTvTracking').checked = config.EnableLiveTvTracking !== false;
                             page.querySelector('#enableLiveTvSection').checked = config.EnableLiveTvSection !== false;
                             page.querySelector('#liveTvSectionTitle').value = config.LiveTvSectionTitle || 'Heute im TV für dich';
+                            page.querySelector('#enableMovieSeriesSection').checked = config.EnableMovieSeriesSection !== false;
+                            page.querySelector('#movieSeriesSectionTitle').value = config.MovieSeriesSectionTitle || 'Filmreihen für dich';
+                            page.querySelector('#enableSeasonal').checked = config.EnableSeasonal !== false;
+                            page.querySelector('#seasonalMinItems').value = config.SeasonalMinItems || 4;
+                            page.querySelector('#seasonalValentine').checked = !!config.SeasonalValentine;
                             page.querySelector('#liveTvLookaheadHours').value = config.LiveTvLookaheadHours !== undefined ? config.LiveTvLookaheadHours : 24;
                             page.querySelector('#liveTvTimeZone').value = config.LiveTvTimeZone !== undefined && config.LiveTvTimeZone !== null ? config.LiveTvTimeZone : 'Europe/Berlin';
                             page.querySelector('#liveTvRegularDays').value = config.LiveTvRegularDays !== undefined ? config.LiveTvRegularDays : 3;
@@ -1321,6 +1359,12 @@
                             config.EnableLiveTvTracking = page.querySelector('#enableLiveTvTracking').checked;
                             config.EnableLiveTvSection = page.querySelector('#enableLiveTvSection').checked;
                             config.LiveTvSectionTitle = page.querySelector('#liveTvSectionTitle').value.trim() || 'Heute im TV für dich';
+                            config.EnableMovieSeriesSection = page.querySelector('#enableMovieSeriesSection').checked;
+                            config.MovieSeriesSectionTitle = page.querySelector('#movieSeriesSectionTitle').value.trim() || 'Filmreihen für dich';
+                            config.EnableSeasonal = page.querySelector('#enableSeasonal').checked;
+                            var seasonalMin = parseInt(page.querySelector('#seasonalMinItems').value, 10);
+                            config.SeasonalMinItems = isNaN(seasonalMin) ? 4 : Math.min(20, Math.max(1, seasonalMin));
+                            config.SeasonalValentine = page.querySelector('#seasonalValentine').checked;
                             config.LiveTvLookaheadHours = parseInt(page.querySelector('#liveTvLookaheadHours').value) || 24;
                             config.LiveTvTimeZone = page.querySelector('#liveTvTimeZone').value.trim();
                             config.LiveTvRegularDays = Math.max(2, parseInt(page.querySelector('#liveTvRegularDays').value) || 3);

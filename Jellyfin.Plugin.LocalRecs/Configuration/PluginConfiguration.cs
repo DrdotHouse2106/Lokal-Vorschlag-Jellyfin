@@ -89,6 +89,11 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             LiveTvHistoryDays = 180;
             EnableLiveTvSection = true;
             LiveTvSectionTitle = "Heute im TV für dich";
+            EnableMovieSeriesSection = true;
+            MovieSeriesSectionTitle = "Filmreihen für dich";
+            EnableSeasonal = true;
+            SeasonalMinItems = 4;
+            SeasonalValentine = false;
             LiveTvLookaheadHours = 24;
             LiveTvRecommendationCount = 20;
             LiveTvTimeZone = "Europe/Berlin";
@@ -147,6 +152,31 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
         /// Gets or sets the title of the live TV section on the home screen.
         /// </summary>
         public string LiveTvSectionTitle { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the home screen section „Filmreihen für dich“ is shown (since 12.45.0).
+        /// </summary>
+        public bool EnableMovieSeriesSection { get; set; }
+
+        /// <summary>
+        /// Gets or sets the title of the movie series section.
+        /// </summary>
+        public string MovieSeriesSectionTitle { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether „Passend zur Jahreszeit“ is shown (Christmas, New Year's Eve, Halloween, Easter; since 12.45.0).
+        /// </summary>
+        public bool EnableSeasonal { get; set; }
+
+        /// <summary>
+        /// Gets or sets the minimum number of titles before the seasonal row appears.
+        /// </summary>
+        public int SeasonalMinItems { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether Valentine's Day (7–14 February) counts as season.
+        /// </summary>
+        public bool SeasonalValentine { get; set; }
 
         /// <summary>
         /// Gets or sets how many hours ahead the live TV section looks.

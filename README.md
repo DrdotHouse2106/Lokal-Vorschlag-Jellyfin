@@ -34,6 +34,8 @@ Das **Quallenkinoplugin** (bis 12.27 „Local Recommendations“) erweitert Jell
 - **Schnittstellen für TV-Apps** – alles auch für eigene Apps (Quallenkino für Android TV, Fire TV und webOS)
 - **Ähnliche Titel von TMDB und Trakt** – öffentliche Ähnlichkeitslisten als Zusatzsignal, besonders bei wenig Sehverlauf; dazu persönliche Trakt-Empfehlungen für Benutzer mit Trakt-Konto
 - **Verhalten** – mehrfach Gesehenes und Serienfortschritt zählen mehr, Tageszeit bestimmt die Reihenfolge, Suchen und geöffnete Titel wirken wochenlang nach (bis zu einem Jahr gespeichert, pro Benutzer abschaltbar)
+- **Filmreihen für dich** – angefangene Reihen mit dem nächsten Teil, passende Reihen, alle Teile in der richtigen Reihenfolge
+- **Passend zur Jahreszeit** – Weihnachtsfilme im Advent, Halloween, Silvester, Ostern
 - **Metadaten-Check** – zeigt pro Bibliothek, wie gut Filme und Serien beschrieben sind, listet Titel mit wenig oder zu wenig Metadaten und ruft für sie gezielt neu ab
 - **Datenschutz** – alle Berechnungen laufen lokal auf deinem Server; nach außen gehen nur Titel-IDs (siehe „Ähnliche Titel“), persönliche Trakt-Empfehlungen nur nach Einschalten durch den Benutzer, Sicherungen der Einstellungen ohne Schlüssel
 
@@ -141,6 +143,54 @@ Die eigene Ähnlichkeit (Genres, Darsteller, Regie, Stichwörter) kennt nur, was
 - Schnittstelle (für den angemeldeten Benutzer): `GET/POST /LocalRecs/Trakt/Me`, `POST/DELETE /LocalRecs/Trakt/Me/Login`.
 
 Ausblick: Ein Konzept für freiwillig geteilte Sehverläufe (gemeinsame Empfehlungen über mehrere Server) steht in [docs/konzept-gemeinsame-empfehlungen.md](docs/konzept-gemeinsame-empfehlungen.md) – noch nicht umgesetzt.
+
+### Filmreihen für dich (ab 12.45.0)
+
+Eigene Zeile für **Filmreihen** (TMDB-Sammlungen wie John Wick, Terminator oder Eberhofer), getrennt von den Welten. Welten bleiben Universen und Marken.
+
+- **Welche Reihen:** nur Reihen mit mindestens zwei Teilen in den Bibliotheken des Benutzers, nur Teile, die er sehen darf (Bibliotheken, Altersfreigabe). Doppelte Fassungen zählen einmal. Komplett gesehene Reihen fallen weg.
+- **Reihenfolge:**
+  - zuerst **angefangene Reihen**, die zuletzt geschaute zuerst
+  - danach nicht angefangene Reihen, die zum Geschmack passen: nach der Position eines Teils in den Film-Empfehlungen, sonst nach den meistgesehenen Genres
+  - Reihen, die schon eine **Welt** bilden (z. B. James Bond, Harry Potter), kommen in jeder Gruppe zuletzt
+- **Karte:** Hintergrundbild der Reihe (sonst des nächsten Teils), Name, Fortschrittsbalken, „x von y gesehen · Weiter mit Teil n“. Ein Klick zeigt alle vorhandenen Teile in Erscheinungsreihenfolge mit „Weiter mit Teil n“.
+- **Detailansicht eines Films:** „Weitere Teile der Reihe“ mit allen Teilen, der aktuelle ist markiert.
+- **Woher die Zuordnung kommt:**
+  - die TMDB-Sammlung am Film („TmdbCollection“), falls Jellyfin sie kennt
+  - Jellyfins eigene Sammlungen mit TMDB-ID (eigene Zusammenstellungen ohne TMDB-ID zählen nicht)
+  - sonst die nächtliche Abfrage bei TMDB (`movie/{id}` → `belongs_to_collection`): höchstens 400 Filme je Lauf, 60 Tage zwischengespeichert (`plugins/LocalRecs/filmreihen.json`). Gesendet wird nur die TMDB-ID des Films. Der Name der Reihe kommt in der Metadatensprache des Servers.
+- **Bilder:** Poster und Hintergrund der Reihe lädt der Server einmal von TMDB und speichert sie (`filmreihen-bilder/`). Die Geräte laden nichts direkt bei TMDB.
+- **Einstellungen:** Reiter „Startseite“ → „Zeile ‚Filmreihen für dich‘ anzeigen“ und der Titel der Zeile. Für Home Screen Sections dort einschalten, wirksam nach einem Neustart.
+- **Schnittstelle:**
+  - `GET /LocalRecs/MovieSeries?limit=12` → `{ "Items": [{ "Id", "Name", "Total", "Watched", "Started", "NextIndex", "Reason", "InWorld", "HasPoster", "HasBackdrop", "Next": BaseItemDto, "PartIds": [...] }] }`
+  - `GET /LocalRecs/MovieSeries/{id}` bzw. `/LocalRecs/MovieSeries/ByItem/{itemId}` → alle Teile als `Parts` (BaseItemDto, Erscheinungsreihenfolge), `NextIndex`, `Watched`, `Total`
+  - `GET /LocalRecs/MovieSeries/{id}/Images/Poster` bzw. `/Backdrop` (ohne Anmeldung, nur für bekannte Reihen)
+  - `/LocalRecs/Web/Config` meldet `"MovieSeries": true` und `"MovieSeriesTitle"`
+
+### Passend zur Jahreszeit (ab 12.45.0)
+
+Zur Weihnachtszeit eine Zeile „Weihnachtsfilme“, an Halloween „Halloween“ usw., auf der Quallenkino-Startseite oben (nach „Als Nächstes“).
+
+| Zeitfenster | Zeile |
+|---|---|
+| 1. Advent bis 26.12. | Weihnachtsfilme |
+| 27.12. bis 1.1. | Silvester |
+| 15.10. bis 31.10. | Halloween |
+| Karfreitag bis Ostermontag (nach Gauß berechnet) | Ostern |
+| 7.2. bis 14.2. (nur wenn eingeschaltet) | Zum Valentinstag |
+
+- **Erkennung:**
+  - **TMDB-Stichwörter** der Filme und Serien (z. B. „christmas“, „santa claus“, „halloween“, „new year's eve“, „easter“). Sie werden nachts abgefragt: höchstens 400 Titel je Lauf, 180 Tage zwischengespeichert (`plugins/LocalRecs/jahreszeit-stichwoerter.json`). Gesendet wird nur die TMDB-ID.
+  - **Gleichlautende Tags** in Jellyfin.
+  - **Ganze Wörter im Titel** (z. B. „Weihnachten“, „Weihnachtsspecial“, „Christmas“, „Halloween“, „Silvester“). Teilwörter zählen nicht, „Adventure“ ist also kein Advent.
+  - **Folgen und Specials** von Serien mit solchen Titeln, höchstens 3 je Serie.
+- **Rechte:** Jeder Benutzer sieht nur Titel aus seinen Bibliotheken und innerhalb seiner Altersfreigabe. Titel aus einer Bibliothek, die ein Profil nicht sehen darf, erscheinen dort nie.
+- **Reihenfolge:** Ungesehenes zuerst, dann nach Geschmack (Position in den Empfehlungen), dann nach Bewertung. Höchstens 20 Titel. Die Zeile erscheint erst ab einer Mindestanzahl (Standard 4).
+- **Einstellungen:** Reiter „Startseite“ → „Passend zur Jahreszeit“ an/aus, Mindestanzahl, Valentinstag. Für Home Screen Sections heißt die Zeile „Passend zur Jahreszeit“ und ist außerhalb der Zeitfenster leer.
+- **Schnittstelle:**
+  - `GET /LocalRecs/Seasonal?utcOffsetMinutes=120` → `{ "Active", "Id", "Title", "Items": [...] }`
+  - `?season=weihnachten` (bzw. `silvester`, `halloween`, `ostern`, `valentinstag`) zeigt eine Jahreszeit auch außerhalb ihres Fensters, z. B. zum Ausprobieren
+  - `/LocalRecs/Web/Config` meldet `"Seasonal": true`
 
 ### Metadaten-Check (ab 12.38.0)
 

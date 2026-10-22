@@ -93,6 +93,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 BehaviorSignals = Config.EnableBehaviorSignals,
                 TraktPersonal = Config.EnableTraktPersonal && Config.TraktPersonalWeight > 0,
                 Billboard = true,
+                MovieSeries = Config.EnableMovieSeriesSection,
+                Seasonal = Config.EnableSeasonal,
+                MovieSeriesTitle = string.IsNullOrWhiteSpace(Config.MovieSeriesSectionTitle) ? "Filmreihen für dich" : Config.MovieSeriesSectionTitle,
                 Version = WebIntegration.Version
             };
         }
@@ -134,6 +137,15 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets a value indicating whether the server offers the banner of the day (GET /LocalRecs/Billboard, since 12.42.0).</summary>
             public bool Billboard { get; set; }
+
+            /// <summary>Gets or sets a value indicating whether „Filmreihen für dich“ is on (GET /LocalRecs/MovieSeries, since 12.45.0).</summary>
+            public bool MovieSeries { get; set; }
+
+            /// <summary>Gets or sets the title of the movie series row.</summary>
+            public string MovieSeriesTitle { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets a value indicating whether „Passend zur Jahreszeit“ is on (GET /LocalRecs/Seasonal, since 12.45.0).</summary>
+            public bool Seasonal { get; set; }
 
             /// <summary>Gets or sets the plugin version.</summary>
             public string Version { get; set; } = string.Empty;

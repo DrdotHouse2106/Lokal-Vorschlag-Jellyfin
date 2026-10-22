@@ -3073,3 +3073,34 @@ html.lr-profiles-open body {
     max-height: 40vh;
     overflow-y: auto;
 }
+
+/* Filmreihen */
+.lr-card-movieseries .lr-card-title {
+    font-size: 1.05em;
+}
+
+.lr-movieseries-part {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35em;
+}
+
+.lr-movieseries-number {
+    font-size: 0.85em;
+    opacity: 0.75;
+}
+
+.lr-movieseries-next .lr-movieseries-number {
+    opacity: 1;
+    font-weight: 600;
+    color: var(--lr-accent-2, #2e96e0);
+}
+
+.lr-movieseries-current .lr-card-frame {
+    outline: 2px solid rgba(255, 255, 255, 0.6);
+    outline-offset: 2px;
+}
+
+.lr-movieseries .lr-info-section > .lr-btn-play {
+    margin-bottom: 1em;
+}

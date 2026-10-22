@@ -40,6 +40,16 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
         /// </summary>
         public const string LiveTvSectionId = "LocalRecsLiveTv";
 
+        /// <summary>
+        /// Section ID of „Filmreihen für dich“.
+        /// </summary>
+        public const string MovieSeriesSectionId = "LocalRecsMovieSeries";
+
+        /// <summary>
+        /// Section ID of „Passend zur Jahreszeit“.
+        /// </summary>
+        public const string SeasonalSectionId = "LocalRecsSeasonal";
+
         private const string HomeScreenSectionsAssemblyName = "Jellyfin.Plugin.HomeScreenSections";
         private const int MaxRegistrationAttempts = 30;
         private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(10);
@@ -134,6 +144,16 @@ namespace Jellyfin.Plugin.LocalRecs.HomeScreen
                 if (config.EnableLiveTvSection)
                 {
                     Register(registerMethod, LiveTvSectionId, config.LiveTvSectionTitle, typeof(LiveTvSectionHandler), nameof(LiveTvSectionHandler.GetLiveTvResults));
+                }
+
+                if (config.EnableMovieSeriesSection)
+                {
+                    Register(registerMethod, MovieSeriesSectionId, config.MovieSeriesSectionTitle, typeof(MovieSeriesSectionHandler), nameof(MovieSeriesSectionHandler.GetMovieSeriesResults));
+                }
+
+                if (config.EnableSeasonal)
+                {
+                    Register(registerMethod, SeasonalSectionId, "Passend zur Jahreszeit", typeof(SeasonalSectionHandler), nameof(SeasonalSectionHandler.GetSeasonalResults));
                 }
 
                 SectionsRegistered = true;

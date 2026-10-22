@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.45.0.0",
+        "changelog": "Filmreihen und Jahreszeit\n- Neue Zeile „Filmreihen für dich“: angefangene Reihen mit dem nächsten Teil, passende Reihen, alle Teile in der richtigen Reihenfolge, „Weitere Teile der Reihe“ in der Detailansicht\n- Neue Zeile „Passend zur Jahreszeit“: Weihnachtsfilme im Advent, Silvester, Halloween, Ostern (optional Valentinstag), erkannt über TMDB-Stichwörter und Titel\n- Bibliotheken und Altersfreigaben je Profil werden beachtet\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.45.0.zip",
+        "checksum": "8d5a648662fdf05031f5d78ea16dde07",
+        "timestamp": "2026-10-22T10:00:00Z"
+      },
+      {
         "version": "12.44.0.0",
         "changelog": "Diagnose der Jellyseerr-Suche, Teil 2\n- Mit eingeschalteter Diagnose zeigt das Log, wann der Seerr-Bereich in der Suche eingefügt oder entfernt wird und durch welchen Code\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

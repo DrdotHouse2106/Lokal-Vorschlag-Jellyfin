@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Data.Enums;
 using Jellyfin.Plugin.LocalRecs.Configuration;
 using Jellyfin.Plugin.LocalRecs.Models;
 using Jellyfin.Plugin.LocalRecs.Services;
+using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
 
@@ -24,6 +27,10 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
         private readonly RecommendationStore _store;
         private readonly FeedbackStore _feedback;
         private readonly ILibraryManager _libraryManager;
+        private readonly Collections.MovieSeriesLookup? _movieSeriesLookup;
+        private readonly Collections.MovieSeriesService? _movieSeries;
+        private readonly MediaBrowser.Controller.Configuration.IServerConfigurationManager? _serverConfig;
+        private readonly Seasonal.SeasonalKeywordLookup? _seasonalKeywords;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RecommendationRefreshTask"/> class.
@@ -34,14 +41,26 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
         /// <param name="store">Store that keeps the recommendations for the home screen.</param>
         /// <param name="feedback">Evaluation of the recommendations.</param>
         /// <param name="libraryManager">Library manager.</param>
+        /// <param name="movieSeriesLookup">Movie series from TMDB, optional.</param>
+        /// <param name="movieSeries">Movie series of the users, optional.</param>
+        /// <param name="serverConfig">Server configuration (metadata language), optional.</param>
+        /// <param name="seasonalKeywords">TMDB keywords for the seasonal row, optional.</param>
         public RecommendationRefreshTask(
             ILogger<RecommendationRefreshTask> logger,
             IUserManager userManager,
             RecommendationRefreshService refreshService,
             RecommendationStore store,
             FeedbackStore feedback,
-            ILibraryManager libraryManager)
+            ILibraryManager libraryManager,
+            Collections.MovieSeriesLookup? movieSeriesLookup = null,
+            Collections.MovieSeriesService? movieSeries = null,
+            MediaBrowser.Controller.Configuration.IServerConfigurationManager? serverConfig = null,
+            Seasonal.SeasonalKeywordLookup? seasonalKeywords = null)
         {
+            _seasonalKeywords = seasonalKeywords;
+            _movieSeriesLookup = movieSeriesLookup;
+            _movieSeries = movieSeries;
+            _serverConfig = serverConfig;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
             _refreshService = refreshService ?? throw new ArgumentNullException(nameof(refreshService));
@@ -157,6 +176,12 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
                 // der nächste Lauf nutzt die neuen Listen
                 await _refreshService.RefreshExternalAfterRunAsync(config, cancellationToken).ConfigureAwait(false);
 
+                // Filmreihen: zu welcher TMDB-Sammlung die Filme gehören (nur fehlende bzw. veraltete, nach und nach)
+                await RefreshMovieSeriesAsync(config, cancellationToken).ConfigureAwait(false);
+
+                // Jahreszeit: TMDB-Stichwörter der Filme und Serien (nur fehlende bzw. veraltete, nach und nach)
+                await RefreshSeasonalAsync(config, cancellationToken).ConfigureAwait(false);
+
                 // Step 4: Report results (100% progress)
                 var duration = DateTime.UtcNow - startTime;
                 _logger.LogInformation(
@@ -196,6 +221,66 @@ namespace Jellyfin.Plugin.LocalRecs.ScheduledTasks
                     TimeOfDayTicks = TimeSpan.FromHours(4).Ticks
                 }
             };
+        }
+
+        private async Task RefreshSeasonalAsync(PluginConfiguration config, CancellationToken cancellationToken)
+        {
+            if (_seasonalKeywords == null || !config.EnableSeasonal)
+            {
+                return;
+            }
+
+            try
+            {
+                var keys = _libraryManager.GetItemList(new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Series },
+                    Recursive = true,
+                    IsVirtualItem = false
+                })
+                    .Select(i => (Series: i is MediaBrowser.Controller.Entities.TV.Series, Tmdb: i.GetProviderId(MetadataProvider.Tmdb)))
+                    .Where(i => !string.IsNullOrEmpty(i.Tmdb))
+                    .Select(i => Seasonal.SeasonalKeywordLookup.Key(i.Series, i.Tmdb!))
+                    .ToList();
+                await _seasonalKeywords.RefreshAsync(keys, config, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Stichwörter zur Jahreszeit konnten nicht abgeglichen werden");
+            }
+        }
+
+        private async Task RefreshMovieSeriesAsync(PluginConfiguration config, CancellationToken cancellationToken)
+        {
+            if (_movieSeriesLookup == null || !config.EnableMovieSeriesSection)
+            {
+                return;
+            }
+
+            try
+            {
+                var ids = _libraryManager.GetItemList(new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { BaseItemKind.Movie },
+                    Recursive = true,
+                    IsVirtualItem = false
+                })
+                    .Where(m => string.IsNullOrEmpty(m.GetProviderId("TmdbCollection")))
+                    .Select(m => m.GetProviderId(MetadataProvider.Tmdb))
+                    .OfType<string>()
+                    .ToList();
+                var server = _serverConfig?.Configuration;
+                var language = string.IsNullOrEmpty(server?.PreferredMetadataLanguage) ? null
+                    : server!.PreferredMetadataLanguage + (string.IsNullOrEmpty(server.MetadataCountryCode) ? string.Empty : "-" + server.MetadataCountryCode);
+                if (await _movieSeriesLookup.RefreshAsync(ids, config, language, cancellationToken).ConfigureAwait(false) > 0)
+                {
+                    _movieSeries?.Invalidate();
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Filmreihen konnten nicht abgeglichen werden");
+            }
         }
     }
 }

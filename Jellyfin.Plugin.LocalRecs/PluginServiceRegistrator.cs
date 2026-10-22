@@ -97,6 +97,18 @@ namespace Jellyfin.Plugin.LocalRecs
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Banner.BannerStore>>(),
                     Path.Combine(GetPluginDataPath(sp), "banner.json")));
             serviceCollection.AddSingleton<Banner.BannerService>();
+            serviceCollection.AddSingleton(sp =>
+                new Collections.MovieSeriesLookup(
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Collections.MovieSeriesLookup>>(),
+                    Path.Combine(GetPluginDataPath(sp), "filmreihen.json")));
+            serviceCollection.AddSingleton<Collections.MovieSeriesService>();
+            serviceCollection.AddSingleton<MovieSeriesSectionHandler>();
+            serviceCollection.AddSingleton(sp =>
+                new Seasonal.SeasonalKeywordLookup(
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Seasonal.SeasonalKeywordLookup>>(),
+                    Path.Combine(GetPluginDataPath(sp), "jahreszeit-stichwoerter.json")));
+            serviceCollection.AddSingleton<Seasonal.SeasonalService>();
+            serviceCollection.AddSingleton<SeasonalSectionHandler>();
             serviceCollection.AddSingleton<RecommendationSectionHandler>();
             serviceCollection.AddSingleton<LiveTvSectionHandler>();
 
