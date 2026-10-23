@@ -592,6 +592,9 @@
     }
 
     function posterImage(item) {
+        if (item.Type === 'UpcomingMovie') {
+            return item.LrPoster || item.LrImage;
+        }
         var tags = item.ImageTags || {};
         if (item.Type === 'Episode' && item.SeriesId && item.SeriesPrimaryImageTag) {
             return imageUrl(item.SeriesId, 'Primary', item.SeriesPrimaryImageTag, 360);
@@ -1440,6 +1443,10 @@
     }
 
     function itemClick(item) {
+        if (item.Type === 'UpcomingMovie') {
+            openUpcomingMovie(item);
+            return;
+        }
         if (item.Type === 'Program' || item.Type === 'TvChannel') {
             if (item.Type === 'TvChannel' || isAiring(item)) {
                 play(item);
@@ -1454,6 +1461,9 @@
     // Bild für Querformat-Kacheln. "clean" = ohne eingebrannten Titel (Backdrop, Folgenbild), dann kommt Logo/Titel darüber.
     // Thumb-Bilder enthalten meist schon den Titel – die bekommen kein zweites Logo.
     function cardImage(item) {
+        if (item.Type === 'UpcomingMovie') {
+            return { src: item.LrImage, clean: true, poster: !!item.LrImageIsPoster };
+        }
         var tags = item.ImageTags || {};
         var backdrop = item.BackdropImageTags && item.BackdropImageTags.length;
         var parentBackdrop = item.ParentBackdropItemId && item.ParentBackdropImageTags && item.ParentBackdropImageTags.length;
@@ -1809,7 +1819,7 @@
     // ---------------------------------------------------------------- Vorschau beim Überfahren (nur PC)
 
     function attachPreview(card, item) {
-        if (isTouch) {
+        if (isTouch || item.Type === 'UpcomingMovie') {
             return;
         }
         card.addEventListener('mouseenter', function () {
@@ -2718,6 +2728,7 @@
                 entry.items = itemsOf(result).map(slim);
             });
         };
+        var cfg = state.config || {};
         var tasks = [];
         tasks.push(safe(getJson('LocalRecs/Recommendations/Reasons')).then(function (reasons) {
             state.reasons = reasons || {};
@@ -2760,8 +2771,16 @@
                 });
             }));
         }
-        tasks.push(add('movies', 'Empfohlene Filme für dich', 'landscape', getJson('LocalRecs/Recommendations?type=movies&limit=' + ROW_LIMIT + '&utcOffsetMinutes=' + offset)));
-        tasks.push(add('series', 'Empfohlene Serien für dich', 'landscape', getJson('LocalRecs/Recommendations?type=series&limit=' + ROW_LIMIT + '&utcOffsetMinutes=' + offset)));
+        // Demnächst: neue Folgen (Sonarr) und bald erscheinende Filme (Radarr) – nur lesend, nichts wird angefragt
+        if (cfg.Upcoming) {
+            var upcomingRow = { key: 'upcoming', title: 'Demnächst', kind: 'landscape', items: [] };
+            rows.push(upcomingRow);
+            tasks.push(safe(getJson('LocalRecs/Upcoming?utcOffsetMinutes=' + offset)).then(function (result) {
+                upcomingRow.items = itemsOf(result).map(upcomingEntry).filter(Boolean);
+            }));
+        }
+        tasks.push(add('movies', cfg.MoviesTitle || 'Empfohlene Filme für dich', 'landscape', getJson('LocalRecs/Recommendations?type=movies&limit=' + ROW_LIMIT + '&utcOffsetMinutes=' + offset)));
+        tasks.push(add('series', cfg.SeriesTitle || 'Empfohlene Serien für dich', 'landscape', getJson('LocalRecs/Recommendations?type=series&limit=' + ROW_LIMIT + '&utcOffsetMinutes=' + offset)));
         // Banner des Tages vom Server (täglich neu, auf allen Geräten gleich, Entdecken und Weiterschauen gemischt) – keine eigene Reihe
         var bannerRow = { key: 'banner', title: '', kind: 'banner', items: [] };
         rows.push(bannerRow);
@@ -2777,8 +2796,8 @@
         tasks.push(safe(getJson('LocalRecs/Behavior/Daypart?utcOffsetMinutes=' + offset)).then(function (result) {
             daypartOrder = result && result.Order;
         }));
-        if (liveTv) {
-            tasks.push(add('livetv', 'Heute im TV für dich', 'landscape', getJson('LocalRecs/Recommendations?type=livetv&limit=' + ROW_LIMIT)));
+        if (liveTv && cfg.LiveTvRow !== false) {
+            tasks.push(add('livetv', cfg.LiveTvTitle || 'Heute im TV für dich', 'landscape', getJson('LocalRecs/Recommendations?type=livetv&limit=' + ROW_LIMIT)));
         }
         // Filmreihen (TMDB-Sammlungen): angefangene mit dem nächsten Teil, dann passende
         if (state.config && state.config.MovieSeries) {
@@ -2881,6 +2900,54 @@
             });
             return flat;
         });
+    }
+
+    // Eintrag aus „Demnächst“ als Karte: Folgen zeigen die Serie aus Jellyfin, Filme Bilder aus Radarr (über den Server)
+    function upcomingEntry(entry) {
+        if (entry.Series) {
+            var series = slim(entry.Series);
+            series.MomentReason = entry.Subtitle;
+            // Ein Klick öffnet die Serie, statt weiterzuspielen
+            if (series.UserData) {
+                series.UserData.PlayedPercentage = null;
+            }
+            return series;
+        }
+        if (!entry.Movie) {
+            return null;
+        }
+        var movie = entry.Movie;
+        return {
+            Id: 'upcoming-' + movie.RadarrId,
+            Type: 'UpcomingMovie',
+            Name: entry.Title,
+            ProductionYear: movie.Year,
+            OfficialRating: movie.OfficialRating,
+            Overview: movie.Overview ? movie.Overview.slice(0, 600) : null,
+            MomentReason: entry.Subtitle,
+            LrImage: movie.BackdropUrl ? url(movie.BackdropUrl) : (movie.PosterUrl ? url(movie.PosterUrl) : null),
+            LrPoster: movie.PosterUrl ? url(movie.PosterUrl) : null,
+            LrImageIsPoster: !movie.BackdropUrl && !!movie.PosterUrl
+        };
+    }
+
+    // Kleine Ansicht für einen bald erscheinenden Film (noch nicht in Jellyfin)
+    function openUpcomingMovie(item) {
+        var dialog = overlayShell('lr-calendar lr-upcoming');
+        var body = el('div', 'lr-cal-body');
+        if (item.LrPoster) {
+            var poster = el('img', 'lr-upcoming-poster');
+            poster.alt = '';
+            poster.src = item.LrPoster;
+            body.appendChild(poster);
+        }
+        body.appendChild(el('h2', 'lr-cal-title', item.Name + (item.ProductionYear ? ' (' + item.ProductionYear + ')' : '')));
+        body.appendChild(el('p', 'lr-cal-text', item.MomentReason || ''));
+        if (item.Overview) {
+            body.appendChild(el('p', 'lr-cal-text', item.Overview));
+        }
+        body.appendChild(el('p', 'lr-cal-text lr-upcoming-note', 'Vorgemerkt – erscheint automatisch in der Bibliothek, sobald er verfügbar ist.'));
+        dialog.appendChild(body);
     }
 
     function utcOffset() {
@@ -3121,7 +3188,7 @@
         });
         if (!root.querySelector('.lr-footer')) {
             var footer = el('div', 'lr-footer');
-            footer.appendChild(button('lr-btn-link', 'dashboard', 'Klassische Startseite anzeigen', function () {
+            footer.appendChild(button('lr-btn-link', 'dashboard', 'Jellyfin-Startseite anzeigen', function () {
                 storageSet('lrWeb.classic.' + uid, '1');
                 deactivate();
                 addClassicSwitch();

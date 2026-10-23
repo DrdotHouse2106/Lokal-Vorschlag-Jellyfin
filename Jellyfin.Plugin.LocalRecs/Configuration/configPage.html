@@ -31,9 +31,8 @@
                         <p>Jeder Benutzer sieht auf seiner Startseite zwei eigene Zeilen mit Empfehlungen. Es sind die echten Filme und Serien aus deinen Bibliotheken – mit allen Infos und gemeinsamem „Gesehen“-Status. Andere Benutzer sehen diese Empfehlungen nicht.</p>
 
                         <div style="background: rgba(33,150,243,0.1); padding: 1em 1.5em; border-left: 4px solid #2196f3; margin-bottom: 1.5em;">
-                            <p style="margin-top: 0;"><strong>Voraussetzung:</strong> Die Plugins <strong>Home Screen Sections</strong>, <strong>File Transformation</strong> und <strong>Plugin Pages</strong> (Repository <code>https://www.iamparadox.dev/jellyfin/plugins/manifest.json</code>).</p>
-                            <p>Danach unter <strong>Dashboard → Plugins → Home Screen Sections</strong> das Plugin aktivieren und die Bereiche „Empfohlene Filme für dich“, „Empfohlene Serien für dich“ und „Heute im TV für dich“ für alle Benutzer einschalten (oder jeder Benutzer schaltet sie selbst im Menü „Modular Home“ ein).</p>
-                            <p style="margin-bottom: 0;">Die Zeilen (Filme, Serien und „Heute im TV für dich“) erscheinen im Browser, in der Desktop-App und in den Handy-Apps – <strong>nicht in nativen TV-Apps</strong> (Android TV, Fire TV, Roku).</p>
+                            <p style="margin-top: 0;"><strong>Voraussetzung:</strong> Das Plugin <strong>File Transformation</strong> (Repository <code>https://www.iamparadox.dev/jellyfin/plugins/manifest.json</code>). Damit zeichnet Quallenkino die Startseite in Jellyfin Web selbst – <strong>Home Screen Sections wird seit 12.48.0 nicht mehr gebraucht</strong> und kann deinstalliert werden.</p>
+                            <p style="margin-bottom: 0;">Die Zeilen erscheinen im Browser, in der Desktop-App und in den Handy-Apps von Jellyfin. Eigene TV-Apps holen sie über die Schnittstellen unter <code>/LocalRecs</code>; native TV-Apps (Android TV, Fire TV, Roku) zeigen sie nicht.</p>
                         </div>
 
                         <h3 class="sectionTitle">Status</h3>
@@ -68,7 +67,7 @@
                                 <input is="emby-checkbox" type="checkbox" id="enableLiveTvSection" name="enableLiveTvSection" />
                                 <span>Zeile „Heute im TV für dich“ anzeigen</span>
                             </label>
-                            <div class="fieldDescription checkboxFieldDescription">Muss zusätzlich in Home Screen Sections eingeschaltet werden. Änderung wird nach einem Neustart wirksam.</div>
+                            <div class="fieldDescription checkboxFieldDescription">Für Profile mit Live-TV-Zugriff.</div>
                         </div>
 
                         <div class="inputContainer">
@@ -81,7 +80,7 @@
                                 <input is="emby-checkbox" type="checkbox" id="enableMovieSeriesSection" name="enableMovieSeriesSection" />
                                 <span>Zeile „Filmreihen für dich“ anzeigen</span>
                             </label>
-                            <div class="fieldDescription checkboxFieldDescription">Filmreihen (TMDB-Sammlungen) mit mindestens zwei Teilen in der Bibliothek: angefangene Reihen mit dem nächsten Teil zuerst, danach passende Reihen. Welche Reihe ein Film ist, kommt von Jellyfins Sammlungen bzw. nachts von TMDB (nur die TMDB-ID des Films wird gesendet). In Home Screen Sections einschalten; Änderung wird nach einem Neustart wirksam.</div>
+                            <div class="fieldDescription checkboxFieldDescription">Filmreihen (TMDB-Sammlungen) mit mindestens zwei Teilen in der Bibliothek: angefangene Reihen mit dem nächsten Teil zuerst, danach passende Reihen. Welche Reihe ein Film ist, kommt von Jellyfins Sammlungen bzw. nachts von TMDB (nur die TMDB-ID des Films wird gesendet).</div>
                         </div>
 
                         <div class="inputContainer">
@@ -94,7 +93,7 @@
                                 <input is="emby-checkbox" type="checkbox" id="enableSeasonal" name="enableSeasonal" />
                                 <span>„Passend zur Jahreszeit“ anzeigen</span>
                             </label>
-                            <div class="fieldDescription checkboxFieldDescription">Weihnachtsfilme vom 1. Advent bis 26.12., Silvester 27.12.–1.1., Halloween 15.–31.10., Ostern Karfreitag bis Ostermontag. Erkannt über TMDB-Stichwörter (nachts abgefragt, nur die TMDB-ID wird gesendet), gleichlautende Tags und ganze Wörter im Titel, dazu Folgen und Specials wie Weihnachtsfolgen. Jeder sieht nur Titel aus seinen Bibliotheken und innerhalb seiner Altersfreigabe. Für Home Screen Sections heißt die Zeile „Passend zur Jahreszeit“ (dort einschalten, wirksam nach Neustart).</div>
+                            <div class="fieldDescription checkboxFieldDescription">Weihnachtsfilme vom 1. Advent bis 26.12., Silvester 27.12.–1.1., Halloween 15.–31.10., Ostern Karfreitag bis Ostermontag. Erkannt über TMDB-Stichwörter (nachts abgefragt, nur die TMDB-ID wird gesendet), gleichlautende Tags und ganze Wörter im Titel, dazu Folgen und Specials wie Weihnachtsfolgen. Jeder sieht nur Titel aus seinen Bibliotheken und innerhalb seiner Altersfreigabe.</div>
                         </div>
 
                         <div class="inputContainer">
@@ -110,7 +109,7 @@
                         </div>
 
                         <h3>Zeitabhängige Zeilen</h3>
-                        <div class="fieldDescription">Jeder sieht nur Titel aus seinen Bibliotheken und innerhalb seiner Altersfreigabe. Für Home Screen Sections heißen die Bereiche wie die Zeilen (dort einschalten, wirksam nach Neustart).</div>
+                        <div class="fieldDescription">Jeder sieht nur Titel aus seinen Bibliotheken und innerhalb seiner Altersfreigabe.</div>
 
                         <div class="checkboxContainer checkboxContainer-withDescription">
                             <label>
@@ -156,6 +155,54 @@
                                 <span>„Vor einem Jahr hast du …“</span>
                             </label>
                             <div class="fieldDescription checkboxFieldDescription">Was das Profil vor etwa einem Jahr gesehen hat (ohne „Daumen runter“ und ohne seitdem Wiederholtes).</div>
+                        </div>
+
+                        <h3>Demnächst (Sonarr und Radarr)</h3>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="enableUpcoming" />
+                                <span>Zeile „Demnächst“ anzeigen</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Neue Folgen von Serien, die in Jellyfin liegen (aus dem Kalender von Sonarr), und vorgemerkte Filme, die bald digital oder auf Disc erscheinen (aus Radarr). Nur lesend – es wird nichts angefragt oder vorgemerkt. Serien, die jemand gerade schaut oder als Favorit hat, stehen vorne. Jeder sieht nur Serien aus seinen Bibliotheken; Filme nur, wenn der Radarr-Stammordner zu einer seiner Filmbibliotheken passt (gleicher Ordnername), und innerhalb seiner Altersfreigabe.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="sonarrUrl">Sonarr-Adresse:</label>
+                            <input is="emby-input" type="url" id="sonarrUrl" name="sonarrUrl" placeholder="http://sonarr:8989" autocomplete="off" />
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="sonarrApiKey">Sonarr-API-Schlüssel:</label>
+                            <input is="emby-input" type="password" id="sonarrApiKey" name="sonarrApiKey" autocomplete="off" />
+                            <div class="fieldDescription">Sonarr → Settings → General. Wird nie protokolliert und nicht in Sicherungen gespeichert.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="radarrUrl">Radarr-Adresse:</label>
+                            <input is="emby-input" type="url" id="radarrUrl" name="radarrUrl" placeholder="http://radarr:7878" autocomplete="off" />
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="radarrApiKey">Radarr-API-Schlüssel:</label>
+                            <input is="emby-input" type="password" id="radarrApiKey" name="radarrApiKey" autocomplete="off" />
+                            <div class="fieldDescription">Radarr → Settings → General. Wird nie protokolliert und nicht in Sicherungen gespeichert.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="upcomingSeriesDays">Folgen der nächsten … Tage:</label>
+                            <input is="emby-input" type="number" id="upcomingSeriesDays" name="upcomingSeriesDays" min="1" max="60" step="1" />
+                            <div class="fieldDescription">Standard: 14</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="upcomingMovieDays">Filme der nächsten … Tage:</label>
+                            <input is="emby-input" type="number" id="upcomingMovieDays" name="upcomingMovieDays" min="1" max="90" step="1" />
+                            <div class="fieldDescription">Standard: 30</div>
+                        </div>
+
+                        <div>
+                            <button is="emby-button" type="button" id="btnUpcomingCheck" class="raised button-alt"><span>Verbindung prüfen (vorher speichern)</span></button>
+                            <div id="upcomingCheckResult" class="fieldDescription" style="margin-top: 0.5em;"></div>
                         </div>
 
                         <div class="inputContainer">
@@ -501,7 +548,7 @@
                                 <input is="emby-checkbox" type="checkbox" id="showRecommendationReason" name="showRecommendationReason" />
                                 <span>Begründung auf den Karten anzeigen</span>
                             </label>
-                            <div class="fieldDescription checkboxFieldDescription">Zeigt über dem Titel z. B. „Weil du „Frieren“ geschaut hast“ oder „Nächster Teil nach …“ (Startseite über Home Screen Sections, Anzeige „Titel“ muss eingeschaltet sein).</div>
+                            <div class="fieldDescription checkboxFieldDescription">Zeigt über dem Titel z. B. „Weil du „Frieren“ geschaut hast“ oder „Nächster Teil nach …“ (Quallenkino-Startseite).</div>
                         </div>
 
                         <div class="checkboxContainer checkboxContainer-withDescription">
@@ -917,12 +964,9 @@
                                 return '<li style="margin: 0.3em 0;">' + (value ? '<span style="color: #4caf50;">✔</span> ' : '<span style="color: #ffc107;">✘</span> ') + text + '</li>';
                             };
                             var html = '<ul style="list-style: none; padding-left: 0;">';
-                            html += ok(status.HomeScreenSectionsInstalled, status.HomeScreenSectionsInstalled
-                                ? 'Home Screen Sections ist installiert'
-                                : 'Home Screen Sections ist nicht installiert (siehe Voraussetzung oben, danach Jellyfin neu starten)');
-                            html += ok(status.SectionsRegistered, status.SectionsRegistered
-                                ? 'Bereiche sind angemeldet'
-                                : 'Bereiche sind noch nicht angemeldet (passiert automatisch nach dem Serverstart)');
+                            html += ok(status.WebIntegrationRegistered, status.WebIntegrationRegistered
+                                ? 'Quallenkino-Oberfläche ist in Jellyfin Web eingebunden'
+                                : 'Quallenkino-Oberfläche ist nicht eingebunden – File Transformation installiert? Danach Jellyfin neu starten');
                             if (status.LastUpdated) {
                                 html += ok(true, 'Empfehlungen für ' + status.UsersWithRecommendations + ' Benutzer, zuletzt berechnet am ' + self.escapeHtml(new Date(status.LastUpdated).toLocaleString()));
                             } else {
@@ -1305,6 +1349,13 @@
                             page.querySelector('#momentsCinema').checked = config.MomentsCinema !== false;
                             page.querySelector('#momentsAnniversaries').checked = config.MomentsAnniversaries !== false;
                             page.querySelector('#momentsYearAgo').checked = config.MomentsYearAgo !== false;
+                            page.querySelector('#enableUpcoming').checked = config.EnableUpcoming !== false;
+                            page.querySelector('#sonarrUrl').value = config.SonarrUrl || '';
+                            page.querySelector('#sonarrApiKey').value = config.SonarrApiKey || '';
+                            page.querySelector('#radarrUrl').value = config.RadarrUrl || '';
+                            page.querySelector('#radarrApiKey').value = config.RadarrApiKey || '';
+                            page.querySelector('#upcomingSeriesDays').value = config.UpcomingSeriesDays || 14;
+                            page.querySelector('#upcomingMovieDays').value = config.UpcomingMovieDays || 30;
                             page.querySelector('#liveTvLookaheadHours').value = config.LiveTvLookaheadHours !== undefined ? config.LiveTvLookaheadHours : 24;
                             page.querySelector('#liveTvTimeZone').value = config.LiveTvTimeZone !== undefined && config.LiveTvTimeZone !== null ? config.LiveTvTimeZone : 'Europe/Berlin';
                             page.querySelector('#liveTvRegularDays').value = config.LiveTvRegularDays !== undefined ? config.LiveTvRegularDays : 3;
@@ -1446,6 +1497,15 @@
                             config.MomentsCinema = page.querySelector('#momentsCinema').checked;
                             config.MomentsAnniversaries = page.querySelector('#momentsAnniversaries').checked;
                             config.MomentsYearAgo = page.querySelector('#momentsYearAgo').checked;
+                            config.EnableUpcoming = page.querySelector('#enableUpcoming').checked;
+                            config.SonarrUrl = page.querySelector('#sonarrUrl').value.trim();
+                            config.SonarrApiKey = page.querySelector('#sonarrApiKey').value.trim();
+                            config.RadarrUrl = page.querySelector('#radarrUrl').value.trim();
+                            config.RadarrApiKey = page.querySelector('#radarrApiKey').value.trim();
+                            var seriesDays = parseInt(page.querySelector('#upcomingSeriesDays').value, 10);
+                            config.UpcomingSeriesDays = isNaN(seriesDays) ? 14 : Math.min(60, Math.max(1, seriesDays));
+                            var movieDays = parseInt(page.querySelector('#upcomingMovieDays').value, 10);
+                            config.UpcomingMovieDays = isNaN(movieDays) ? 30 : Math.min(90, Math.max(1, movieDays));
                             config.LiveTvLookaheadHours = parseInt(page.querySelector('#liveTvLookaheadHours').value) || 24;
                             config.LiveTvTimeZone = page.querySelector('#liveTvTimeZone').value.trim();
                             config.LiveTvRegularDays = Math.max(2, parseInt(page.querySelector('#liveTvRegularDays').value) || 3);
@@ -1596,6 +1656,16 @@
 
                 page.querySelector('#worldSelect').addEventListener('change', function() {
                     LocalRecsConfig.loadWorldDetails(page, this.value);
+                });
+
+                page.querySelector('#btnUpcomingCheck').addEventListener('click', function() {
+                    var box = page.querySelector('#upcomingCheckResult');
+                    box.textContent = 'Prüfe …';
+                    ApiClient.getJSON(ApiClient.getUrl('LocalRecs/Upcoming/Status')).then(function(status) {
+                        box.textContent = 'Sonarr: ' + status.Sonarr + ' · Radarr: ' + status.Radarr;
+                    }, function() {
+                        box.textContent = 'Prüfung fehlgeschlagen';
+                    });
                 });
 
                 page.querySelector('#runMetadataCheck').addEventListener('click', function() {

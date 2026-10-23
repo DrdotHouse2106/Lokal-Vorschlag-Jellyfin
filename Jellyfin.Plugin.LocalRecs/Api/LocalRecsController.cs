@@ -63,8 +63,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         {
             return Ok(new StatusInfo
             {
-                HomeScreenSectionsInstalled = HomeScreenSectionsIntegration.IsHomeScreenSectionsInstalled,
-                SectionsRegistered = HomeScreenSectionsIntegration.SectionsRegistered,
+                WebIntegrationRegistered = Web.WebIntegration.Registered,
                 UsersWithRecommendations = _store.UserCount,
                 LastUpdated = _store.LastUpdated,
                 LiveTvTrackedBroadcasts = _liveTvWatchStore.Count,

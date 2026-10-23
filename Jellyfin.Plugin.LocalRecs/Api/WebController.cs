@@ -96,7 +96,12 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 MovieSeries = Config.EnableMovieSeriesSection,
                 Seasonal = Config.EnableSeasonal,
                 Moments = Moments.MomentsService.Keys.Any(k => Moments.MomentsService.IsEnabled(k, Config)),
+                Upcoming = Config.EnableUpcoming && (Upcoming.ArrClient.BaseUrl(Config.SonarrUrl) != null || Upcoming.ArrClient.BaseUrl(Config.RadarrUrl) != null),
                 MovieSeriesTitle = string.IsNullOrWhiteSpace(Config.MovieSeriesSectionTitle) ? "Filmreihen für dich" : Config.MovieSeriesSectionTitle,
+                MoviesTitle = string.IsNullOrWhiteSpace(Config.MovieSectionTitle) ? "Empfohlene Filme für dich" : Config.MovieSectionTitle,
+                SeriesTitle = string.IsNullOrWhiteSpace(Config.TvSectionTitle) ? "Empfohlene Serien für dich" : Config.TvSectionTitle,
+                LiveTvTitle = string.IsNullOrWhiteSpace(Config.LiveTvSectionTitle) ? "Heute im TV für dich" : Config.LiveTvSectionTitle,
+                LiveTvRow = Config.EnableLiveTvSection,
                 Version = WebIntegration.Version
             };
         }
@@ -150,6 +155,21 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets a value indicating whether at least one time-based row is on (GET /LocalRecs/Moments, since 12.46.0).</summary>
             public bool Moments { get; set; }
+
+            /// <summary>Gets or sets a value indicating whether „Demnächst“ is on and Sonarr or Radarr is set up (GET /LocalRecs/Upcoming, since 12.48.0).</summary>
+            public bool Upcoming { get; set; }
+
+            /// <summary>Gets or sets the title of the movie recommendations (since 12.48.0).</summary>
+            public string MoviesTitle { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the title of the series recommendations (since 12.48.0).</summary>
+            public string SeriesTitle { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the title of „Heute im TV für dich“ (since 12.48.0).</summary>
+            public string LiveTvTitle { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets a value indicating whether „Heute im TV für dich“ is on (since 12.48.0).</summary>
+            public bool LiveTvRow { get; set; }
 
             /// <summary>Gets or sets the plugin version.</summary>
             public string Version { get; set; } = string.Empty;

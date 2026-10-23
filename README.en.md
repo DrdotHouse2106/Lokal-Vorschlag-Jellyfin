@@ -16,7 +16,7 @@ The **Quallenkinoplugin** (called "Local Recommendations" up to 12.27) adds priv
 Please report any issues or feedback on [GitHub Issues](https://github.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/issues).
 
 > [!IMPORTANT]
-> Since **12.2.0** recommendations are shown as **rows on the home screen** (via the "Home Screen Sections" plugin) instead of per-user libraries. Recommendation libraries created by older versions are removed automatically on first start. **Native apps** (Android TV, Fire TV, Roku, Swiftfin on iPhone/iPad/Apple TV) do not show these rows. For Android TV / Fire TV there is the customized app [Jellyfin-TV-Client](https://github.com/DrdotHouse2106/Jellyfin-TV-Client), which loads the recommendations via `GET /LocalRecs/Recommendations` (since 12.5.0).
+> Since **12.2.0** recommendations are shown as **rows on the home screen** instead of per-user libraries. Since **12.48.0** Quallenkino draws the home screen itself – **the "Home Screen Sections" plugin is no longer needed** and can be uninstalled. Recommendation libraries created by older versions are removed automatically on first start. **Native apps** (Android TV, Fire TV, Roku, Swiftfin on iPhone/iPad/Apple TV) do not show these rows. For Android TV / Fire TV there is the customized app [Jellyfin-TV-Client](https://github.com/DrdotHouse2106/Jellyfin-TV-Client), which loads the recommendations via `GET /LocalRecs/Recommendations` (since 12.5.0).
 
 ## Features
 
@@ -43,7 +43,7 @@ Please report any issues or feedback on [GitHub Issues](https://github.com/Drdot
 - **Jellyfin Server:** 12.0+ (tested on 12.2)
 - **.NET Runtime:** 10.0
 - **Target ABI:** 12.0.0.0
-- **For the home screen rows:** the plugins **Home Screen Sections**, **File Transformation** and **Plugin Pages** by IAmParadox27 (repository `https://www.iamparadox.dev/jellyfin/plugins/manifest.json`)
+- **For the home screen rows:** the plugin **File Transformation** by IAmParadox27 (repository `https://www.iamparadox.dev/jellyfin/plugins/manifest.json`). Home Screen Sections and Plugin Pages are no longer needed since 12.48.0.
 - **Clients:** web, desktop app, the Android app "Jellyfin" and the iOS app "Jellyfin Mobile" (both show the web interface). Native apps (Android TV, Fire TV, Roku, **Swiftfin** on iPhone/iPad/Apple TV) do not show the rows.
 
 For Jellyfin 10.11.x use upstream version 0.6.1.
@@ -66,9 +66,8 @@ Manual installation: download the newest `jellyfin-plugin-localrecs-v<version>.z
 
 ## Setup
 
-1. Add the repository `https://www.iamparadox.dev/jellyfin/plugins/manifest.json` and install **Home Screen Sections**, **File Transformation** and **Plugin Pages**. Restart Jellyfin.
-2. Dashboard → Plugins → **Home Screen Sections**: enable the plugin and enable the sections **"Empfohlene Filme für dich"** and **"Empfohlene Serien für dich"** for all users (or let every user enable them via "Modular Home").
-3. Done. The first calculation starts automatically after server start; afterwards the scheduled task "Empfehlungen aktualisieren" (before 12.26: "Refresh Local Recommendations") runs daily at 4:00 AM.
+1. Add the repository `https://www.iamparadox.dev/jellyfin/plugins/manifest.json` and install **File Transformation**. Restart Jellyfin.
+2. Done. The first calculation starts automatically after server start; afterwards the scheduled task "Empfehlungen aktualisieren" (before 12.26: "Refresh Local Recommendations") runs daily at 4:00 AM.
 
 The plugin's **Startseite** tab shows the connection status and lets you change the row titles. Watched or started movies disappear from the row immediately. Every user only sees their own recommendations.
 
@@ -129,7 +128,7 @@ Access via: **Dashboard → Plugins → Quallenkino**. Tabs (German UI): **Start
 ### Home Screen Rows
 
 - The refresh task stores the recommended item IDs per user (`plugins/LocalRecs/recommendations.json`)
-- The plugin registers two sections with Home Screen Sections; when a user's home screen is built, the sections return the real library items for exactly that user
+- The web module draws the rows itself (since 12.48.0, no Home Screen Sections); each request returns the real library items for exactly that user
 - Items the user can no longer see, or has watched/started in the meantime, are filtered out at request time
 
 ### Quallenkino-style start page for Jellyfin Web (since 12.18.0)
@@ -191,7 +190,7 @@ Banner of the day ("Billboard", since 12.41.0): `GET /LocalRecs/Billboard?limit=
 
 Identity proof in the home network (since 12.35.0): `GET /LocalRecs/Identity/Challenge?nonce=<64 lower-case hex>` with header `X-Device-Id` returns `{ "ServerId", "Host", "Proofs": [...] }`, `Proof = hex(HMAC-SHA256(key = SHA-256(access token), msg = "nonce|ServerId|host"))`, host = address the app connected to (lower-case, with port). The app sends its token over http only if its own proof is listed. Since 12.39.0 `Proofs` always holds at least 4 entries in random order (filled with random values), so the answer does not reveal whether a device is known. Anonymous, but only for direct connections from the local network (no forwarding headers), otherwise 403; 30 requests per minute and address.
 
-`GET /LocalRecs/Recommendations?type=movies|series|livetv&limit=20` returns the same items as the home screen rows for the **signed-in user** (regular token, no admin) as `{ "Items": [...], "TotalRecordCount": n }`. Works without Home Screen Sections.
+`GET /LocalRecs/Recommendations?type=movies|series|livetv&limit=20` returns the same items as the home screen rows for the **signed-in user** (regular token, no admin) as `{ "Items": [...], "TotalRecordCount": n }`.
 
 Since 12.7.1 (requires the XMLTV source setting): `GET /LocalRecs/LiveTv/Program/{programId}/Credits` and `GET /LocalRecs/LiveTv/Credits?ids=a,b,c` (max. 200) return `{ "ProgramId", "Matched", "Actors": [{ "Name", "Role" }], "Directors", "Writers", "Year", "Country", "Episode", "ImdbId", "TmdbId" }` for live TV programs (regular token with live TV access). No XMLTV match: `Matched: false` (HTTP 200); unknown ID: 404 or left out of the map.
 
@@ -223,15 +222,23 @@ Own row for **movie series** (TMDB collections such as John Wick or Terminator),
 
 ### Seasonal row (since 12.45.0)
 
-Christmas movies from the first Sunday of Advent to 26 December, New Year's Eve 27 December–1 January, Halloween 15–31 October, Easter Good Friday–Easter Monday (Gauss), optionally Valentine's Day 7–14 February. Detected by TMDB keywords (nightly, 400 titles per run, cached 180 days, only the TMDB ID is sent), equal Jellyfin tags and whole words in titles („Adventure“ is not Advent), plus episodes and specials with such titles (at most 3 per series). Each user only sees titles of their libraries and within their parental rating. Unwatched first, then taste and rating, at most 20; shown from 4 titles (adjustable). API: `GET /LocalRecs/Seasonal?utcOffsetMinutes=120` → `{ "Active", "Id", "Title", "Items" }`, `?season=weihnachten` previews a season; `/LocalRecs/Web/Config` reports `"Seasonal"`. Home Screen Sections: „Passend zur Jahreszeit“ (empty outside the windows).
+Christmas movies from the first Sunday of Advent to 26 December, New Year's Eve 27 December–1 January, Halloween 15–31 October, Easter Good Friday–Easter Monday (Gauss), optionally Valentine's Day 7–14 February. Detected by TMDB keywords (nightly, 400 titles per run, cached 180 days, only the TMDB ID is sent), equal Jellyfin tags and whole words in titles („Adventure“ is not Advent), plus episodes and specials with such titles (at most 3 per series). Each user only sees titles of their libraries and within their parental rating. Unwatched first, then taste and rating, at most 20; shown from 4 titles (adjustable). API: `GET /LocalRecs/Seasonal?utcOffsetMinutes=120` → `{ "Active", "Id", "Title", "Items" }`, `?season=weihnachten` previews a season; `/LocalRecs/Web/Config` reports `"Seasonal"`.
 
 ### Time-based recommendations (since 12.46.0)
 
 **Weekday and time left in the evening:** besides the time of day, each profile learns whether weekday evenings get less long content (over 100 minutes) than weekend evenings (from 10 plays per slot; default: Friday/Saturday evenings long, other evenings short) and its usual bedtime (80th percentile of the last activity per evening, from 5 evenings, otherwise 23:30). From 19:00, what no longer fits moves back – in the recommendation rows and the banner. Until a daypart is learned, family/animation move up in the daytime and horror/thriller at night. Tab „Einstellungen“, weight 0.3.
 
-**New rows** (switch each off under „Zeitabhängige Zeilen“; libraries and parental ratings respected): „Läuft heute im TV – hier ohne Werbung“ (titles in the library airing on live TV until 02:00, matched by IMDb/TMDB/TVDB or title and year, only with live TV access), „Neu diese Woche“ (7–30 days, default 14, by taste), „Vor dem Kinostart: Hol die Reihe nach“ (a new part of a movie series in cinemas within 4 weeks – the next unwatched part, or the last one to refresh; release in the server's metadata country, otherwise Germany; parts looked up weekly at TMDB, only IDs sent), „Heute vor X Jahren“ (released 10, 20, 25, 30 … years ago today, at most 6), „Vor einem Jahr hast du …“ (watched 330–400 days ago). Left out on purpose: actor birthdays, events, school holidays, „leaving soon“. API: `GET /LocalRecs/Moments?utcOffsetMinutes=120` → `{ "Rows": [ { "Key", "Title", "Items", "Reasons" } ] }` (keys `ontv`, `newthisweek`, `cinema`, `anniversary`, `yearago`; `?key=` for one row; cached 10 minutes); `/LocalRecs/Web/Config` reports `"Moments"`. Home Screen Sections: one section per row.
+**New rows** (switch each off under „Zeitabhängige Zeilen“; libraries and parental ratings respected): „Läuft heute im TV – hier ohne Werbung“ (titles in the library airing on live TV until 02:00, matched by IMDb/TMDB/TVDB or title and year, only with live TV access), „Neu diese Woche“ (7–30 days, default 14, by taste), „Vor dem Kinostart: Hol die Reihe nach“ (a new part of a movie series in cinemas within 4 weeks – the next unwatched part, or the last one to refresh; release in the server's metadata country, otherwise Germany; parts looked up weekly at TMDB, only IDs sent), „Heute vor X Jahren“ (released 10, 20, 25, 30 … years ago today, at most 6), „Vor einem Jahr hast du …“ (watched 330–400 days ago). Left out on purpose: actor birthdays, events, school holidays, „leaving soon“. API: `GET /LocalRecs/Moments?utcOffsetMinutes=120` → `{ "Rows": [ { "Key", "Title", "Items", "Reasons" } ] }` (keys `ontv`, `newthisweek`, `cinema`, `anniversary`, `yearago`; `?key=` for one row; cached 10 minutes); `/LocalRecs/Web/Config` reports `"Moments"`.
 
 Seasonal row since 12.46.0: movies and series before episodes, one episode per series first; specials (season 0) only when the file name agrees (TVDB/TMDB numbering of specials often differs).
+
+### Upcoming (since 12.48.0)
+
+Row **„Demnächst“** from **Sonarr** and **Radarr**, read only (nothing is requested or monitored): new episodes of series in Jellyfin within 14 days (1–60, matched by TVDB/TMDB/IMDb or title, one card per series with the next episode, „Neue Folge S02E05 · Freitag“, „+2 weitere“; click opens the series) and monitored movies not yet downloaded with a digital or disc release within 30 days (1–90, „Ab 14.11. verfügbar“, images via the server). Favourite series and series watched in the last 90 days first. Series only from the profile's libraries; movies only if Radarr's root folder matches one of the profile's movie libraries by folder name (otherwise only profiles with all movie libraries), parental rating checked. Settings: tab „Startseite“ → addresses, API keys (sent only as `X-Api-Key`, never logged, not in backups), periods, „Verbindung prüfen“; calendars cached 30 minutes. API: `GET /LocalRecs/Upcoming?utcOffsetMinutes=` → `{ "Items": [ { "Kind": "Episode"|"Movie", "Title", "Subtitle", "Date", "Series", "SeasonNumber", "EpisodeNumber", "EpisodeTitle", "MoreEpisodes", "Movie": { "RadarrId", "TmdbId", "ImdbId", "Year", "Overview", "OfficialRating", "PosterUrl", "BackdropUrl" } } ] }`, images `LocalRecs/Upcoming/Movies/{id}/Images/Poster|Backdrop`, `GET /LocalRecs/Upcoming/Status` (admins), `/LocalRecs/Web/Config` → `"Upcoming"`.
+
+### Without Home Screen Sections (since 12.48.0)
+
+Quallenkino no longer registers with Home Screen Sections, which can be uninstalled; it starts without errors without it. „Jellyfin-Startseite anzeigen“ (formerly „Klassische Startseite anzeigen“) shows Jellyfin's own home page per profile and device. The row titles and the „Heute im TV für dich“ switch now apply to the Quallenkino home (`MoviesTitle`, `SeriesTitle`, `LiveTvTitle`, `LiveTvRow` in `/LocalRecs/Web/Config`). The sidebar group „Jellyfin Enhanced“ („Enhanced Panel“) is hidden; the panel stays available via „Jellyfin Enhanced“ in the profile menu.
 
 ### Metadata check (since 12.38.0)
 
@@ -272,8 +279,8 @@ Tab **„Metadaten“** in the plugin settings checks all movies and series: per
 
 ## Known Limitations
 
-- **Native TV apps:** Android TV, Fire TV and Roku apps do not render Home Screen Sections, so recommendations are not visible there (except in [Jellyfin-TV-Client](https://github.com/DrdotHouse2106/Jellyfin-TV-Client) for Android TV / Fire TV).
-- **Requires Home Screen Sections:** without it the recommendations are computed but not shown.
+- **Native TV apps:** Android TV, Fire TV and Roku apps do not show the rows (except [Jellyfin-TV-Client](https://github.com/DrdotHouse2106/Jellyfin-TV-Client) for Android TV / Fire TV, which uses the `/LocalRecs` API).
+- **Requires File Transformation** for the rows in Jellyfin Web.
 
 ## Troubleshooting
 
@@ -283,7 +290,7 @@ Each entry: symptom, cause, fix. Kept up to date.
 - **Nothing changes after install/update:** Jellyfin loads plugins only at startup – restart the server (check `GET /Sessions` first that nobody is watching), then reload the browser (Ctrl+F5) or pull down in the iOS app.
 - **All `/LocalRecs` addresses return 500 after an update:** two versions are loaded – uninstall the old one under Dashboard → Plugins and restart again.
 - **Settings gone after an update:** restore a backup from `plugins/configurations/Jellyfin.Plugin.LocalRecs.sicherungen/` with `POST /LocalRecs/Config/Backups/{name}/Restore` (keys are kept).
-- **The rows do not appear:** the plugin's **Startseite** tab shows what is missing (Home Screen Sections, File Transformation, Plugin Pages, sections switched on); run Dashboard → Scheduled Tasks → "Empfehlungen aktualisieren". Native apps (Android TV, Fire TV, Roku, Swiftfin) never show the rows.
+- **The rows do not appear:** the plugin's **Startseite** tab shows what is missing (File Transformation; „Jellyfin-Startseite anzeigen“ switches the Quallenkino home off per profile and device); run Dashboard → Scheduled Tasks → "Empfehlungen aktualisieren". Native apps (Android TV, Fire TV, Roku, Swiftfin) never show the rows.
 - **Quallenkino interface missing:** File Transformation installed? Jellyfin Web switches on? Reload (Ctrl+F5 / pull down in the iOS app).
 - **Banner always shows the same titles:** before 12.41.0 it took the top recommendations; since then it changes daily (stable within a day and an open tab). Use „Später“ for titles that don't fit now; titles without backdrop never appear – see the metadata check.
 - **Recommendations look stale, task "Aborted":** a restart interrupted the nightly run – start the task by hand (data older than 24 h is recomputed at the next start anyway).

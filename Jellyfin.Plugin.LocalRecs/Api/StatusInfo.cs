@@ -10,14 +10,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
     public class StatusInfo
     {
         /// <summary>
-        /// Gets or sets a value indicating whether the Home Screen Sections plugin is installed.
+        /// Gets or sets a value indicating whether the Quallenkino interface is registered with File Transformation.
         /// </summary>
-        public bool HomeScreenSectionsInstalled { get; set; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the sections are registered.
-        /// </summary>
-        public bool SectionsRegistered { get; set; }
+        public bool WebIntegrationRegistered { get; set; }
 
         /// <summary>
         /// Gets or sets the number of users with recommendations.

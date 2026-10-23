@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.48.0.0",
+        "changelog": "Demnächst und ohne Home Screen Sections\n- Neue Zeile „Demnächst“: neue Folgen (Sonarr) und bald erscheinende, vorgemerkte Filme (Radarr), nur lesend, Bibliotheken und Altersfreigaben je Profil beachtet\n- Home Screen Sections wird nicht mehr gebraucht und kann deinstalliert werden\n- „Jellyfin-Startseite anzeigen“ statt „Klassische Startseite anzeigen“\n- Seitenleiste: Gruppe „Jellyfin Enhanced“ ausgeblendet (Panel bleibt im Profilmenü)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.48.0.zip",
+        "checksum": "a4b15440adf00ee3304cfc93f6aecac1",
+        "timestamp": "2026-10-23T12:00:00Z"
+      },
+      {
         "version": "12.47.0.0",
         "changelog": "Aufgeräumtes Profilmenü\n- Direkt sichtbar nur „Profil wechseln“ und „Zufälliger Titel“\n- Quallenkino-Funktionen unter „Quallenkino“ zum Aufklappen, „Diagnose senden“ nur bei eingeschalteter Diagnose\n- Synchronwiedergabe, Auf Gerät wiedergeben und Quick Connect unter „Mehr …“\n- Behoben: „Abmelden“ ohne Symbol und verschoben\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.48.0] - 2026-10-23
+
+### Added
+
+- **„Demnächst“** from Sonarr and Radarr (read only): next new episode per series in the user's libraries (14 days), monitored movies with a digital or disc release (30 days); favourites and recently watched series first; library access (movies by Radarr root folder name) and parental rating per user. Settings for addresses, API keys (header only, never logged, removed from config backups), periods and a connection check. API `GET /LocalRecs/Upcoming`, `/Upcoming/Movies/{id}/Images/Poster|Backdrop`, `/Upcoming/Status`; `Upcoming` in `/LocalRecs/Web/Config`.
+- `/LocalRecs/Web/Config`: `MoviesTitle`, `SeriesTitle`, `LiveTvTitle`, `LiveTvRow` – the row titles and the live TV switch now apply to the Quallenkino home.
+
+### Changed
+
+- **Home Screen Sections is no longer needed:** the sections are no longer registered (no reflection, no section ID migration, no retries at start-up); the start-up service only cleans up and queues the first calculation. The settings page checks File Transformation instead. Home Screen Sections can be uninstalled.
+- „Klassische Startseite anzeigen“ is now „Jellyfin-Startseite anzeigen“ (Jellyfin's own home page).
+- Jellyfin Web: the sidebar group „Jellyfin Enhanced“ („Enhanced Panel“) is hidden; the panel stays in the profile menu.
+
+### Removed
+
+- Home Screen Sections sections `LocalRecsMovies`, `LocalRecsShows`, `LocalRecsLiveTv`, `LocalRecsMovieSeries`, `LocalRecsSeasonal` and the time-based sections of 12.46.0.
+
 ## [12.47.0] - 2026-10-23
 
 ### Changed

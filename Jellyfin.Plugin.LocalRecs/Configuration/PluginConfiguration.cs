@@ -102,6 +102,13 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             MomentsAnniversaries = true;
             MomentsYearAgo = true;
             MomentsOnTvToday = true;
+            EnableUpcoming = true;
+            SonarrUrl = string.Empty;
+            SonarrApiKey = string.Empty;
+            RadarrUrl = string.Empty;
+            RadarrApiKey = string.Empty;
+            UpcomingSeriesDays = 14;
+            UpcomingMovieDays = 30;
             LiveTvLookaheadHours = 24;
             LiveTvRecommendationCount = 20;
             LiveTvTimeZone = "Europe/Berlin";
@@ -203,6 +210,27 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
 
         /// <summary>Gets or sets a value indicating whether „Läuft heute im TV – auch hier“ is shown (since 12.46.0).</summary>
         public bool MomentsOnTvToday { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether „Demnächst“ (Sonarr/Radarr) is shown (since 12.48.0).</summary>
+        public bool EnableUpcoming { get; set; }
+
+        /// <summary>Gets or sets Sonarr's address, e.g. http://host:8989.</summary>
+        public string SonarrUrl { get; set; }
+
+        /// <summary>Gets or sets Sonarr's API key (never logged or backed up).</summary>
+        public string SonarrApiKey { get; set; }
+
+        /// <summary>Gets or sets Radarr's address, e.g. http://host:7878.</summary>
+        public string RadarrUrl { get; set; }
+
+        /// <summary>Gets or sets Radarr's API key (never logged or backed up).</summary>
+        public string RadarrApiKey { get; set; }
+
+        /// <summary>Gets or sets the days „Demnächst“ looks ahead for episodes (1–60).</summary>
+        public int UpcomingSeriesDays { get; set; }
+
+        /// <summary>Gets or sets the days „Demnächst“ looks ahead for movies (1–90).</summary>
+        public int UpcomingMovieDays { get; set; }
 
         /// <summary>
         /// Gets or sets how many hours ahead the live TV section looks.

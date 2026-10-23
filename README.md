@@ -14,7 +14,7 @@ Das **Quallenkinoplugin** (bis 12.27 „Local Recommendations“) erweitert Jell
 > English version: [README.en.md](README.en.md)
 
 > [!IMPORTANT]
-> Ab Version **12.2.0** erscheinen die Empfehlungen als **eigene Zeilen auf der Startseite** (über das Plugin „Home Screen Sections“) statt als eigene Bibliotheken. Die Empfehlungs-Bibliotheken älterer Versionen werden beim ersten Start automatisch entfernt. **Native Apps** (Android TV, Fire TV, Roku, Swiftfin auf iPhone/iPad/Apple TV) zeigen diese Zeilen nicht an. Für Android TV / Fire TV gibt es dafür die angepasste App [Jellyfin-TV-Client](https://github.com/DrdotHouse2106/Jellyfin-TV-Client), die die Empfehlungen über `GET /LocalRecs/Recommendations` lädt (ab Version 12.5.0).
+> Ab Version **12.2.0** erscheinen die Empfehlungen als **eigene Zeilen auf der Startseite** statt als eigene Bibliotheken. Ab **12.48.0** zeichnet Quallenkino die Startseite selbst – **das Plugin „Home Screen Sections“ wird nicht mehr gebraucht** und kann deinstalliert werden. Die Empfehlungs-Bibliotheken älterer Versionen werden beim ersten Start automatisch entfernt. **Native Apps** (Android TV, Fire TV, Roku, Swiftfin auf iPhone/iPad/Apple TV) zeigen diese Zeilen nicht an. Für Android TV / Fire TV gibt es dafür die angepasste App [Jellyfin-TV-Client](https://github.com/DrdotHouse2106/Jellyfin-TV-Client), die die Empfehlungen über `GET /LocalRecs/Recommendations` lädt (ab Version 12.5.0).
 
 ## Funktionen
 
@@ -45,7 +45,7 @@ Das **Quallenkinoplugin** (bis 12.27 „Local Recommendations“) erweitert Jell
 - **Jellyfin-Server:** 12.0 oder neuer (getestet mit 12.2)
 - **.NET-Runtime:** 10.0 (ist in Jellyfin 12 enthalten)
 - **Target ABI:** 12.0.0.0
-- **Für die Startseite:** die Plugins **Home Screen Sections**, **File Transformation** und **Plugin Pages** von IAmParadox27 (Repository `https://www.iamparadox.dev/jellyfin/plugins/manifest.json`)
+- **Für die Startseite:** das Plugin **File Transformation** von IAmParadox27 (Repository `https://www.iamparadox.dev/jellyfin/plugins/manifest.json`). Home Screen Sections und Plugin Pages werden ab 12.48.0 nicht mehr gebraucht.
 - **Clients:** Browser, Jellyfin-Desktop-App, die Android-App „Jellyfin“ und die iOS-App „Jellyfin Mobile“ (beide zeigen die Weboberfläche). Native Apps (Android TV, Fire TV, Roku, **Swiftfin** auf iPhone/iPad/Apple TV) zeigen die Zeilen nicht – dort bleibt die normale Startseite. Gegebenenfalls App neu starten bzw. Cache leeren.
 
 Für Jellyfin 10.11.x bitte die Original-Version 0.6.1 verwenden.
@@ -80,9 +80,8 @@ Hast du früher das Repository `https://raw.githubusercontent.com/DrdotHouse2106
 
 ## Einrichtung
 
-1. **Plugins installieren:** Unter Dashboard → Plugins → Repositories das Repository `https://www.iamparadox.dev/jellyfin/plugins/manifest.json` hinzufügen und **Home Screen Sections**, **File Transformation** und **Plugin Pages** installieren. Danach Jellyfin neu starten.
-2. **Bereiche einschalten:** Dashboard → Plugins → **Home Screen Sections** → Plugin aktivieren und die Bereiche **„Empfohlene Filme für dich“**, **„Empfohlene Serien für dich“** und **„Heute im TV für dich“** für alle Benutzer einschalten. (Alternativ schaltet jeder Benutzer sie selbst über das Menü „Modular Home“ ein.)
-3. **Fertig.** Die erste Berechnung startet automatisch nach dem Serverstart. Danach aktualisiert die geplante Aufgabe „Empfehlungen aktualisieren“ (bis 12.25: „Refresh Local Recommendations“) die Empfehlungen täglich um 4 Uhr (oder sofort über Dashboard → Geplante Aufgaben).
+1. **Plugin installieren:** Unter Dashboard → Plugins → Repositories das Repository `https://www.iamparadox.dev/jellyfin/plugins/manifest.json` hinzufügen und **File Transformation** installieren. Danach Jellyfin neu starten.
+2. **Fertig.** Die erste Berechnung startet automatisch nach dem Serverstart. Danach aktualisiert die geplante Aufgabe „Empfehlungen aktualisieren“ (bis 12.25: „Refresh Local Recommendations“) die Empfehlungen täglich um 4 Uhr (oder sofort über Dashboard → Geplante Aufgaben).
 
 In den Plugin-Einstellungen (Dashboard → Plugins → Quallenkino) siehst du im Reiter **„Startseite“**, ob alles verbunden ist, und kannst die Titel der Zeilen ändern. Die Reiter: **Startseite** (Status, Zeilen, Live-TV), **Einstellungen** (Empfehlungen, Jellyfin Web, Kalender, Welten), **Auswertung**, **Welten**, **Fernsehprogramm** (LocalRecs EPG) und **Aktionen**.
 
@@ -111,7 +110,7 @@ Filme und Serien mit einer Community-Bewertung unter **5.0** werden nicht empfoh
 - **Abgebrochene Filme:** Wird ein Film vor einem Viertel der Laufzeit beendet und drei Tage lang nicht weitergeschaut, zählt das als leises „Gefällt mir nicht“: Ähnliche Titel werden etwas seltener empfohlen (halb so stark wie ein echtes „Gefällt mir nicht“).
 - **Mehr Abwechslung:** Höchstens ein Drittel der Film- bzw. Serienzeile stammt aus demselben Hauptgenre, der Rest wird mit den nächstbesten Titeln aufgefüllt.
 - **Filmreihen (ab 12.9.0):** Wurde ein Teil einer Jellyfin-Sammlung gesehen (z. B. „Harry Potter“), steht der nächste ungesehene Teil vorne in der Filmzeile – höchstens ein Viertel der Zeile, Mindestbewertung gilt weiterhin. Abschaltbar unter „Filmreihen: nächsten Teil vorziehen“.
-- **Begründung (ab 12.9.0):** Über dem Titel steht auf der Startseite, warum etwas empfohlen wird, z. B. „Weil du „Frieren“ geschaut hast“ (ähnlichster gesehener Titel) oder „Nächster Teil nach „Harry Potter 1““. Voraussetzung: In Home Screen Sections ist die Anzeige der Titel eingeschaltet. Abschaltbar unter „Begründung auf den Karten anzeigen“. Apps holen die Begründungen über `GET /LocalRecs/Recommendations/Reasons` (Zuordnung Element-ID → Text).
+- **Begründung (ab 12.9.0):** Über dem Titel steht auf der Startseite, warum etwas empfohlen wird, z. B. „Weil du „Frieren“ geschaut hast“ (ähnlichster gesehener Titel) oder „Nächster Teil nach „Harry Potter 1““. Abschaltbar unter „Begründung auf den Karten anzeigen“. Apps holen die Begründungen über `GET /LocalRecs/Recommendations/Reasons` (Zuordnung Element-ID → Text).
 - **Keine gesehenen Folgen im TV:** „Heute im TV für dich“ schlägt keine Folge vor, die schon live oder in der Bibliothek geschaut wurde (Abgleich über Sendung und Episodentitel). Läuft danach eine neue Folge, erscheint diese.
 
 ### Verhalten: wie stark, wann, wonach gesucht (ab 12.36.0)
@@ -122,7 +121,7 @@ Neben „gesehen“, Daumen und Favoriten wertet das Plugin aus – alles lokal 
 - **Tageszeit:** Aus den Wiedergabezeiten (Filme, Folgen, Live-TV) entsteht ein Profil, was jemand morgens (5–11 Uhr), tagsüber (11–17), abends (17–22) und nachts schaut. Die Empfehlungszeilen Filme/Serien/Live-TV der Quallenkino-Startseite stehen in der passenden Reihenfolge, Titel mit tageszeit-typischen Genres rücken etwas nach vorne („Gewicht der Tageszeit“, 0.15). Wirkt ab 15 Wiedergaben in der jeweiligen Tageszeit; die Uhrzeit kommt aus der Zeitzone des Browsers (`utcOffsetMinutes`), ohne Angabe die des Servers.
 - **Suchen und geöffnete Titel:** Was jemand in Jellyfin sucht (nach einer Tipp-Pause) und welche Detailseiten er öffnet, gilt als Interesse. Ähnliche Titel (Genres, Stichwörter) rücken nach vorne („Gewicht von Suchen und angesehenen Titeln“, 0.35; nach der „Nachwirkung“ von 30 Tagen zählt ein Eintrag noch ein Drittel, wiederholtes Interesse am selben Titel addiert sich), mit Begründung **„Weil du nach „…“ gesucht hast“** bzw. **„Weil du dir „…“ angesehen hast“**. Gespeichert in `plugins/LocalRecs/verhalten.json`: Suchbegriff mit den passenden Titeln bzw. Titel-ID, jeweils mit Zeit – standardmäßig 365 Tage und höchstens 1000 Einträge je Art (einstellbar: „Speicherdauer in Tagen“ 7–1095, „Einträge je Benutzer“ 50–5000).
 - **Für jeden einsehbar und abschaltbar:** Im Profilmenü **„Was Quallenkino sich merkt“** steht, was gemerkt ist und wie die Tageszeit gerade wirkt; dort lässt sich das Merken abschalten (löscht alles) oder alles löschen. Der Admin schaltet beides in den Einstellungen ab („Verhalten: Tageszeit, Suchen, angesehene Titel“).
-- Wirkung beim Abruf: Die nächtlich berechneten Empfehlungen werden beim Laden der Startseite bzw. von `GET /LocalRecs/Recommendations` (auch in Home Screen Sections) leicht umsortiert – Suchen wirken also sofort.
+- Wirkung beim Abruf: Die nächtlich berechneten Empfehlungen werden beim Laden der Startseite bzw. von `GET /LocalRecs/Recommendations` leicht umsortiert – Suchen wirken also sofort.
 - Schnittstelle (für den angemeldeten Benutzer): `POST /LocalRecs/Behavior/Search {Term}`, `POST /LocalRecs/Behavior/View {ItemId}`, `GET /LocalRecs/Behavior/Daypart?utcOffsetMinutes=`, `GET/POST/DELETE /LocalRecs/Behavior/Me`; `GET /LocalRecs/Recommendations` nimmt `utcOffsetMinutes`.
 
 Nicht ausgewertet: wohin jemand scrollt oder wie lange er auf einer Kachel verweilt, welches Gerät, Vorschaubilder – und nichts davon verlässt den Server.
@@ -161,7 +160,7 @@ Eigene Zeile für **Filmreihen** (TMDB-Sammlungen wie John Wick, Terminator oder
   - Jellyfins eigene Sammlungen mit TMDB-ID (eigene Zusammenstellungen ohne TMDB-ID zählen nicht)
   - sonst die nächtliche Abfrage bei TMDB (`movie/{id}` → `belongs_to_collection`): höchstens 400 Filme je Lauf, 60 Tage zwischengespeichert (`plugins/LocalRecs/filmreihen.json`). Gesendet wird nur die TMDB-ID des Films. Der Name der Reihe kommt in der Metadatensprache des Servers.
 - **Bilder:** Poster und Hintergrund der Reihe lädt der Server einmal von TMDB und speichert sie (`filmreihen-bilder/`). Die Geräte laden nichts direkt bei TMDB.
-- **Einstellungen:** Reiter „Startseite“ → „Zeile ‚Filmreihen für dich‘ anzeigen“ und der Titel der Zeile. Für Home Screen Sections dort einschalten, wirksam nach einem Neustart.
+- **Einstellungen:** Reiter „Startseite“ → „Zeile ‚Filmreihen für dich‘ anzeigen“ und der Titel der Zeile.
 - **Schnittstelle:**
   - `GET /LocalRecs/MovieSeries?limit=12` → `{ "Items": [{ "Id", "Name", "Total", "Watched", "Started", "NextIndex", "Reason", "InWorld", "HasPoster", "HasBackdrop", "Next": BaseItemDto, "PartIds": [...] }] }`
   - `GET /LocalRecs/MovieSeries/{id}` bzw. `/LocalRecs/MovieSeries/ByItem/{itemId}` → alle Teile als `Parts` (BaseItemDto, Erscheinungsreihenfolge), `NextIndex`, `Watched`, `Total`
@@ -188,7 +187,7 @@ Zur Weihnachtszeit eine Zeile „Weihnachtsfilme“, an Halloween „Halloween�
 - **Rechte:** Jeder Benutzer sieht nur Titel aus seinen Bibliotheken und innerhalb seiner Altersfreigabe. Titel aus einer Bibliothek, die ein Profil nicht sehen darf, erscheinen dort nie.
 - **Reihenfolge:** Ungesehenes zuerst, Filme und Serien vor einzelnen Folgen, dann nach Geschmack (Position in den Empfehlungen) und Bewertung. Erst eine Folge je Serie, weitere Folgen derselben Serie (höchstens 3) dahinter. Höchstens 20 Titel. Die Zeile erscheint erst ab einer Mindestanzahl (Standard 4).
 - **Specials (Staffel 0)** zählen ab 12.46.0 nur, wenn auch der Dateiname passt. Die Nummerierung von Specials weicht zwischen TVDB und TMDB oft ab, dann gehört der Titel in Jellyfin zu einer anderen Datei. Ein Dateiname ohne eigenen Titel (nur `S00E03`) gilt als passend.
-- **Einstellungen:** Reiter „Startseite“ → „Passend zur Jahreszeit“ an/aus, Mindestanzahl, Valentinstag. Für Home Screen Sections heißt die Zeile „Passend zur Jahreszeit“ und ist außerhalb der Zeitfenster leer.
+- **Einstellungen:** Reiter „Startseite“ → „Passend zur Jahreszeit“ an/aus, Mindestanzahl, Valentinstag.
 - **Schnittstelle:**
   - `GET /LocalRecs/Seasonal?utcOffsetMinutes=120` → `{ "Active", "Id", "Title", "Items": [...] }`
   - `?season=weihnachten` (bzw. `silvester`, `halloween`, `ostern`, `valentinstag`) zeigt eine Jahreszeit auch außerhalb ihres Fensters, z. B. zum Ausprobieren
@@ -216,12 +215,35 @@ Zur Weihnachtszeit eine Zeile „Weihnachtsfilme“, an Halloween „Halloween�
 - **Rechte:** Alle Abfragen laufen im Namen des Benutzers. Jeder sieht nur Titel aus seinen Bibliotheken und innerhalb seiner Altersfreigabe.
 - **Kinostart:** Die Teile der Filmreihen und ihre Starttermine werden wöchentlich nachts bei TMDB abgefragt (`collection/{id}`, `movie/{id}/release_dates`). Gesendet werden nur TMDB-IDs; ein TMDB-Schlüssel ist nötig.
 - **Nicht dabei:** Geburtstage von Schauspielern (bräuchte für jeden Titel die Besetzung samt Geburtsdaten und wirkt schnell beliebig), Ereignisse wie Preisverleihungen oder Sportturniere, Schulferien und „Verlässt bald“.
-- **Home Screen Sections:** je Zeile ein Bereich (`LocalRecsOnTvToday`, `LocalRecsNewThisWeek`, `LocalRecsCinema`, `LocalRecsAnniversary`, `LocalRecsYearAgo`), dort einschalten, wirksam nach Neustart.
 - **Schnittstelle:**
   - `GET /LocalRecs/Moments?utcOffsetMinutes=120` → `{ "Rows": [ { "Key", "Title", "Items": [...], "Reasons": { "<ItemId>": "…" } } ] }`, nur eingeschaltete und nicht leere Zeilen in Anzeigereihenfolge
   - `Key`: `ontv`, `newthisweek`, `cinema`, `anniversary`, `yearago`; `?key=cinema` liefert nur diese Zeile
   - `/LocalRecs/Web/Config` meldet `"Moments": true`
   - Die Zeilen werden 10 Minuten zwischengespeichert.
+
+### Demnächst (ab 12.48.0)
+
+Eine Zeile **„Demnächst“** mit neuen Folgen und bald erscheinenden Filmen, aus **Sonarr** und **Radarr**. Nur lesend: Quallenkino fragt nichts an und merkt nichts vor (auch nicht über Jellyseerr).
+
+- **Folgen (Sonarr):** Kalender `/api/v3/calendar` der nächsten 14 Tage (einstellbar 1–60). Nur Serien, die in Jellyfin liegen (Abgleich über TVDB, TMDB, IMDb, sonst den Titel), und nur noch nicht heruntergeladene Folgen. Je Serie eine Karte mit der nächsten Folge, z. B. „Neue Folge S02E05 · Freitag“, weitere Folgen im Zeitraum als „+2 weitere“. Ein Klick öffnet die Serie.
+- **Filme (Radarr):** vorgemerkte, noch nicht vorhandene Filme, deren digitale oder Disc-Veröffentlichung in den nächsten 30 Tagen liegt (einstellbar 1–90), z. B. „Ab 14.11. verfügbar“. Bilder kommen über den Server aus Radarr. Ein Klick zeigt Titel, Jahr und Beschreibung.
+- **Reihenfolge:** Serien, die das Profil als Favorit hat oder in den letzten 90 Tagen geschaut hat, zuerst; danach nach Datum. Höchstens 30 Einträge.
+- **Rechte:** Serien nur aus den Bibliotheken des Profils. Filme nur, wenn der Radarr-Stammordner zu einer Filmbibliothek des Profils passt (gleicher Ordnername, z. B. `/movies/Kinder` ↔ `/data/Kinder`); passt er zu keiner Bibliothek, sehen ihn nur Profile mit allen Filmbibliotheken. Die Altersfreigabe aus Radarr wird wie bei Jellyfin-Titeln geprüft.
+- **Einstellungen:** Reiter „Startseite“ → „Demnächst (Sonarr und Radarr)“: Adressen, API-Schlüssel (Sonarr/Radarr → Settings → General), Zeiträume und „Verbindung prüfen“. Die Schlüssel werden nur im Kopf `X-Api-Key` gesendet, nie protokolliert und nicht in Konfigurationssicherungen gespeichert. Die Kalender werden 30 Minuten zwischengespeichert.
+- **Schnittstelle:**
+  - `GET /LocalRecs/Upcoming?utcOffsetMinutes=120` → `{ "Items": [ { "Kind": "Episode"|"Movie", "Title", "Subtitle", "Date", "Series": {…}, "SeasonNumber", "EpisodeNumber", "EpisodeTitle", "MoreEpisodes", "Movie": { "RadarrId", "TmdbId", "ImdbId", "Year", "Overview", "OfficialRating", "PosterUrl", "BackdropUrl" } } ] }`
+  - `PosterUrl`/`BackdropUrl` sind relativ zum Server (`LocalRecs/Upcoming/Movies/{id}/Images/Poster|Backdrop`, ohne Anmeldung, nur für Filme im aktuellen Kalender)
+  - `GET /LocalRecs/Upcoming/Status` (nur Admins) prüft die Verbindung
+  - `/LocalRecs/Web/Config` meldet `"Upcoming": true`
+
+### Ohne Home Screen Sections (ab 12.48.0)
+
+Quallenkino meldet sich nicht mehr bei Home Screen Sections an. Die Startseite zeichnet das Web-Modul selbst (über File Transformation), die Apps holen die Zeilen über die Schnittstellen unter `/LocalRecs`. Home Screen Sections kann deinstalliert werden; Quallenkino startet auch ohne es fehlerfrei.
+
+- **„Jellyfin-Startseite anzeigen“** (früher „Klassische Startseite anzeigen“) unten auf der Quallenkino-Startseite zeigt Jellyfins eigene Startseite (Weiterschauen, Neu hinzugefügt …) ohne die Quallenkino-Zeilen. Zurück über „Startseite im Quallenkino-Stil anzeigen“. Die Wahl gilt pro Profil und Gerät.
+- Die Titel der Empfehlungszeilen (Reiter „Startseite“) und der Schalter für „Heute im TV für dich“ gelten jetzt für die Quallenkino-Startseite (`/LocalRecs/Web/Config`: `MoviesTitle`, `SeriesTitle`, `LiveTvTitle`, `LiveTvRow`).
+- Der Eintrag „Modular Home“ im Profilmenü kommt von Home Screen Sections und verschwindet mit ihm.
+- **Seitenleiste:** Die Gruppe „Jellyfin Enhanced“ mit „Enhanced Panel“ wird ausgeblendet; das Panel bleibt über „Jellyfin Enhanced“ im Profilmenü erreichbar.
 
 ### Metadaten-Check (ab 12.38.0)
 
@@ -246,7 +268,7 @@ Das Plugin merkt sich, was es wem empfohlen hat, und zählt, was davon danach ge
 
 ### Startseite im Quallenkino-Stil für Jellyfin Web (ab 12.18.0)
 
-Im Browser und in den Jellyfin-Apps für iOS und Android kann die Startseite wie in der TV-App Quallenkino aussehen, mit all ihren Reihen. Voraussetzung ist das Plugin **File Transformation** (aus dem gleichen Katalog wie Home Screen Sections). Einschalten im Reiter **„Einstellungen“**, Abschnitt **Jellyfin Web**: **„Startseite im Quallenkino-Stil“**, die Farben separat über **„Quallenkino-Farben“**.
+Im Browser und in den Jellyfin-Apps für iOS und Android kann die Startseite wie in der TV-App Quallenkino aussehen, mit all ihren Reihen. Voraussetzung ist das Plugin **File Transformation** (Repository `https://www.iamparadox.dev/jellyfin/plugins/manifest.json`). Einschalten im Reiter **„Einstellungen“**, Abschnitt **Jellyfin Web**: **„Startseite im Quallenkino-Stil“**, die Farben separat über **„Quallenkino-Farben“**.
 
 - **Großer Infobereich** mit Hintergrundbild, Logo, Begründung und den Knöpfen „Abspielen“ und „Weitere Infos“. Ab 12.41.0 kommt der Titel aus dem **Banner des Tages** (siehe Schnittstelle): täglich neu, je geöffnetem Tab einer von fünf. Ab 12.42.0 mischt der Banner Neues mit **Weiterschauen** (angefangene Serien, neue Folgen, angefangene Filme). Der Knopf **„Später“** nimmt einen Titel für drei Wochen aus dem Banner; in den Empfehlungen bleibt er, und als Ablehnung zählt das nicht. Zurückholen geht unter „Was Quallenkino sich merkt“. Hat der Titel einen lokalen Trailer, läuft er nach kurzer Zeit im Hintergrund – immer stumm, auf dem PC mit Ton-Knopf. Die Kopfleiste ist über dem Bild durchsichtig und wird beim Scrollen dunkel.
 - **Reihen:** Weiterschauen, Als Nächstes, Empfohlene Filme und Serien (mit Begründung), Heute im TV für dich, Top 10 (große Ziffern), Welten (Kachel öffnet die Welten-Seite mit Filter und Sortierung), Jetzt im TV, „Neu in …“ je Bibliothek, Genre-Reihen und Bibliotheken. Alles wird gleichzeitig geladen; die letzte Startseite erscheint sofort aus dem Speicher des Browsers und wird im Hintergrund Reihe für Reihe aktualisiert.
@@ -430,7 +452,7 @@ Header: X-Device-Id: <Jellyfin-Geräte-ID der App>
 
 `Proof = hex(HMAC-SHA256(Schlüssel = SHA-256(UTF-8 Zugangsschlüssel), Nachricht = UTF-8 "nonce|ServerId|host"))`, `host` = die angesprochene Adresse in Kleinbuchstaben mit Port, z. B. `192.168.1.10:8096`. Die App rechnet den Proof selbst aus und schickt ihren Schlüssel nur, wenn er in `Proofs` steht (ein Eintrag je Anmeldung des Geräts) und `ServerId` stimmt. Ohne Anmeldung, aber nur bei **direkter Verbindung aus dem lokalen Netz** (laut Jellyfins Netzwerkeinstellung, keine Weiterleitungs-Header wie `X-Forwarded-For`) – sonst 403. So kann ein falscher Server die Anfrage nicht über das Internet an den echten durchreichen; die angesprochene Adresse ist Teil des Proofs. Höchstens 30 Anfragen pro Minute und Adresse (429). `Proofs` enthält ab 12.39.0 immer mindestens 4 Einträge in zufälliger Reihenfolge (aufgefüllt mit Zufallswerten), damit die Antwort nicht verrät, ob ein Gerät bekannt ist.
 
-Apps, die „Home Screen Sections“ nicht anzeigen (z. B. [Jellyfin-TV-Client](https://github.com/DrdotHouse2106/Jellyfin-TV-Client) für Android TV / Fire TV), holen die Empfehlungen direkt:
+Eigene Apps (z. B. [Jellyfin-TV-Client](https://github.com/DrdotHouse2106/Jellyfin-TV-Client) für Android TV / Fire TV), holen die Empfehlungen direkt:
 
 ```
 GET /LocalRecs/Recommendations?type=movies|series|livetv&limit=20
@@ -439,7 +461,6 @@ GET /LocalRecs/Recommendations?type=movies|series|livetv&limit=20
 - Nur für den **angemeldeten Benutzer** (normales Jellyfin-Token, kein Admin nötig).
 - Antwort wie bei Jellyfin üblich: `{ "Items": [ … ], "TotalRecordCount": n }` – dieselben Einträge wie in den Startseiten-Zeilen.
 - `limit` ist optional; ohne `limit` gilt die Anzahl aus den Plugin-Einstellungen.
-- Funktioniert auch **ohne** Home Screen Sections.
 
 Außerdem (ab 12.6.0):
 
@@ -520,11 +541,11 @@ Jeweils **Symptom**, **Ursache** und **Lösung**. Wird laufend ergänzt.
 
 **Die Empfehlungszeilen erscheinen nicht.**
 - Ursache:
-  - Home Screen Sections, File Transformation oder Plugin Pages fehlen, oder die Bereiche sind nicht eingeschaltet.
+  - File Transformation fehlt, oder die Quallenkino-Startseite ist für dieses Profil ausgeschaltet („Jellyfin-Startseite anzeigen“).
   - Oder es wurde noch nichts berechnet.
 - Lösung:
   - Im Plugin den Reiter **„Startseite“** öffnen; er zeigt, was fehlt.
-  - In Home Screen Sections die Bereiche einschalten.
+  - Unten auf der Jellyfin-Startseite „Startseite im Quallenkino-Stil anzeigen“ antippen.
   - Dashboard → Geplante Aufgaben → „Empfehlungen aktualisieren“ starten.
   - Native Apps (Android TV, Fire TV, Roku, Swiftfin) zeigen die Zeilen grundsätzlich nicht.
 

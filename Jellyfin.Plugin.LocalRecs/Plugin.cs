@@ -28,7 +28,7 @@ namespace Jellyfin.Plugin.LocalRecs
         private const int MaxBackups = 10;
 
         // Schlüssel und Geheimnisse kommen nicht in die Sicherungen
-        private static readonly string[] SecretFields = { nameof(PluginConfiguration.TmdbApiKey), nameof(PluginConfiguration.TraktClientSecret), nameof(PluginConfiguration.FanartApiKey) };
+        private static readonly string[] SecretFields = { nameof(PluginConfiguration.TmdbApiKey), nameof(PluginConfiguration.TraktClientSecret), nameof(PluginConfiguration.FanartApiKey), nameof(PluginConfiguration.SonarrApiKey), nameof(PluginConfiguration.RadarrApiKey) };
 
         private static readonly Guid _id = new Guid("2d2a8fdf-0593-4258-a83c-31c4b14e0110");
 
@@ -192,6 +192,8 @@ namespace Jellyfin.Plugin.LocalRecs
             restored.TmdbApiKey = string.IsNullOrEmpty(restored.TmdbApiKey) ? current.TmdbApiKey : restored.TmdbApiKey;
             restored.TraktClientSecret = string.IsNullOrEmpty(restored.TraktClientSecret) ? current.TraktClientSecret : restored.TraktClientSecret;
             restored.FanartApiKey = string.IsNullOrEmpty(restored.FanartApiKey) ? current.FanartApiKey : restored.FanartApiKey;
+            restored.SonarrApiKey = string.IsNullOrEmpty(restored.SonarrApiKey) ? current.SonarrApiKey : restored.SonarrApiKey;
+            restored.RadarrApiKey = string.IsNullOrEmpty(restored.RadarrApiKey) ? current.RadarrApiKey : restored.RadarrApiKey;
             UpdateConfiguration(restored);
             return true;
         }

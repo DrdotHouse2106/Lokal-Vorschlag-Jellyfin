@@ -64,7 +64,7 @@ namespace Jellyfin.Plugin.LocalRecs
                     Path.Combine(sp.GetRequiredService<MediaBrowser.Controller.IServerApplicationPaths>().PluginConfigurationsPath, "Trakt.xml")));
             serviceCollection.AddSingleton<RecommendationRefreshService>();
 
-            // Phase 7: Home screen sections (via the "Home Screen Sections" plugin)
+            // Gespeicherte Empfehlungen je Benutzer
             serviceCollection.AddSingleton(sp =>
                 new RecommendationStore(
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RecommendationStore>>(),
@@ -77,7 +77,7 @@ namespace Jellyfin.Plugin.LocalRecs
                     sp.GetRequiredService<MediaBrowser.Controller.Library.IUserManager>(),
                     Path.Combine(GetPluginDataPath(sp), "virtual-libraries")));
 
-            serviceCollection.AddHostedService<HomeScreenSectionsIntegration>();
+            serviceCollection.AddHostedService<StartupService>();
 
             // Startseite im Quallenkino-Stil für Jellyfin Web (über das Plugin „File Transformation“)
             serviceCollection.AddHostedService<Web.WebIntegration>();
@@ -85,7 +85,7 @@ namespace Jellyfin.Plugin.LocalRecs
             // Alte Ordner dieses Plugins (auch unter früherem Namen) beim Start entfernen
             serviceCollection.AddHostedService<PluginFolderCleanup>();
 
-            // Empfehlungen für TV-Apps ohne Home Screen Sections (GET /LocalRecs/Recommendations)
+            // Verhalten (Tageszeit, Suchen, angesehene Titel)
             serviceCollection.AddSingleton(sp =>
                 new Behavior.BehaviorStore(
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Behavior.BehaviorStore>>(),
@@ -102,7 +102,6 @@ namespace Jellyfin.Plugin.LocalRecs
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Collections.MovieSeriesLookup>>(),
                     Path.Combine(GetPluginDataPath(sp), "filmreihen.json")));
             serviceCollection.AddSingleton<Collections.MovieSeriesService>();
-            serviceCollection.AddSingleton<MovieSeriesSectionHandler>();
             serviceCollection.AddSingleton(sp =>
                 new Seasonal.SeasonalKeywordLookup(
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Seasonal.SeasonalKeywordLookup>>(),
@@ -110,7 +109,7 @@ namespace Jellyfin.Plugin.LocalRecs
             serviceCollection.AddSingleton<Seasonal.SeasonalService>();
             serviceCollection.AddSingleton<SeasonalSectionHandler>();
             serviceCollection.AddSingleton<Moments.MomentsService>();
-            serviceCollection.AddSingleton<MomentsSectionHandler>();
+            serviceCollection.AddSingleton<Upcoming.UpcomingService>();
             serviceCollection.AddSingleton<RecommendationSectionHandler>();
             serviceCollection.AddSingleton<LiveTvSectionHandler>();
 

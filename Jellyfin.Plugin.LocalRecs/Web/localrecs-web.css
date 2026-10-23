@@ -3146,3 +3146,24 @@ html.lr-profiles-open body {
     align-items: flex-end;
     background: none;
 }
+
+/* Seitenleiste: Gruppe „Jellyfin Enhanced“ mit „Enhanced Panel“ ausblenden – das Panel bleibt im Profilmenü erreichbar */
+body.lr-tidy-header .jellyfinEnhancedSection,
+body.lr-tidy-header .navMenuOption#jellyfinEnhancedSettingsLink,
+body.lr-tidy-header #jellyfinEnhancedSettingsLink {
+    display: none !important;
+}
+
+/* Demnächst: Film, der noch nicht in Jellyfin ist */
+.lr-upcoming-poster {
+    float: right;
+    width: 120px;
+    margin: 0 0 12px 16px;
+    border-radius: 6px;
+}
+
+.lr-upcoming-note {
+    clear: both;
+    opacity: 0.7;
+    font-size: 0.85em;
+}
