@@ -44,6 +44,7 @@
         loading: false,
         lastLoad: 0,
         reasons: {},
+        newEpisodes: {},
         heroVideoTimer: null,
         previewTimer: null,
         preview: null
@@ -2237,6 +2238,9 @@
         if (meta) {
             left.appendChild(el('div', 'lr-info-meta', meta));
         }
+        if (item.Type === 'Series' && state.config && state.config.Upcoming) {
+            left.appendChild(seriesUpcomingBox(item));
+        }
         var actions = el('div', 'lr-info-actions');
         actions.appendChild(favoriteButton(item));
         actions.appendChild(likeButton(item));
@@ -2415,8 +2419,52 @@
         });
     }
 
+    // Kommende Folge der Serie aus Sonarr („Neue Folge heute · 21:00 Uhr · Paramount+ · S02E05 Titel“) und heute
+    // Erschienenes („Neu: S02E05“) – die neuen Folgen werden in der Folgenliste markiert
+    function seriesUpcomingBox(series) {
+        var box = el('div', 'lr-info-upcoming lr-hidden');
+        getJson('LocalRecs/Upcoming/Series/' + series.Id + '?utcOffsetMinutes=' + utcOffset()).then(function (result) {
+            if (!result || (!result.Text && !result.NewText)) {
+                return;
+            }
+            if (result.NewText) {
+                var fresh = el('div', 'lr-upcoming-new');
+                fresh.appendChild(icon('fiber_new'));
+                fresh.appendChild(el('span', null, result.NewText));
+                box.appendChild(fresh);
+                (result.NewToday || []).forEach(function (episode) {
+                    if (episode.ItemId) {
+                        state.newEpisodes[episode.ItemId] = true;
+                        document.querySelectorAll('.lr-episode[data-id="' + episode.ItemId + '"]').forEach(markNewEpisode);
+                    }
+                });
+            }
+            if (result.Text) {
+                var next = el('div', 'lr-upcoming-next');
+                next.appendChild(icon('event'));
+                next.appendChild(el('span', null, result.Text + (result.MoreText ? ' · ' + result.MoreText : '')));
+                if (result.Next && result.Next.EpisodeOverview) {
+                    next.title = result.Next.EpisodeOverview;
+                }
+                box.appendChild(next);
+            }
+            box.classList.remove('lr-hidden');
+        }).catch(function () {
+            // ohne Sonarr kein Hinweis
+        });
+        return box;
+    }
+
+    function markNewEpisode(row) {
+        if (!row.querySelector('.lr-episode-new')) {
+            row.classList.add('lr-new');
+            row.querySelector('.lr-episode-title').prepend(el('span', 'lr-episode-new', 'NEU'));
+        }
+    }
+
     function episodeRow(episode) {
         var row = el('div', 'lr-episode');
+        row.dataset.id = episode.Id;
         row.appendChild(el('div', 'lr-episode-number', episode.IndexNumber != null && !datedNumbering(episode) ? String(episode.IndexNumber) : ''));
         var frame = el('div', 'lr-episode-frame');
         var image = landscapeImage(episode);
@@ -2449,6 +2497,9 @@
             row.classList.add('lr-watched');
         }
         row.appendChild(text);
+        if (state.newEpisodes[episode.Id]) {
+            markNewEpisode(row);
+        }
         onActivate(row, function () {
             play(episode);
         });

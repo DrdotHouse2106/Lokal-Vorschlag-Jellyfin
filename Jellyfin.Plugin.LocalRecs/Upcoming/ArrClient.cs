@@ -134,6 +134,103 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
         }
 
         /// <summary>
+        /// Reads Sonarr's series list (<c>/api/v3/series</c>): ID, title, TVDB/TMDB/IMDb ID and network.
+        /// </summary>
+        /// <param name="json">The answer.</param>
+        /// <returns>The series as episodes without episode data (series fields only).</returns>
+        public static List<ArrEpisode> ParseSonarrSeries(string json)
+        {
+            using var document = JsonDocument.Parse(json);
+            var result = new List<ArrEpisode>();
+            if (document.RootElement.ValueKind != JsonValueKind.Array)
+            {
+                return result;
+            }
+
+            foreach (var series in document.RootElement.EnumerateArray())
+            {
+                if (Int(series, "id") is not int id)
+                {
+                    continue;
+                }
+
+                result.Add(new ArrEpisode
+                {
+                    SonarrSeriesId = id,
+                    SeriesTitle = Text(series, "title") ?? string.Empty,
+                    TvdbId = Int(series, "tvdbId") is int tvdb && tvdb > 0 ? tvdb.ToString(CultureInfo.InvariantCulture) : null,
+                    TmdbId = Int(series, "tmdbId") is int tmdb && tmdb > 0 ? tmdb.ToString(CultureInfo.InvariantCulture) : null,
+                    ImdbId = Text(series, "imdbId"),
+                    Network = Text(series, "network")
+                });
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Reads all episodes of a series (<c>/api/v3/episode?seriesId=</c>), including downloaded ones (<see cref="ArrEpisode.HasFile"/>).
+        /// Episodes without air date are left out.
+        /// </summary>
+        /// <param name="json">The answer.</param>
+        /// <returns>The episodes.</returns>
+        public static List<ArrEpisode> ParseSonarrEpisodes(string json)
+        {
+            using var document = JsonDocument.Parse(json);
+            var result = new List<ArrEpisode>();
+            if (document.RootElement.ValueKind != JsonValueKind.Array)
+            {
+                return result;
+            }
+
+            foreach (var e in document.RootElement.EnumerateArray())
+            {
+                if (!TryDate(e, "airDateUtc", out var air))
+                {
+                    continue;
+                }
+
+                result.Add(new ArrEpisode
+                {
+                    SonarrSeriesId = Int(e, "seriesId") ?? 0,
+                    SeasonNumber = Int(e, "seasonNumber") ?? 0,
+                    EpisodeNumber = Int(e, "episodeNumber") ?? 0,
+                    Title = Text(e, "title"),
+                    Overview = Text(e, "overview"),
+                    AirDateUtc = air,
+                    HasFile = Bool(e, "hasFile")
+                });
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Gets Sonarr's series list.
+        /// </summary>
+        /// <param name="baseUrl">Base address.</param>
+        /// <param name="apiKey">API key.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The series.</returns>
+        public async Task<List<ArrEpisode>> GetSeriesListAsync(string baseUrl, string apiKey, CancellationToken cancellationToken)
+        {
+            return ParseSonarrSeries(await GetStringAsync(baseUrl + "/api/v3/series", apiKey, cancellationToken).ConfigureAwait(false));
+        }
+
+        /// <summary>
+        /// Gets all episodes of a Sonarr series.
+        /// </summary>
+        /// <param name="baseUrl">Base address.</param>
+        /// <param name="apiKey">API key.</param>
+        /// <param name="sonarrSeriesId">Sonarr's series ID.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The episodes.</returns>
+        public async Task<List<ArrEpisode>> GetSeriesEpisodesAsync(string baseUrl, string apiKey, int sonarrSeriesId, CancellationToken cancellationToken)
+        {
+            return ParseSonarrEpisodes(await GetStringAsync(baseUrl + "/api/v3/episode?seriesId=" + sonarrSeriesId.ToString(CultureInfo.InvariantCulture), apiKey, cancellationToken).ConfigureAwait(false));
+        }
+
+        /// <summary>
         /// Gets Sonarr's calendar.
         /// </summary>
         /// <param name="baseUrl">Base address.</param>

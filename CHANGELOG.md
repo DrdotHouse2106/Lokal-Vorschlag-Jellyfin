@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.52.0] - 2026-10-23
+
+### Added
+
+- **Upcoming episodes on the series page:** below the facts the next episode Sonarr knows, without time limit („Neue Folge heute · 21:00 Uhr · Paramount+ · S02E05 Title“, „Staffelstart morgen“, „Nächste Folge am Fr. 31.10.“, „+2 weitere bis 06.11.“), and „Neu: S02E05“ for episodes that aired today and are already imported; those are marked NEU in the episode list. Uses Sonarr's series list (cached 6 h) and the series' episodes (30 min); same rights as „Demnächst“, read only.
+- API `GET /LocalRecs/Upcoming/Series/{seriesId}` (204 without data).
+
 ## [12.51.0] - 2026-10-23
 
 ### Fixed

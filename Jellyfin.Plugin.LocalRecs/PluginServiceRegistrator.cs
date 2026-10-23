@@ -110,6 +110,7 @@ namespace Jellyfin.Plugin.LocalRecs
             serviceCollection.AddSingleton<SeasonalSectionHandler>();
             serviceCollection.AddSingleton<Moments.MomentsService>();
             serviceCollection.AddSingleton<Upcoming.UpcomingService>();
+            serviceCollection.AddSingleton<Upcoming.SeriesUpcomingService>();
             serviceCollection.AddSingleton<RecommendationSectionHandler>();
             serviceCollection.AddSingleton<LiveTvSectionHandler>();
 

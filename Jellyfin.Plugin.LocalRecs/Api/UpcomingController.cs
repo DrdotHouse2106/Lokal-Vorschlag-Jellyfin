@@ -24,6 +24,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
     public class UpcomingController : ControllerBase
     {
         private readonly UpcomingService _upcoming;
+        private readonly SeriesUpcomingService _seriesUpcoming;
         private readonly IUserManager _userManager;
         private readonly IDtoService _dtoService;
 
@@ -31,11 +32,13 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// Initializes a new instance of the <see cref="UpcomingController"/> class.
         /// </summary>
         /// <param name="upcoming">Upcoming episodes and movies.</param>
+        /// <param name="seriesUpcoming">Upcoming episodes of a single series.</param>
         /// <param name="userManager">User manager.</param>
         /// <param name="dtoService">DTO service.</param>
-        public UpcomingController(UpcomingService upcoming, IUserManager userManager, IDtoService dtoService)
+        public UpcomingController(UpcomingService upcoming, SeriesUpcomingService seriesUpcoming, IUserManager userManager, IDtoService dtoService)
         {
             _upcoming = upcoming ?? throw new ArgumentNullException(nameof(upcoming));
+            _seriesUpcoming = seriesUpcoming ?? throw new ArgumentNullException(nameof(seriesUpcoming));
             _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
             _dtoService = dtoService ?? throw new ArgumentNullException(nameof(dtoService));
         }
@@ -87,6 +90,35 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 }
             }).ToList();
             return new UpcomingResult { Items = items, TotalRecordCount = items.Count };
+        }
+
+        /// <summary>
+        /// Gets what comes next for a series (for its detail page): the next episode Sonarr knows (no time limit) with a ready line,
+        /// further episodes within 30 days after it, and episodes that aired today and are already in the library.
+        /// 204 if Sonarr is not set up, does not know the series, or the user cannot see it.
+        /// </summary>
+        /// <param name="seriesId">Jellyfin ID of the series.</param>
+        /// <param name="utcOffsetMinutes">Offset of the app's time zone in minutes, optional.</param>
+        /// <returns>The upcoming episodes.</returns>
+        [HttpGet("Series/{seriesId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<ActionResult<SeriesUpcoming>> GetForSeries([FromRoute] Guid seriesId, [FromQuery] int? utcOffsetMinutes = null)
+        {
+            var user = _userManager.GetUserById(RecommendationsController.GetUserId(User));
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            Response.Headers.CacheControl = "no-store";
+            var result = await _seriesUpcoming.GetAsync(user, seriesId, utcOffsetMinutes, HttpContext.RequestAborted).ConfigureAwait(false);
+            if (result == null)
+            {
+                return NoContent();
+            }
+
+            return result;
         }
 
         /// <summary>

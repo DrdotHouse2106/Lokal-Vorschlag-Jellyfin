@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.52.0.0",
+        "changelog": "Kommende Folgen auf der Serienseite\n- Auf der Detailseite einer Serie steht, was Sonarr als Nächstes kennt: „Neue Folge heute · 21:00 Uhr · Sender · S02E05 Titel“, „Staffelstart morgen“, „Nächste Folge am …“, „+2 weitere bis …“\n- „Neu: S02E05“ für heute erschienene, schon importierte Folgen, in der Folgenliste markiert\n- Neuer Endpunkt GET /LocalRecs/Upcoming/Series/{seriesId}\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.52.0.zip",
+        "checksum": "fffaf2632f7ddfa1255443bb9955f351",
+        "timestamp": "2026-10-23T20:00:00Z"
+      },
+      {
         "version": "12.51.0.0",
         "changelog": "Schnittstellen für Apps\n- Jede Antwort mit einer Titelliste trägt TotalRecordCount (Moments samt jeder Zeile, Teile einer Filmreihe, zuletzt gesehene Welt), damit Apps mit dem Jellyfin-SDK sie lesen können\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

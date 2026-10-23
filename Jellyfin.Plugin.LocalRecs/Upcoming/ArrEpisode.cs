@@ -35,6 +35,9 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
         /// <summary>Gets or sets the network of the series (e.g. „Paramount+“).</summary>
         public string? Network { get; set; }
 
+        /// <summary>Gets or sets a value indicating whether the episode is already downloaded.</summary>
+        public bool HasFile { get; set; }
+
         /// <summary>Gets or sets the air time (UTC).</summary>
         public DateTime AirDateUtc { get; set; }
     }

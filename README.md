@@ -252,6 +252,29 @@ Eine Zeile **„Demnächst“** mit neuen Folgen und bald erscheinenden Filmen, 
   - `GET /LocalRecs/Upcoming/Status` (nur Admins) prüft die Verbindung
   - `/LocalRecs/Web/Config` meldet `"Upcoming": true`
 
+### Kommende Folgen auf der Serienseite (ab 12.52.0)
+
+Auf der Detailseite einer Serie steht oben unter den Eckdaten, was Sonarr als Nächstes kennt, zum Beispiel:
+
+- „Neue Folge heute · 21:00 Uhr · Paramount+ · S02E05 Folgentitel“
+- „Staffelstart morgen · …“, „Serienstart am …“
+- „Nächste Folge am Fr. 31.10. · …“, dazu „+2 weitere bis 06.11.“, wenn in den 30 Tagen danach weitere Folgen kommen
+- **„Neu: S02E05“**, wenn eine Folge heute erschienen und schon in der Bibliothek ist; sie ist in der Folgenliste mit **NEU** markiert.
+
+Es zählt die nächste bekannte Folge ohne Zeitgrenze (auch Monate später); Specials nur, wenn sonst nichts kommt. Rechte wie bei „Demnächst“ (nur Serien, die das Profil sehen darf), nur lesend. Die Serienliste von Sonarr wird 6 Stunden, die Folgen einer Serie 30 Minuten zwischengespeichert.
+
+**Schnittstelle:** `GET /LocalRecs/Upcoming/Series/{seriesId}?utcOffsetMinutes=120` → 204 ohne Inhalt, wenn Sonarr nicht eingerichtet ist, die Serie nicht kennt oder das Profil sie nicht sehen darf; sonst:
+
+```
+{ "Next": { "SeasonNumber", "EpisodeNumber", "EpisodeTitle", "EpisodeOverview", "Date" (UTC), "LocalDate", "ReleaseType", "Network" },
+  "Text": "Neue Folge heute · 21:00 Uhr · Paramount+ · S02E05 Folgentitel",
+  "MoreEpisodes": 2, "MoreUntil": "2026-11-06", "MoreText": "+2 weitere bis 06.11.",
+  "NewToday": [ { "SeasonNumber", "EpisodeNumber", "EpisodeTitle", "Date", "LocalDate", "ReleaseType", "ItemId" } ],
+  "NewText": "Neu: S02E05" }
+```
+
+`ReleaseType` wie bei „Demnächst“ (`NewEpisode`, `SeasonPremiere`, `SeriesPremiere`). `ItemId` ist die Jellyfin-ID der schon vorhandenen Folge (zum Markieren). Leere Texte bzw. fehlende Felder bedeuten: nichts anzuzeigen.
+
 ### Ohne Home Screen Sections (ab 12.48.0)
 
 Quallenkino meldet sich nicht mehr bei Home Screen Sections an. Die Startseite zeichnet das Web-Modul selbst (über File Transformation), die Apps holen die Zeilen über die Schnittstellen unter `/LocalRecs`. Home Screen Sections kann deinstalliert werden; Quallenkino startet auch ohne es fehlerfrei.
