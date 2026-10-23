@@ -593,6 +593,10 @@ Jeweils **Symptom**, **Ursache** und **Lösung**. Wird laufend ergänzt.
 - Ursache: File Transformation fehlt, der Schalter für die Oberfläche ist aus, oder der Browser bzw. die App zeigt noch die alte Seite.
 - Lösung: File Transformation installieren, im Reiter „Einstellungen“ die Jellyfin-Web-Schalter prüfen, dann neu laden (Strg+F5, in der iOS-App nach unten ziehen).
 
+**Nach Abmelden und Anmelden als anderer Benutzer lädt die Startseite endlos (bis 12.52.0).**
+- Ursache: Der Ladevorgang des vorigen Benutzers galt noch als laufend, die neue Startseite lud deshalb nicht.
+- Lösung: Ab 12.52.1 behoben. Bis dahin hilft Neuladen (Strg+F5 bzw. in der iOS-App nach unten ziehen).
+
 **Der große Banner zeigt immer dasselbe.**
 - Ursache:
   - Vor 12.41.0 kam der Banner aus den obersten Empfehlungen, und die bleiben bei gleichem Sehverhalten gleich.

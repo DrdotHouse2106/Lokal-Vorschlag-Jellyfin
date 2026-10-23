@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.52.1] - 2026-10-23
+
+### Fixed
+
+- Jellyfin Web: after signing out and in as another user in the same tab (without reloading), the home page kept loading forever. The user switch rebuilt the home page, but its load was skipped because the previous user's load was still marked as running, and that load belonged to the discarded page. A load now belongs to its page; after a switch the new page loads at once (a load hanging for more than a minute no longer blocks either). On a switch, live TV access, the libraries in the header, reasons and marked new episodes of the previous user are discarded, and the diagnostics log a new „Start Quallenkino“.
+
 ## [12.52.0] - 2026-10-23
 
 ### Added

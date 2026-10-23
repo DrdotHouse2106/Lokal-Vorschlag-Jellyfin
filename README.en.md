@@ -304,6 +304,7 @@ Each entry: symptom, cause, fix. Kept up to date.
 - **Recommendations look stale, task "Aborted":** a restart interrupted the nightly run – start the task by hand (data older than 24 h is recomputed at the next start anyway).
 - **„Vor dem Kinostart“ never appears:** needs a TMDB key; parts are looked up weekly – run "Empfehlungen aktualisieren" once by hand.
 - **„Läuft heute im TV“ stays empty:** check the profile's live TV access and that the guide covers tonight; listings need a shared ID or the same title (movies: year ±1).
+- **Home page loads forever after signing out and in as another user (up to 12.52.0):** fixed in 12.52.1; before, reload the page.
 - **Poor recommendations:** run the **Metadaten** check, refresh incomplete titles and identify unmatched ones.
 - **No Jellyseerr results in the search:** they come from **Jellyfin Enhanced**, not from Quallenkino – Jellyseerr and its search results must be on there, reachable from the server, and the user linked in Jellyseerr (`GET /JellyfinEnhanced/jellyseerr/status` → `{"active":true}`). A case in the iOS app „Jellyfin Mobile“ where the section is rendered and then disappears (desktop fine) is still being investigated; use **Diagnostics** to see what happens.
 - **Series recorded as movies:** use the provider **„LocalRecs EPG“** and its rules (tab „Fernsehprogramm“), then refresh the guide data. Long documentaries or travel shows taken as movies: add their category to **„Nie Film“**.

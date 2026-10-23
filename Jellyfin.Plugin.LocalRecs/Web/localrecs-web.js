@@ -45,6 +45,7 @@
         lastLoad: 0,
         reasons: {},
         newEpisodes: {},
+        loadingSince: 0,
         heroVideoTimer: null,
         previewTimer: null,
         preview: null
@@ -3388,16 +3389,20 @@
         }
     }
 
+    // Lädt die Reihen für die aktuelle Startseite. Ein Ladevorgang gehört zu genau einer Startseite (state.loading = ihr
+    // Wurzelelement): Nach einem Benutzerwechsel wird die Startseite neu angelegt und lädt sofort selbst, auch wenn der
+    // Ladevorgang des vorigen Benutzers noch läuft oder hängt. Hängt ein Ladevorgang länger als eine Minute, darf neu geladen werden.
     function refresh(force) {
         var root = state.root;
         var uid = userId();
-        if (!root || !uid || state.loading) {
+        if (!root || !uid || (state.loading === root && Date.now() - state.loadingSince < 60000)) {
             return;
         }
         if (!force && Date.now() - state.lastLoad < 30000) {
             return;
         }
-        state.loading = true;
+        state.loading = root;
+        state.loadingSince = Date.now();
         api().getCurrentUser().then(function (user) {
             return loadRows(user);
         }).then(function (rows) {
@@ -3412,8 +3417,11 @@
             storageSet(cacheKey(uid), JSON.stringify(data));
         }).catch(function (err) {
             console.warn('LocalRecs Web: Startseite konnte nicht geladen werden', err);
+            diagStep('Startseite konnte nicht geladen werden: ' + errorText(err), false, true);
         }).then(function () {
-            state.loading = false;
+            if (state.loading === root) {
+                state.loading = null;
+            }
         });
     }
 
@@ -6062,38 +6070,52 @@
     });
 
     var lastUser = null;
+
+    // Alles, was vom angemeldeten Benutzer abhängt: Live-TV-Recht, Bibliotheken in der Kopfleiste, Profil, Startseite
+    function startForUser() {
+        lastUser = userId();
+        rememberProfile();
+        patchUpcomingPrograms();
+        api().getCurrentUser().then(function (user) {
+            state.liveTv = !!(user && user.Policy && user.Policy.EnableLiveTvAccess);
+            updateTabBar();
+            return getJson('UserViews?userId=' + userId());
+        }).then(function (views) {
+            navState.views = itemsOf(views).map(function (v) {
+                return { Id: v.Id, Name: v.Name, CollectionType: v.CollectionType };
+            });
+            var old = document.querySelector('.lr-topnav');
+            if (old) {
+                old.remove();
+            }
+            tidyHeader();
+        }).catch(function () {
+            tidyHeader();
+        });
+        activate();
+    }
+
     whenReady(function () {
         loadConfig().catch(function () {
             // Plugin-Endpunkt nicht erreichbar – dann bleibt alles wie in Jellyfin
         }).then(function () {
             diagStart();
-            lastUser = userId();
-            rememberProfile();
-            patchUpcomingPrograms();
-            api().getCurrentUser().then(function (user) {
-                state.liveTv = !!(user && user.Policy && user.Policy.EnableLiveTvAccess);
-                updateTabBar();
-                return getJson('UserViews?userId=' + userId());
-            }).then(function (views) {
-                navState.views = itemsOf(views).map(function (v) {
-                    return { Id: v.Id, Name: v.Name, CollectionType: v.CollectionType };
-                });
-                var old = document.querySelector('.lr-topnav');
-                if (old) {
-                    old.remove();
-                }
-                tidyHeader();
-            }).catch(function () {
-                tidyHeader();
-            });
-            activate();
+            startForUser();
         });
-        // Benutzerwechsel erkennen (Abmelden/Anmelden ohne Neuladen)
+        // Benutzerwechsel erkennen (Abmelden/Anmelden ohne Neuladen): alles vom vorigen Benutzer verwerfen und neu starten
         window.setInterval(function () {
             var current = userId();
             if (current && current !== lastUser) {
+                diagStep('Benutzerwechsel erkannt – Quallenkino startet neu', false, true);
                 lastUser = current;
                 deactivate();
+                state.loading = null;
+                state.lastLoad = 0;
+                state.reasons = {};
+                state.newEpisodes = {};
+                state.liveTv = false;
+                navState.views = [];
+                closeOverlays();
                 var oldNav = document.querySelector('.lr-topnav');
                 if (oldNav) {
                     oldNav.remove();
@@ -6101,9 +6123,9 @@
                 loadConfig().catch(function () {
                     return null;
                 }).then(function () {
-                    rememberProfile();
-                    patchUpcomingPrograms();
-                    activate();
+                    diag.started = false;
+                    diagStart();
+                    startForUser();
                 });
             }
         }, 2000);

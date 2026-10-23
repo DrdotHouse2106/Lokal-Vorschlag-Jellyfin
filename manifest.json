@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.52.1.0",
+        "changelog": "Fehlerbehebung Benutzerwechsel\n- Behoben: Nach Abmelden und Anmelden als anderer Benutzer im selben Tab lud die Startseite endlos\n- Beim Wechsel werden Live-TV-Recht, Bibliotheken und Merker des vorigen Benutzers verworfen\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.52.1.zip",
+        "checksum": "2ced82cbc123039712ed70ef6c7e12b6",
+        "timestamp": "2026-10-23T21:00:00Z"
+      },
+      {
         "version": "12.52.0.0",
         "changelog": "Kommende Folgen auf der Serienseite\n- Auf der Detailseite einer Serie steht, was Sonarr als Nächstes kennt: „Neue Folge heute · 21:00 Uhr · Sender · S02E05 Titel“, „Staffelstart morgen“, „Nächste Folge am …“, „+2 weitere bis …“\n- „Neu: S02E05“ für heute erschienene, schon importierte Folgen, in der Folgenliste markiert\n- Neuer Endpunkt GET /LocalRecs/Upcoming/Series/{seriesId}\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
