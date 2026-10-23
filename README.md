@@ -220,6 +220,7 @@ Zur Weihnachtszeit eine Zeile „Weihnachtsfilme“, an Halloween „Halloween�
   - `Key`: `ontv`, `newthisweek`, `cinema`, `anniversary`, `yearago`; `?key=cinema` liefert nur diese Zeile
   - `/LocalRecs/Web/Config` meldet `"Moments": true`
   - Die Zeilen werden 10 Minuten zwischengespeichert.
+  - Ab 12.51.0 trägt jede Antwort mit einer Titelliste `TotalRecordCount` (hier die Antwort und jede Zeile), damit Apps mit dem Jellyfin-SDK sie als Abfrageergebnis lesen können.
 
 ### Demnächst (ab 12.48.0)
 

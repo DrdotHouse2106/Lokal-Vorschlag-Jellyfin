@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.51.0] - 2026-10-23
+
+### Fixed
+
+- API: every answer with a list of titles now carries `TotalRecordCount`, so clients that read it as a Jellyfin query result (e.g. `BaseItemDtoQueryResult` of the Jellyfin SDK, which requires the field) no longer fail silently: `/LocalRecs/Moments` (answer and each row), `/LocalRecs/MovieSeries/{id}` and `/ByItem/{itemId}` (parts), the recent world in `/LocalRecs/Worlds`. `/LocalRecs/Seasonal`, `/LocalRecs/MovieSeries`, `/LocalRecs/Upcoming` and `/LocalRecs/Billboard` always had it (also 0 when empty).
+
 ## [12.50.0] - 2026-10-23
 
 ### Fixed

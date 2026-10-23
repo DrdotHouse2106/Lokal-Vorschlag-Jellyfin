@@ -74,6 +74,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         {
             /// <summary>Gets or sets the rows in display order (only non-empty rows).</summary>
             public IReadOnlyList<MomentRowDto> Rows { get; set; } = Array.Empty<MomentRowDto>();
+
+            /// <summary>Gets the number of rows (for clients that read every list like a Jellyfin query result).</summary>
+            public int TotalRecordCount => Rows.Count;
         }
 
         /// <summary>A time-based row.</summary>
@@ -87,6 +90,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets the titles.</summary>
             public IReadOnlyList<BaseItemDto> Items { get; set; } = Array.Empty<BaseItemDto>();
+
+            /// <summary>Gets the number of titles (so a row can be read as a Jellyfin query result).</summary>
+            public int TotalRecordCount => Items.Count;
 
             /// <summary>Gets or sets the reason line per title (item ID without dashes, e.g. „Heute 20:15 auf ZDF – hier ohne Werbung“).</summary>
             public IReadOnlyDictionary<string, string> Reasons { get; set; } = new Dictionary<string, string>();

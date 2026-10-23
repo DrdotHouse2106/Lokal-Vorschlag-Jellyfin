@@ -267,6 +267,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets the parts in release order.</summary>
             public IReadOnlyList<BaseItemDto> Parts { get; set; } = Array.Empty<BaseItemDto>();
+
+            /// <summary>Gets the number of parts.</summary>
+            public int TotalRecordCount => Parts.Count;
         }
     }
 }

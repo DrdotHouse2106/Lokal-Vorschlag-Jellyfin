@@ -569,6 +569,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets the titles.</summary>
             public IReadOnlyList<BaseItemDto> Items { get; set; } = Array.Empty<BaseItemDto>();
+
+            /// <summary>Gets the number of titles (so the answer can be read as a Jellyfin query result).</summary>
+            public int TotalRecordCount => Items.Count;
         }
     }
 }

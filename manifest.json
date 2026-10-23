@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.51.0.0",
+        "changelog": "Schnittstellen für Apps\n- Jede Antwort mit einer Titelliste trägt TotalRecordCount (Moments samt jeder Zeile, Teile einer Filmreihe, zuletzt gesehene Welt), damit Apps mit dem Jellyfin-SDK sie lesen können\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.51.0.zip",
+        "checksum": "347969ca900b35d981fc10965fbc592f",
+        "timestamp": "2026-10-23T18:00:00Z"
+      },
+      {
         "version": "12.50.0.0",
         "changelog": "Banner auf dem Handy\n- Behoben: Titel stand doppelt (Poster mit aufgedrucktem Titel plus Logo)\n- Hochformat-Banner zeigt jetzt das Hintergrundbild mit Logo; nur ohne Hintergrundbild das Poster, dann ohne Logo\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
