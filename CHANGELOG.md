@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.47.0] - 2026-10-23
+
+### Changed
+
+- **Tidier profile menu** in Jellyfin Web: directly visible only „Profil wechseln“, „Zufälliger Titel“ and tucked buttons of other plugins; Quallenkino functions (profile image, Trakt, „Was Quallenkino sich merkt“, calendar, player switch, „Diagnose senden“ only with diagnostics on) under the expandable entry „Quallenkino“; SyncPlay, cast and Quick Connect under „Mehr …“ (Jellyfin's own entries are only hidden and triggered, behaviour unchanged). The list of other saved profiles at the top is gone – „Profil wechseln“ opens „Wer schaut?“.
+
+### Fixed
+
+- Profile menu: „Abmelden“ was centred without icon and „Diagnose senden“ was appended below it; „Abmelden“ is now a normal entry with icon at the bottom, „Diagnose senden“ sits in the „Quallenkino“ group.
+
 ## [12.46.0] - 2026-10-22
 
 ### Added

@@ -27,7 +27,7 @@ Please report any issues or feedback on [GitHub Issues](https://github.com/Drdot
 - **Real library items** - full metadata, shared watch state, no duplicates in "Continue Watching", no extra libraries
 - **Live TV** - tracks which programs you watch live (all clients, including TV apps) and shows the row **"Heute im TV für dich"** with matching upcoming programs from the EPG
 - **Own programme guide provider "LocalRecs EPG"** - replaces Jellyfin's XMLTV provider; rule blocks decide movie or series, season/episode are kept, recordings land in the right folder
-- **Quallenkino-style Jellyfin Web** (browser, iOS and Android app) - start page with all rows, detail view, Quallenkino-style player, skip with countdown, tidy header and profile menu
+- **Quallenkino-style Jellyfin Web** (browser, iOS and Android app) - start page with all rows, detail view, Quallenkino-style player, skip with countdown, tidy header and profile menu (since 12.47.0: „Profil wechseln“ and „Zufälliger Titel“ directly, Quallenkino functions under the expandable „Quallenkino“ entry, rarely used Jellyfin functions – SyncPlay, cast, Quick Connect – under „Mehr …“, „Diagnose senden“ only with diagnostics on)
 - **"Wer schaut?"** - profile picker on start, one click to switch, no PIN
 - **Profile images** - pick a figure and a background colour, the server renders the round image
 - **Live TV reminders** - remember programmes and series, iCal calendar subscription with alarm, QR code for phones

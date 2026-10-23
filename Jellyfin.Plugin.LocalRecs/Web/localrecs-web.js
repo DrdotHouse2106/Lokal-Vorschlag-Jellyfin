@@ -3508,7 +3508,100 @@
         return result;
     }
 
-    function extendUserMenu(list) {
+    // Selten gebrauchte Funktionen von Jellyfin – im Profilmenü unter „Mehr …“
+    var RARE_MENU_LABELS = /synchron|syncplay|auf ger[äa]t|wiedergeben auf|cast|play on|quick ?connect/i;
+
+    function closeUserMenu() {
+        var backdrop = document.querySelector('#app-user-menu .MuiBackdrop-root');
+        if (backdrop) {
+            backdrop.click();
+        }
+    }
+
+    // Eintrag, der einen weggeräumten Knopf oder einen versteckten Jellyfin-Eintrag auslöst
+    function proxyMenuItem(node, label) {
+        var item = accountMenuItem(null, label, function () {
+            node.click();
+        });
+        var iconBox = item.querySelector('.lr-menu-icon');
+        if (node.id === 'randomItemButton') {
+            // Würfel von Jellyfin Enhanced wird per CSS gezeichnet – als Kopie bliebe nur ein weißes Quadrat
+            iconBox.appendChild(icon('casino'));
+        } else {
+            var symbol = node.querySelector('svg, img, .material-icons, i');
+            if (symbol) {
+                iconBox.appendChild(symbol.cloneNode(true));
+            }
+        }
+        return item;
+    }
+
+    // Aufklappbare Gruppe im Profilmenü („Quallenkino“, „Mehr …“); bei nur einem Eintrag steht dieser direkt da
+    function menuGroup(key, iconName, label, children) {
+        if (children.length < 2) {
+            return children;
+        }
+        var header = el('li', 'lr-menu-item lr-menu-account lr-menu-group MuiButtonBase-root MuiMenuItem-root');
+        header.setAttribute('role', 'menuitem');
+        header.setAttribute('aria-expanded', 'false');
+        header.dataset.group = key;
+        var headerIcon = el('span', 'lr-menu-icon');
+        headerIcon.appendChild(icon(iconName));
+        header.appendChild(headerIcon);
+        header.appendChild(el('span', 'lr-menu-group-label', label));
+        header.appendChild(icon('expand_more'));
+        children.forEach(function (child) {
+            child.classList.add('lr-menu-sub');
+            child.hidden = true;
+        });
+        onActivate(header, function (e) {
+            e.stopPropagation();
+            var open = header.getAttribute('aria-expanded') !== 'true';
+            header.setAttribute('aria-expanded', open ? 'true' : 'false');
+            header.classList.toggle('lr-open', open);
+            children.forEach(function (child) {
+                child.hidden = !open;
+            });
+        });
+        return [header].concat(children);
+    }
+
+    // Quallenkino-Funktionen, die nicht ständig gebraucht werden
+    function quallenkinoMenuItems() {
+        var items = [];
+        if (avatarsEnabled() && userId()) {
+            items.push(accountMenuItem('face', 'Profilbild wählen', function () {
+                openAvatarEditor({});
+            }));
+        }
+        if (state.config && state.config.TraktPersonal && userId()) {
+            items.push(accountMenuItem('recommend', 'Trakt-Empfehlungen', openTraktDialog));
+        }
+        if (userId()) {
+            items.push(accountMenuItem('psychology', 'Was Quallenkino sich merkt', openBehaviorDialog));
+        }
+        if (state.liveTv && state.config && state.config.Reminders) {
+            items.push(accountMenuItem('event', 'Erinnerungen im Kalender', openCalendarDialog));
+        }
+        if (state.config && state.config.PlayerEnabled && !appPlaysNatively() && storageGet('lrWeb.classicPlayer') === '1') {
+            items.push(accountMenuItem('movie', 'Quallenkino-Player einschalten', function () {
+                storageSet('lrWeb.classicPlayer', null);
+            }));
+        }
+        if (diagOn()) {
+            items.push(accountMenuItem('bug_report', 'Diagnose senden', function () {
+                diagSend('Diagnose gesendet von Hand (' + diagEnvironment() + '), letzte Schritte:');
+                diag.steps.slice(-30).forEach(function (step) {
+                    diagSend('  ' + step);
+                });
+            }));
+        }
+        return items;
+    }
+
+    // Profilmenü aufgeräumt: direkt „Profil wechseln“, „Zufälliger Titel“ und weggeräumte Knöpfe anderer Plugins,
+    // dann „Quallenkino“ und „Mehr …“ zum Aufklappen, darunter die Einträge von Jellyfin
+    function extendUserMenu(list, tidy) {
         if (!list) {
             return;
         }
@@ -3516,102 +3609,53 @@
         list.querySelectorAll('.lr-menu-item, .lr-menu-divider').forEach(function (node) {
             node.remove();
         });
-        var sources = menuSources();
-        var tucked = sources.map(function (entry) {
-            return entry.node;
+        list.querySelectorAll('.lr-menu-hidden').forEach(function (node) {
+            node.classList.remove('lr-menu-hidden');
         });
-        sources.slice().reverse().forEach(function (entry) {
-            var node = entry.node;
-            var label = entry.label;
-            var li = el('li', 'lr-menu-item MuiButtonBase-root MuiMenuItem-root');
-            li.setAttribute('role', 'menuitem');
-            li.tabIndex = 0;
-            var iconBox = el('span', 'lr-menu-icon');
-            if (node.id === 'randomItemButton') {
-                // Würfel von Jellyfin Enhanced wird per CSS gezeichnet – als Kopie bliebe nur ein weißes Quadrat
-                iconBox.appendChild(icon('casino'));
-                label = 'Zufälliger Titel';
-            } else {
-                var svg = node.querySelector('svg, img, .material-icons, i');
-                if (svg) {
-                    iconBox.appendChild(svg.cloneNode(true));
-                }
-            }
-            li.appendChild(iconBox);
-            li.appendChild(el('span', null, label));
-            onActivate(li, function () {
-                var backdrop = document.querySelector('#app-user-menu .MuiBackdrop-root');
-                if (backdrop) {
-                    backdrop.click();
-                }
-                window.setTimeout(function () {
-                    node.click();
-                }, 150);
+        var direct = [];
+        var more = [];
+        if (profilesEnabled()) {
+            direct.push(accountMenuItem('switch_account', 'Profil wechseln', function () {
+                rememberProfile();
+                showProfilePicker({});
+            }));
+        }
+        if (tidy) {
+            menuSources().forEach(function (entry) {
+                var label = entry.node.id === 'randomItemButton' ? 'Zufälliger Titel' : entry.label;
+                var item = proxyMenuItem(entry.node, label);
+                (RARE_MENU_LABELS.test(label) ? more : direct).push(item);
             });
-            list.insertBefore(li, list.firstChild);
+            // Seltene Einträge von Jellyfin selbst (z. B. Quick Connect) verstecken und unter „Mehr …“ anbieten
+            list.querySelectorAll(':scope > .MuiMenuItem-root:not(.lr-menu-item)').forEach(function (native) {
+                var label = (native.textContent || '').trim();
+                if (label && RARE_MENU_LABELS.test(label)) {
+                    native.classList.add('lr-menu-hidden');
+                    var item = accountMenuItem(null, label, null);
+                    var symbol = native.querySelector('svg');
+                    if (symbol) {
+                        item.querySelector('.lr-menu-icon').appendChild(symbol.cloneNode(true));
+                    }
+                    onActivate(item, function () {
+                        native.click();
+                    });
+                    more.push(item);
+                }
+            });
+        }
+        var items = direct
+            .concat(menuGroup('quallenkino', 'auto_awesome', 'Quallenkino', quallenkinoMenuItems()))
+            .concat(menuGroup('more', 'more_horiz', 'Mehr …', more));
+        if (!items.length) {
+            return;
+        }
+        var first = list.firstChild;
+        items.forEach(function (item) {
+            list.insertBefore(item, first);
         });
-        if (state.liveTv && state.config && state.config.Reminders) {
-            var calendarItem = el('li', 'lr-menu-item MuiButtonBase-root MuiMenuItem-root');
-            calendarItem.setAttribute('role', 'menuitem');
-            var calendarIcon = el('span', 'lr-menu-icon');
-            calendarIcon.appendChild(icon('event'));
-            calendarItem.appendChild(calendarIcon);
-            calendarItem.appendChild(el('span', null, 'Erinnerungen im Kalender'));
-            onActivate(calendarItem, function () {
-                var backdrop = document.querySelector('#app-user-menu .MuiBackdrop-root');
-                if (backdrop) {
-                    backdrop.click();
-                }
-                window.setTimeout(openCalendarDialog, 150);
-            });
-            list.insertBefore(calendarItem, list.firstChild);
-            tucked.push(calendarItem);
-        }
-        if (state.config && state.config.PlayerEnabled && !appPlaysNatively() && storageGet('lrWeb.classicPlayer') === '1') {
-            var playerItem = el('li', 'lr-menu-item MuiButtonBase-root MuiMenuItem-root');
-            playerItem.setAttribute('role', 'menuitem');
-            var playerIcon = el('span', 'lr-menu-icon');
-            playerIcon.appendChild(icon('movie'));
-            playerItem.appendChild(playerIcon);
-            playerItem.appendChild(el('span', null, 'Quallenkino-Player einschalten'));
-            onActivate(playerItem, function () {
-                storageSet('lrWeb.classicPlayer', null);
-                var backdrop = document.querySelector('#app-user-menu .MuiBackdrop-root');
-                if (backdrop) {
-                    backdrop.click();
-                }
-            });
-            list.insertBefore(playerItem, list.firstChild);
-            tucked.push(playerItem);
-        }
-        if (diagOn()) {
-            var diagItem = el('li', 'lr-menu-item MuiButtonBase-root MuiMenuItem-root');
-            diagItem.setAttribute('role', 'menuitem');
-            var diagIcon = el('span', 'lr-menu-icon');
-            diagIcon.appendChild(icon('bug_report'));
-            diagItem.appendChild(diagIcon);
-            diagItem.appendChild(el('span', null, 'Diagnose senden'));
-            onActivate(diagItem, function () {
-                diagSend('Diagnose gesendet von Hand (' + diagEnvironment() + '), letzte Schritte:');
-                diag.steps.slice(-30).forEach(function (step) {
-                    diagSend('  ' + step);
-                });
-                var backdrop = document.querySelector('#app-user-menu .MuiBackdrop-root');
-                if (backdrop) {
-                    backdrop.click();
-                }
-            });
-            list.appendChild(diagItem);
-            tucked.push(diagItem);
-        }
-        addAccountMenuItems(list).forEach(function (item) {
-            tucked.push(item);
-        });
-        if (tucked.length) {
-            var divider = el('li', 'lr-menu-divider');
-            divider.setAttribute('role', 'separator');
-            list.insertBefore(divider, list.children[tucked.length]);
-        }
+        var divider = el('li', 'lr-menu-divider');
+        divider.setAttribute('role', 'separator');
+        list.insertBefore(divider, first);
     }
 
     // Beim Öffnen des Profilmenüs (Klick auf das Profilbild) die Einträge ergänzen
@@ -3630,14 +3674,9 @@
             tries++;
             if (list || tries > 20) {
                 window.clearInterval(timer);
+                extendUserMenu(list, tidy);
                 if (tidy) {
-                    extendUserMenu(list);
                     markLogout(list);
-                } else if (list) {
-                    list.querySelectorAll('.lr-menu-account').forEach(function (node) {
-                        node.remove();
-                    });
-                    addAccountMenuItems(list);
                 }
             }
         }, 25);
@@ -5155,67 +5194,13 @@
         }
         item.appendChild(itemIcon);
         item.appendChild(el('span', null, label));
-        onActivate(item, function () {
-            var backdrop = document.querySelector('#app-user-menu .MuiBackdrop-root');
-            if (backdrop) {
-                backdrop.click();
-            }
-            window.setTimeout(handler, 150);
-        });
-        return item;
-    }
-
-    // Quallenkino-Stil: oben die anderen gespeicherten Profile (Klick wechselt), „Profile verwalten“ und „Profilbild wählen“
-    function addAccountMenuItems(list) {
-        var items = [];
-        if (!list || list.querySelector('.lr-menu-account')) {
-            return items;
-        }
-        var client = api();
-        var serverId = client && client.serverId ? client.serverId() : null;
-        if (profilesEnabled()) {
-            var others = readProfiles().filter(function (p) {
-                return p.ServerId === serverId && !sameId(p.Id, userId());
-            }).sort(function (a, b) {
-                return (b.LastUsed || 0) - (a.LastUsed || 0);
-            }).slice(0, 5);
-            others.forEach(function (profile) {
-                var item = accountMenuItem(null, profile.Name, function () {
-                    checkToken(profile).then(function (valid) {
-                        if (valid) {
-                            switchToProfile(profile);
-                        } else {
-                            writeProfiles(readProfiles().filter(function (p) {
-                                return !(p.ServerId === profile.ServerId && sameId(p.Id, profile.Id));
-                            }));
-                            showProfilePicker();
-                        }
-                    });
-                });
-                item.classList.add('lr-menu-profile');
-                item.querySelector('.lr-menu-icon').appendChild(profileAvatar(profile, 96));
-                items.push(item);
+        if (handler) {
+            onActivate(item, function () {
+                closeUserMenu();
+                window.setTimeout(handler, 150);
             });
-            items.push(accountMenuItem('edit', others.length ? 'Profile verwalten' : 'Profil wechseln', function () {
-                rememberProfile();
-                showProfilePicker(others.length ? { manage: true } : {});
-            }));
         }
-        if (avatarsEnabled() && userId()) {
-            items.push(accountMenuItem('face', 'Profilbild wählen', function () {
-                openAvatarEditor({});
-            }));
-        }
-        if (state.config && state.config.TraktPersonal && userId()) {
-            items.push(accountMenuItem('recommend', 'Trakt-Empfehlungen', openTraktDialog));
-        }
-        if (userId()) {
-            items.push(accountMenuItem('psychology', 'Was Quallenkino sich merkt', openBehaviorDialog));
-        }
-        items.slice().reverse().forEach(function (item) {
-            list.insertBefore(item, list.firstChild);
-        });
-        return items;
+        return item;
     }
 
     // Was das Plugin über die eigenen Empfehlungen hinaus auswertet: Tageszeit, Suchen, geöffnete Titel – mit Schalter und Löschen
