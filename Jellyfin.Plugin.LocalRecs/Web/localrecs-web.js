@@ -2046,9 +2046,21 @@
         var card = !!options.card && phoneLayout();
         var hero = el('div', 'lr-hero' + (options.compact ? ' lr-hero-compact' : '') + (card ? ' lr-hero-card' : ''));
         var media = el('div', 'lr-hero-media');
-        var image = options.image || (card ? posterImage(item) || backdropImage(item, 1280) : backdropImage(item, 1920));
-        if (card && posterImage(item)) {
-            image = image.replace('maxWidth=360', 'maxWidth=900');
+        // Hochformat-Karte: das textlose Hintergrundbild, auf Hochformat beschnitten. Nur ohne Hintergrundbild das Poster –
+        // dann ohne Logo und Titel darüber, denn auf Postern steht der Titel fast immer schon drauf.
+        var posterOnly = false;
+        var image = options.image;
+        if (!image && card) {
+            image = backdropImage(item, 1280);
+            if (!image && posterImage(item)) {
+                image = posterImage(item).replace('maxWidth=360', 'maxWidth=900');
+                posterOnly = true;
+            }
+        } else if (!image) {
+            image = backdropImage(item, 1920);
+        }
+        if (posterOnly) {
+            hero.classList.add('lr-hero-poster');
         }
         if (image) {
             var img = el('img', 'lr-hero-img');
@@ -2060,7 +2072,9 @@
         hero.appendChild(el('div', 'lr-hero-shade'));
         var content = el('div', 'lr-hero-content');
         var logo = options.logo !== undefined ? options.logo : logoImage(item, 800);
-        if (logo) {
+        if (posterOnly) {
+            // Titel steht auf dem Poster
+        } else if (logo) {
             var logoImg = el('img', 'lr-hero-logo');
             logoImg.alt = options.title || displayTitle(item);
             logoImg.src = logo;

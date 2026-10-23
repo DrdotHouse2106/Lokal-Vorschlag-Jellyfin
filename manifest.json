@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.50.0.0",
+        "changelog": "Banner auf dem Handy\n- Behoben: Titel stand doppelt (Poster mit aufgedrucktem Titel plus Logo)\n- Hochformat-Banner zeigt jetzt das Hintergrundbild mit Logo; nur ohne Hintergrundbild das Poster, dann ohne Logo\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.50.0.zip",
+        "checksum": "dae4bb4af69a0cd273307c92ccc8d619",
+        "timestamp": "2026-10-23T16:00:00Z"
+      },
+      {
         "version": "12.49.0.0",
         "changelog": "„Demnächst“ mit Termin\n- Jede Karte nennt den Termin: „Neue Folge am …“, „Staffelstart …“, „Serienstart …“, „Kinostart am …“, „Digital ab …“, „Auf Disc ab …“ (heute/morgen)\n- Kinostarts aus Radarr dabei\n- Klick zeigt die kommende Folge mit Uhrzeit, Sender und Beschreibung, Knopf „Zur Serie“\n- Nach Datum sortiert, Querformat auch auf dem Handy\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
