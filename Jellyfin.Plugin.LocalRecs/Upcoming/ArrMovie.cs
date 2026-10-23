@@ -29,6 +29,9 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
         /// <summary>Gets or sets Radarr's root folder (or the movie's folder).</summary>
         public string? RootFolderPath { get; set; }
 
+        /// <summary>Gets or sets the cinema release (UTC).</summary>
+        public DateTime? InCinemas { get; set; }
+
         /// <summary>Gets or sets the digital release (UTC).</summary>
         public DateTime? DigitalRelease { get; set; }
 

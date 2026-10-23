@@ -15,13 +15,13 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
     /// </summary>
     public class UpcomingTests
     {
-        private const string SonarrJson = "[{\"seriesId\":7,\"seasonNumber\":2,\"episodeNumber\":5,\"title\":\"Folge\",\"airDateUtc\":\"2026-10-24T01:00:00Z\",\"hasFile\":false,"
-            + "\"series\":{\"id\":7,\"title\":\"Testserie\",\"tvdbId\":123,\"tmdbId\":0,\"imdbId\":\"tt1\"}},"
+        private const string SonarrJson = "[{\"seriesId\":7,\"seasonNumber\":2,\"episodeNumber\":5,\"title\":\"Folge\",\"airDateUtc\":\"2026-10-24T01:00:00Z\",\"hasFile\":false,\"overview\":\"Es geht weiter.\","
+            + "\"series\":{\"id\":7,\"title\":\"Testserie\",\"tvdbId\":123,\"tmdbId\":0,\"imdbId\":\"tt1\",\"network\":\"Paramount+\"}},"
             + "{\"seriesId\":7,\"seasonNumber\":2,\"episodeNumber\":4,\"airDateUtc\":\"2026-10-20T01:00:00Z\",\"hasFile\":true,\"series\":{\"id\":7,\"title\":\"Testserie\"}},"
             + "{\"seriesId\":8,\"seasonNumber\":1,\"episodeNumber\":1,\"hasFile\":false,\"series\":{\"id\":8,\"title\":\"Ohne Datum\"}}]";
 
         private const string RadarrJson = "[{\"id\":42,\"title\":\"Neuer Film\",\"year\":2026,\"tmdbId\":555,\"imdbId\":\"tt5\",\"certification\":\"12\",\"rootFolderPath\":\"/data/Filme/\","
-            + "\"digitalRelease\":\"2026-11-14T00:00:00Z\",\"physicalRelease\":\"2026-12-01T00:00:00Z\",\"hasFile\":false,\"monitored\":true,"
+            + "\"inCinemas\":\"2026-10-30T00:00:00Z\",\"digitalRelease\":\"2026-11-14T00:00:00Z\",\"physicalRelease\":\"2026-12-01T00:00:00Z\",\"hasFile\":false,\"monitored\":true,"
             + "\"images\":[{\"coverType\":\"poster\"},{\"coverType\":\"fanart\"}]},"
             + "{\"id\":43,\"title\":\"Schon da\",\"hasFile\":true,\"monitored\":true},"
             + "{\"id\":44,\"title\":\"Nicht vorgemerkt\",\"hasFile\":false,\"monitored\":false}]";
@@ -40,6 +40,8 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             e.EpisodeNumber.Should().Be(5);
             e.AirDateUtc.Should().Be(new DateTime(2026, 10, 24, 1, 0, 0, DateTimeKind.Utc));
             e.AirDateUtc.Kind.Should().Be(DateTimeKind.Utc);
+            e.Overview.Should().Be("Es geht weiter.");
+            e.Network.Should().Be("Paramount+");
         }
 
         [Fact]
@@ -57,33 +59,47 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
         }
 
         [Fact]
-        public void Release_EarliestInWindow()
+        public void Release_EarliestInWindowWithType()
         {
             var m = ArrClient.ParseRadarrCalendar(RadarrJson)[0];
-            UpcomingService.Release(m, new DateTime(2026, 10, 23), new DateTime(2026, 11, 30)).Should().Be(new DateTime(2026, 11, 14, 0, 0, 0, DateTimeKind.Utc));
-            UpcomingService.Release(m, new DateTime(2026, 11, 20), new DateTime(2026, 12, 30)).Should().Be(new DateTime(2026, 12, 1, 0, 0, 0, DateTimeKind.Utc));
-            UpcomingService.Release(m, new DateTime(2026, 10, 23), new DateTime(2026, 11, 1)).Should().BeNull();
+            m.InCinemas.Should().Be(new DateTime(2026, 10, 30, 0, 0, 0, DateTimeKind.Utc));
+            UpcomingService.Release(m, new DateTime(2026, 10, 23), new DateTime(2026, 11, 30)).Should().Be((new DateTime(2026, 10, 30, 0, 0, 0, DateTimeKind.Utc), UpcomingEntry.Cinema));
+            UpcomingService.Release(m, new DateTime(2026, 11, 1), new DateTime(2026, 11, 30)).Should().Be((new DateTime(2026, 11, 14, 0, 0, 0, DateTimeKind.Utc), UpcomingEntry.Digital));
+            UpcomingService.Release(m, new DateTime(2026, 11, 20), new DateTime(2026, 12, 30)).Should().Be((new DateTime(2026, 12, 1, 0, 0, 0, DateTimeKind.Utc), UpcomingEntry.Physical));
+            UpcomingService.Release(m, new DateTime(2026, 12, 2), new DateTime(2026, 12, 30)).Should().BeNull();
         }
 
         [Theory]
-        [InlineData(2026, 10, 23, "Heute")]
-        [InlineData(2026, 10, 24, "Morgen")]
-        [InlineData(2026, 10, 26, "Montag")]
-        [InlineData(2026, 10, 29, "Donnerstag")]
-        [InlineData(2026, 10, 30, "30.10.")]
-        [InlineData(2026, 11, 14, "14.11.")]
+        [InlineData(2026, 10, 23, "heute")]
+        [InlineData(2026, 10, 24, "morgen")]
+        [InlineData(2026, 10, 26, "Mo. 26.10.")]
+        [InlineData(2026, 11, 14, "Sa. 14.11.")]
         public void DayText(int y, int m, int d, string expected)
         {
             UpcomingService.DayText(new DateOnly(y, m, d), new DateOnly(2026, 10, 23)).Should().Be(expected);
         }
 
-        [Fact]
-        public void MovieText()
+        [Theory]
+        [InlineData(1, 1, UpcomingEntry.SeriesPremiere)]
+        [InlineData(3, 1, UpcomingEntry.SeasonPremiere)]
+        [InlineData(3, 2, UpcomingEntry.NewEpisode)]
+        [InlineData(0, 1, UpcomingEntry.NewEpisode)]
+        public void EpisodeType(int season, int episode, string expected)
         {
-            var today = new DateOnly(2026, 10, 23);
-            UpcomingService.MovieText(today, today).Should().Be("Ab heute verfügbar");
-            UpcomingService.MovieText(today.AddDays(1), today).Should().Be("Ab morgen verfügbar");
-            UpcomingService.MovieText(new DateOnly(2026, 11, 14), today).Should().Be("Ab 14.11. verfügbar");
+            UpcomingService.EpisodeType(season, episode).Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData(UpcomingEntry.NewEpisode, 24, "Neue Folge am Sa. 24.10.")]
+        [InlineData(UpcomingEntry.NewEpisode, 22, "Neue Folge heute")]
+        [InlineData(UpcomingEntry.SeasonPremiere, 23, "Staffelstart morgen")]
+        [InlineData(UpcomingEntry.SeriesPremiere, 26, "Serienstart am Mo. 26.10.")]
+        [InlineData(UpcomingEntry.Cinema, 29, "Kinostart am Do. 29.10.")]
+        [InlineData(UpcomingEntry.Digital, 23, "Digital ab morgen")]
+        [InlineData(UpcomingEntry.Physical, 30, "Auf Disc ab Fr. 30.10.")]
+        public void Label(string type, int day, string expected)
+        {
+            UpcomingService.Label(type, new DateOnly(2026, 10, day), new DateOnly(2026, 10, 22)).Should().Be(expected);
         }
 
         [Theory]

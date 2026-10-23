@@ -1443,8 +1443,8 @@
     }
 
     function itemClick(item) {
-        if (item.Type === 'UpcomingMovie') {
-            openUpcomingMovie(item);
+        if (item.LrUpcoming) {
+            openUpcoming(item);
             return;
         }
         if (item.Type === 'Program' || item.Type === 'TvChannel') {
@@ -1819,7 +1819,7 @@
     // ---------------------------------------------------------------- Vorschau beim Überfahren (nur PC)
 
     function attachPreview(card, item) {
-        if (isTouch || item.Type === 'UpcomingMovie') {
+        if (isTouch || item.LrUpcoming) {
             return;
         }
         card.addEventListener('mouseenter', function () {
@@ -2902,12 +2902,26 @@
         });
     }
 
-    // Eintrag aus „Demnächst“ als Karte: Folgen zeigen die Serie aus Jellyfin, Filme Bilder aus Radarr (über den Server)
+    // Eintrag aus „Demnächst“ als Karte: Folgen zeigen die Serie aus Jellyfin, Filme Bilder aus Radarr (über den Server).
+    // Die Zeile unter der Karte nennt den Termin („Neue Folge am Fr. 24.10.“, „Staffelstart heute“, „Kinostart morgen“).
     function upcomingEntry(entry) {
+        var upcoming = {
+            Kind: entry.Kind,
+            ReleaseType: entry.ReleaseType,
+            Subtitle: entry.Subtitle,
+            Date: entry.Date,
+            SeasonNumber: entry.SeasonNumber,
+            EpisodeNumber: entry.EpisodeNumber,
+            EpisodeTitle: entry.EpisodeTitle,
+            EpisodeOverview: entry.EpisodeOverview ? entry.EpisodeOverview.slice(0, 600) : null,
+            Network: entry.Network,
+            MoreEpisodes: entry.MoreEpisodes || 0
+        };
         if (entry.Series) {
             var series = slim(entry.Series);
             series.MomentReason = entry.Subtitle;
-            // Ein Klick öffnet die Serie, statt weiterzuspielen
+            series.LrUpcoming = upcoming;
+            // Ein Klick zeigt das Kommende, nicht das Weiterspielen
             if (series.UserData) {
                 series.UserData.PlayedPercentage = null;
             }
@@ -2925,28 +2939,75 @@
             OfficialRating: movie.OfficialRating,
             Overview: movie.Overview ? movie.Overview.slice(0, 600) : null,
             MomentReason: entry.Subtitle,
+            LrUpcoming: upcoming,
             LrImage: movie.BackdropUrl ? url(movie.BackdropUrl) : (movie.PosterUrl ? url(movie.PosterUrl) : null),
             LrPoster: movie.PosterUrl ? url(movie.PosterUrl) : null,
             LrImageIsPoster: !movie.BackdropUrl && !!movie.PosterUrl
         };
     }
 
-    // Kleine Ansicht für einen bald erscheinenden Film (noch nicht in Jellyfin)
-    function openUpcomingMovie(item) {
+    function pad2(n) {
+        return (n < 10 ? '0' : '') + n;
+    }
+
+    // „Freitag, 24.10. · 21:00 · Paramount+“ (Filme ohne Uhrzeit)
+    function upcomingWhen(upcoming) {
+        var date = new Date(upcoming.Date);
+        if (isNaN(date.getTime())) {
+            return '';
+        }
+        var days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+        var parts = [days[date.getDay()] + ', ' + pad2(date.getDate()) + '.' + pad2(date.getMonth() + 1) + '.' + date.getFullYear()];
+        if (upcoming.Kind === 'Episode') {
+            parts.push(pad2(date.getHours()) + ':' + pad2(date.getMinutes()) + ' Uhr');
+            if (upcoming.Network) {
+                parts.push(upcoming.Network);
+            }
+        }
+        return parts.join(' · ');
+    }
+
+    // Was kommt: Folge (SxxEyy, Titel, Termin, Sender, Beschreibung) mit „Zur Serie“, bzw. der Film mit seinem Termin
+    function openUpcoming(item) {
+        var upcoming = item.LrUpcoming || {};
         var dialog = overlayShell('lr-calendar lr-upcoming');
         var body = el('div', 'lr-cal-body');
-        if (item.LrPoster) {
-            var poster = el('img', 'lr-upcoming-poster');
-            poster.alt = '';
-            poster.src = item.LrPoster;
-            body.appendChild(poster);
+        var poster = item.Type === 'UpcomingMovie' ? item.LrPoster : posterImage(item);
+        if (poster) {
+            var img = el('img', 'lr-upcoming-poster');
+            img.alt = '';
+            img.src = poster;
+            body.appendChild(img);
         }
-        body.appendChild(el('h2', 'lr-cal-title', item.Name + (item.ProductionYear ? ' (' + item.ProductionYear + ')' : '')));
-        body.appendChild(el('p', 'lr-cal-text', item.MomentReason || ''));
-        if (item.Overview) {
-            body.appendChild(el('p', 'lr-cal-text', item.Overview));
+        body.appendChild(el('h2', 'lr-cal-title', item.Name + (item.Type === 'UpcomingMovie' && item.ProductionYear ? ' (' + item.ProductionYear + ')' : '')));
+        body.appendChild(el('p', 'lr-upcoming-label', upcoming.Subtitle || item.MomentReason || ''));
+        if (upcoming.Kind === 'Episode') {
+            var number = 'S' + pad2(upcoming.SeasonNumber || 0) + 'E' + pad2(upcoming.EpisodeNumber || 0);
+            body.appendChild(el('p', 'lr-upcoming-episode', number + (upcoming.EpisodeTitle ? ' · ' + upcoming.EpisodeTitle : '')));
         }
-        body.appendChild(el('p', 'lr-cal-text lr-upcoming-note', 'Vorgemerkt – erscheint automatisch in der Bibliothek, sobald er verfügbar ist.'));
+        var when = upcomingWhen(upcoming);
+        if (when) {
+            body.appendChild(el('p', 'lr-cal-text lr-upcoming-when', when));
+        }
+        var overview = upcoming.Kind === 'Episode' ? (upcoming.EpisodeOverview || item.Overview) : item.Overview;
+        if (overview) {
+            body.appendChild(el('p', 'lr-cal-text', overview));
+        }
+        if (upcoming.MoreEpisodes > 0) {
+            body.appendChild(el('p', 'lr-cal-text lr-upcoming-note', upcoming.MoreEpisodes === 1
+                ? 'Danach folgt noch 1 weitere neue Folge in den nächsten Tagen.'
+                : 'Danach folgen noch ' + upcoming.MoreEpisodes + ' weitere neue Folgen in den nächsten Tagen.'));
+        }
+        if (item.Type === 'UpcomingMovie') {
+            body.appendChild(el('p', 'lr-cal-text lr-upcoming-note', 'Vorgemerkt – erscheint automatisch in der Bibliothek, sobald er verfügbar ist.'));
+        } else {
+            var actions = el('div', 'lr-upcoming-actions');
+            actions.appendChild(button('lr-btn', 'tv', 'Zur Serie', function () {
+                closeTopOverlay();
+                openInfo(item);
+            }));
+            body.appendChild(actions);
+        }
         dialog.appendChild(body);
     }
 
@@ -3097,7 +3158,8 @@
         if (row.kind === 'libraries') {
             return rowElement(row.title, row.items.map(libraryCard), 'lr-row-libraries');
         }
-        if (phoneLayout() && row.key !== 'livetv' && row.key !== 'onnow') {
+        // Zeilen mit Termin oder Begründung bleiben auch auf dem Handy im Querformat, damit die Zeile darunter Platz hat
+        if (phoneLayout() && row.key !== 'livetv' && row.key !== 'onnow' && row.key !== 'upcoming' && row.key.indexOf('moment-') !== 0) {
             return rowElement(row.title, row.items.map(portraitCard), 'lr-row-portrait');
         }
         var withReason = row.key === 'movies' || row.key === 'series';

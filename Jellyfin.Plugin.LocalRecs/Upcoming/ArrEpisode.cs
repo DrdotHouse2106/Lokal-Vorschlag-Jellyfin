@@ -29,6 +29,12 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
         /// <summary>Gets or sets the episode title.</summary>
         public string? Title { get; set; }
 
+        /// <summary>Gets or sets the episode overview.</summary>
+        public string? Overview { get; set; }
+
+        /// <summary>Gets or sets the network of the series (e.g. „Paramount+“).</summary>
+        public string? Network { get; set; }
+
         /// <summary>Gets or sets the air time (UTC).</summary>
         public DateTime AirDateUtc { get; set; }
     }

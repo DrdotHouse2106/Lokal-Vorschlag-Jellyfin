@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.49.0] - 2026-10-23
+
+### Changed
+
+- **„Demnächst“ names the date:** every card shows what comes when – „Neue Folge am Fr. 24.10.“, „Staffelstart …“ (E01 of season 2+), „Serienstart …“ (S01E01), „Kinostart am …“, „Digital ab …“, „Auf Disc ab …“, with „heute“/„morgen“. Cinema releases (Radarr `inCinemas`) are included; the earliest date in the period counts. Landscape cards also on phones (also for the time-based rows, so their reason line shows).
+- A click shows the upcoming episode (SxxEyy, title, day, time, network, overview, further new episodes) with „Zur Serie“, or the movie with its date, instead of just opening the series.
+- Sorted by date, the next first; on the same day favourite and recently watched series first.
+- API `GET /LocalRecs/Upcoming`: new fields `ReleaseType` (`NewEpisode`, `SeasonPremiere`, `SeriesPremiere`, `Cinema`, `Digital`, `Physical`), `LocalDate`, `Network`, `EpisodeOverview`; `Subtitle` is the card text.
+
 ## [12.48.0] - 2026-10-23
 
 ### Added

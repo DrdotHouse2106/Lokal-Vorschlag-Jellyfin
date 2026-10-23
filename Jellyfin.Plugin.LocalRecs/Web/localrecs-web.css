@@ -3167,3 +3167,23 @@ body.lr-tidy-header #jellyfinEnhancedSettingsLink {
     opacity: 0.7;
     font-size: 0.85em;
 }
+
+.lr-upcoming-label {
+    margin: 0.2em 0 0.6em;
+    font-weight: 700;
+    color: #8ab4ff;
+}
+
+.lr-upcoming-episode {
+    margin: 0 0 0.3em;
+    font-weight: 600;
+}
+
+.lr-upcoming-when {
+    opacity: 0.8;
+}
+
+.lr-upcoming-actions {
+    clear: both;
+    margin-top: 1em;
+}

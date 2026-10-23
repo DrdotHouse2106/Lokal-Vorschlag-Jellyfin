@@ -79,6 +79,8 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
                     SeasonNumber = Int(e, "seasonNumber") ?? 0,
                     EpisodeNumber = Int(e, "episodeNumber") ?? 0,
                     Title = Text(e, "title"),
+                    Overview = Text(e, "overview"),
+                    Network = Text(series, "network"),
                     AirDateUtc = air
                 });
             }
@@ -120,6 +122,7 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
                     ImdbId = Text(m, "imdbId"),
                     Certification = Text(m, "certification"),
                     RootFolderPath = Text(m, "rootFolderPath") ?? Text(m, "path"),
+                    InCinemas = TryDate(m, "inCinemas", out var cinema) ? cinema : null,
                     DigitalRelease = TryDate(m, "digitalRelease", out var digital) ? digital : null,
                     PhysicalRelease = TryDate(m, "physicalRelease", out var physical) ? physical : null,
                     HasPoster = images.Contains("poster", StringComparer.OrdinalIgnoreCase),

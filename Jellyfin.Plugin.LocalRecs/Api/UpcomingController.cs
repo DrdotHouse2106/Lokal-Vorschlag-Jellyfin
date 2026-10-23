@@ -62,9 +62,13 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             var items = entries.Select(e => new UpcomingItem
             {
                 Kind = e.Kind,
+                ReleaseType = e.ReleaseType,
                 Title = e.Title,
                 Subtitle = e.Subtitle,
                 Date = e.DateUtc,
+                LocalDate = e.Day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                Network = e.Network,
+                EpisodeOverview = e.EpisodeOverview,
                 Series = e.SeriesItem != null && dtos.TryGetValue(e.SeriesItem.Id, out var dto) ? dto : null,
                 SeasonNumber = e.SeriesItem != null ? e.SeasonNumber : null,
                 EpisodeNumber = e.SeriesItem != null ? e.EpisodeNumber : null,
@@ -145,14 +149,26 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             /// <summary>Gets or sets the kind: „Episode“ (new episode of a series in the library) or „Movie“ (upcoming movie, not in the library yet).</summary>
             public string Kind { get; set; } = string.Empty;
 
+            /// <summary>Gets or sets the type of the date: NewEpisode, SeasonPremiere (E01 of season 2+), SeriesPremiere (S01E01), Cinema, Digital, Physical.</summary>
+            public string ReleaseType { get; set; } = string.Empty;
+
             /// <summary>Gets or sets the title (series or movie).</summary>
             public string Title { get; set; } = string.Empty;
 
-            /// <summary>Gets or sets the subtitle for the card („Neue Folge S02E05 · Freitag“, „Ab 14.11. verfügbar“).</summary>
+            /// <summary>Gets or sets the line for the card („Neue Folge am Fr. 24.10.“, „Staffelstart heute“, „Kinostart morgen“, „Digital ab …“, „Auf Disc ab …“).</summary>
             public string Subtitle { get; set; } = string.Empty;
 
-            /// <summary>Gets or sets the air or release time (UTC).</summary>
+            /// <summary>Gets or sets the air or release time (UTC; for movies only the day counts).</summary>
             public DateTime Date { get; set; }
+
+            /// <summary>Gets or sets the local day (yyyy-MM-dd) in the app's time zone.</summary>
+            public string LocalDate { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the network (episodes, if Sonarr knows it).</summary>
+            public string? Network { get; set; }
+
+            /// <summary>Gets or sets the episode overview (episodes).</summary>
+            public string? EpisodeOverview { get; set; }
 
             /// <summary>Gets or sets the series in Jellyfin (episodes; open it on click).</summary>
             public BaseItemDto? Series { get; set; }

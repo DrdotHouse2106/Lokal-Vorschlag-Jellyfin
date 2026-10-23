@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.49.0.0",
+        "changelog": "„Demnächst“ mit Termin\n- Jede Karte nennt den Termin: „Neue Folge am …“, „Staffelstart …“, „Serienstart …“, „Kinostart am …“, „Digital ab …“, „Auf Disc ab …“ (heute/morgen)\n- Kinostarts aus Radarr dabei\n- Klick zeigt die kommende Folge mit Uhrzeit, Sender und Beschreibung, Knopf „Zur Serie“\n- Nach Datum sortiert, Querformat auch auf dem Handy\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.49.0.zip",
+        "checksum": "289de1aa5b576175df0d64ef658cbf63",
+        "timestamp": "2026-10-23T14:00:00Z"
+      },
+      {
         "version": "12.48.0.0",
         "changelog": "Demnächst und ohne Home Screen Sections\n- Neue Zeile „Demnächst“: neue Folgen (Sonarr) und bald erscheinende, vorgemerkte Filme (Radarr), nur lesend, Bibliotheken und Altersfreigaben je Profil beachtet\n- Home Screen Sections wird nicht mehr gebraucht und kann deinstalliert werden\n- „Jellyfin-Startseite anzeigen“ statt „Klassische Startseite anzeigen“\n- Seitenleiste: Gruppe „Jellyfin Enhanced“ ausgeblendet (Panel bleibt im Profilmenü)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

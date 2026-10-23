@@ -21,8 +21,8 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.LocalRecs.Upcoming
 {
     /// <summary>
-    /// „Demnächst“: neue Folgen von Serien aus der Bibliothek (Sonarr) und vorgemerkte Filme, die bald digital oder auf Disc
-    /// erscheinen (Radarr). Nur lesen – nichts wird angefragt oder vorgemerkt. Jeder sieht nur Serien aus seinen Bibliotheken
+    /// „Demnächst“: neue Folgen von Serien aus der Bibliothek (Sonarr) und vorgemerkte Filme, die bald ins Kino kommen oder
+    /// digital bzw. auf Disc erscheinen (Radarr). Nur lesen – nichts wird angefragt oder vorgemerkt. Jeder sieht nur Serien aus seinen Bibliotheken
     /// und Filme, deren Radarr-Ordner zu einer seiner Filmbibliotheken passt, innerhalb seiner Altersfreigabe.
     /// </summary>
     public class UpcomingService
@@ -58,7 +58,7 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
         private static PluginConfiguration Config => Plugin.Instance?.Configuration ?? new PluginConfiguration();
 
         /// <summary>
-        /// Gets the day text: „Heute“, „Morgen“, the weekday within a week, otherwise the date.
+        /// Gets the day as text: „heute“, „morgen“ or the date with weekday („Fr. 24.10.“).
         /// </summary>
         /// <param name="day">The day.</param>
         /// <param name="today">Today.</param>
@@ -68,46 +68,79 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
             var days = day.DayNumber - today.DayNumber;
             if (days <= 0)
             {
-                return "Heute";
+                return "heute";
             }
 
             if (days == 1)
             {
-                return "Morgen";
+                return "morgen";
             }
 
-            return days < 7
-                ? CultureInfo.GetCultureInfo("de-DE").DateTimeFormat.GetDayName(day.DayOfWeek)
-                : day.ToString("dd.MM.", CultureInfo.InvariantCulture);
+            var german = CultureInfo.GetCultureInfo("de-DE");
+            return german.DateTimeFormat.GetAbbreviatedDayName(day.DayOfWeek).TrimEnd('.') + ". " + day.ToString("dd.MM.", CultureInfo.InvariantCulture);
         }
 
         /// <summary>
-        /// Gets the subtitle of a movie: „Ab heute verfügbar“, „Ab morgen verfügbar“ or „Ab 14.11. verfügbar“.
+        /// Gets the type of an episode date: series premiere (S01E01), season premiere (E01 of a later season) or new episode.
         /// </summary>
-        /// <param name="day">The release day.</param>
+        /// <param name="season">Season number.</param>
+        /// <param name="episode">Episode number.</param>
+        /// <returns>The release type.</returns>
+        public static string EpisodeType(int season, int episode)
+        {
+            if (episode == 1 && season == 1)
+            {
+                return UpcomingEntry.SeriesPremiere;
+            }
+
+            return episode == 1 && season > 1 ? UpcomingEntry.SeasonPremiere : UpcomingEntry.NewEpisode;
+        }
+
+        /// <summary>
+        /// Gets the line for the card: „Neue Folge am Fr. 24.10.“, „Staffelstart heute“, „Serienstart morgen“, „Kinostart am …“,
+        /// „Digital ab …“, „Auf Disc ab …“.
+        /// </summary>
+        /// <param name="releaseType">The release type.</param>
+        /// <param name="day">The day.</param>
         /// <param name="today">Today.</param>
         /// <returns>The text.</returns>
-        public static string MovieText(DateOnly day, DateOnly today)
+        public static string Label(string releaseType, DateOnly day, DateOnly today)
         {
-            var days = day.DayNumber - today.DayNumber;
-            var when = days <= 0 ? "heute" : days == 1 ? "morgen" : day.ToString("dd.MM.", CultureInfo.InvariantCulture);
-            return "Ab " + when + " verfügbar";
+            var when = DayText(day, today);
+            var on = when is "heute" or "morgen" ? when : "am " + when;
+            return releaseType switch
+            {
+                UpcomingEntry.SeasonPremiere => "Staffelstart " + on,
+                UpcomingEntry.SeriesPremiere => "Serienstart " + on,
+                UpcomingEntry.Cinema => "Kinostart " + on,
+                UpcomingEntry.Digital => "Digital ab " + when,
+                UpcomingEntry.Physical => "Auf Disc ab " + when,
+                _ => "Neue Folge " + on
+            };
         }
 
         /// <summary>
-        /// Gets the release of a movie that counts: the earlier of digital and disc release from today on.
+        /// Gets the release of a movie that counts: the earliest of cinema, digital and disc release within the period.
         /// </summary>
         /// <param name="movie">The movie.</param>
         /// <param name="fromUtc">Start (UTC).</param>
         /// <param name="toUtc">End (UTC).</param>
-        /// <returns>The release, or null.</returns>
-        public static DateTime? Release(ArrMovie movie, DateTime fromUtc, DateTime toUtc)
+        /// <returns>The release and its type, or null.</returns>
+        public static (DateTime Date, string Type)? Release(ArrMovie movie, DateTime fromUtc, DateTime toUtc)
         {
             ArgumentNullException.ThrowIfNull(movie);
-            return new[] { movie.DigitalRelease, movie.PhysicalRelease }
-                .Where(d => d is DateTime date && date >= fromUtc && date <= toUtc)
-                .OrderBy(d => d)
-                .FirstOrDefault();
+            var dates = new (DateTime? Date, string Type)[]
+            {
+                (movie.InCinemas, UpcomingEntry.Cinema),
+                (movie.DigitalRelease, UpcomingEntry.Digital),
+                (movie.PhysicalRelease, UpcomingEntry.Physical)
+            };
+            foreach (var (date, type) in dates.Where(d => d.Date is DateTime x && x >= fromUtc && x <= toUtc).OrderBy(d => d.Date))
+            {
+                return (date!.Value, type);
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -172,8 +205,11 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
                 var today = DateOnly.FromDateTime(DateTime.UtcNow.AddMinutes(offset));
                 var result = Episodes(user, snapshot.Episodes, offset, today);
                 result.AddRange(Movies(user, snapshot.Movies, today, config));
+
+                // Das Nächste zuerst; am selben Tag Favoriten und gerade geschaute Serien vor
                 return result
-                    .OrderBy(e => e.Priority ? 0 : 1)
+                    .OrderBy(e => e.Day)
+                    .ThenBy(e => e.Priority ? 0 : 1)
                     .ThenBy(e => e.DateUtc)
                     .Take(MaxItems)
                     .ToList();
@@ -393,9 +429,14 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
 
                 var day = DateOnly.FromDateTime(first.AirDateUtc.AddMinutes(offset));
                 var more = group.Count() - 1;
+                var type = EpisodeType(first.SeasonNumber, first.EpisodeNumber);
                 result.Add(new UpcomingEntry
                 {
                     Kind = UpcomingEntry.EpisodeKind,
+                    ReleaseType = type,
+                    Day = day,
+                    EpisodeOverview = first.Overview,
+                    Network = first.Network,
                     Title = match.Name ?? first.SeriesTitle,
                     DateUtc = first.AirDateUtc,
                     SeriesItem = match,
@@ -404,8 +445,7 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
                     EpisodeTitle = first.Title,
                     MoreEpisodes = more,
                     Priority = priority.Contains(match.Id),
-                    Subtitle = string.Format(CultureInfo.InvariantCulture, "Neue Folge S{0:00}E{1:00} · {2}", first.SeasonNumber, first.EpisodeNumber, DayText(day, today))
-                        + (more > 0 ? " · +" + more + (more == 1 ? " weitere" : " weitere") : string.Empty)
+                    Subtitle = Label(type, day, today)
                 });
             }
 
@@ -512,14 +552,17 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
                     continue;
                 }
 
-                var day = DateOnly.FromDateTime(release!.Value);
+                var (date, type) = release!.Value;
+                var day = DateOnly.FromDateTime(date);
                 result.Add(new UpcomingEntry
                 {
                     Kind = UpcomingEntry.MovieKind,
+                    ReleaseType = type,
+                    Day = day,
                     Title = movie.Title,
-                    DateUtc = release.Value,
+                    DateUtc = date,
                     Movie = movie,
-                    Subtitle = MovieText(day, today)
+                    Subtitle = Label(type, day, today)
                 });
             }
 

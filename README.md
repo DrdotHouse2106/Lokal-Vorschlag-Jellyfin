@@ -225,13 +225,28 @@ Zur Weihnachtszeit eine Zeile „Weihnachtsfilme“, an Halloween „Halloween�
 
 Eine Zeile **„Demnächst“** mit neuen Folgen und bald erscheinenden Filmen, aus **Sonarr** und **Radarr**. Nur lesend: Quallenkino fragt nichts an und merkt nichts vor (auch nicht über Jellyseerr).
 
-- **Folgen (Sonarr):** Kalender `/api/v3/calendar` der nächsten 14 Tage (einstellbar 1–60). Nur Serien, die in Jellyfin liegen (Abgleich über TVDB, TMDB, IMDb, sonst den Titel), und nur noch nicht heruntergeladene Folgen. Je Serie eine Karte mit der nächsten Folge, z. B. „Neue Folge S02E05 · Freitag“, weitere Folgen im Zeitraum als „+2 weitere“. Ein Klick öffnet die Serie.
-- **Filme (Radarr):** vorgemerkte, noch nicht vorhandene Filme, deren digitale oder Disc-Veröffentlichung in den nächsten 30 Tagen liegt (einstellbar 1–90), z. B. „Ab 14.11. verfügbar“. Bilder kommen über den Server aus Radarr. Ein Klick zeigt Titel, Jahr und Beschreibung.
-- **Reihenfolge:** Serien, die das Profil als Favorit hat oder in den letzten 90 Tagen geschaut hat, zuerst; danach nach Datum. Höchstens 30 Einträge.
+- **Folgen (Sonarr):** Kalender `/api/v3/calendar` der nächsten 14 Tage (einstellbar 1–60). Nur Serien, die in Jellyfin liegen (Abgleich über TVDB, TMDB, IMDb, sonst den Titel), und nur noch nicht heruntergeladene Folgen. Je Serie eine Karte mit der nächsten Folge.
+- **Filme (Radarr):** vorgemerkte, noch nicht vorhandene Filme mit Kinostart, digitaler oder Disc-Veröffentlichung in den nächsten 30 Tagen (einstellbar 1–90); es zählt der früheste dieser Termine im Zeitraum. Bilder kommen über den Server aus Radarr.
+- **Termin auf der Karte** (ab 12.49.0, Querformat auch auf dem Handy):
+
+| Art (`ReleaseType`) | Wann | Text auf der Karte |
+|---|---|---|
+| `NewEpisode` | neue Folge einer laufenden Staffel | „Neue Folge am Fr. 24.10.“ |
+| `SeasonPremiere` | Folge 1 einer Staffel ab Staffel 2 | „Staffelstart am …“ |
+| `SeriesPremiere` | S01E01 | „Serienstart am …“ |
+| `Cinema` | Kinostart (Radarr `inCinemas`) | „Kinostart am …“ |
+| `Digital` | digitale Veröffentlichung | „Digital ab …“ |
+| `Physical` | Disc | „Auf Disc ab …“ |
+
+  Heute und morgen stehen als „heute“ bzw. „morgen“ da („Staffelstart morgen“, „Digital ab heute“).
+- **Klick:** Bei Folgen eine Ansicht mit SxxEyy und Folgentitel, Tag, Uhrzeit und Sender (wenn Sonarr ihn kennt), Beschreibung, Hinweis auf weitere neue Folgen und dem Knopf **„Zur Serie“**. Bei Filmen Titel, Jahr, Termin und Beschreibung.
+- **Reihenfolge:** nach Datum, das Nächste zuerst; am selben Tag Serien, die das Profil als Favorit hat oder in den letzten 90 Tagen geschaut hat, vorne. Höchstens 30 Einträge.
 - **Rechte:** Serien nur aus den Bibliotheken des Profils. Filme nur, wenn der Radarr-Stammordner zu einer Filmbibliothek des Profils passt (gleicher Ordnername, z. B. `/movies/Kinder` ↔ `/data/Kinder`); passt er zu keiner Bibliothek, sehen ihn nur Profile mit allen Filmbibliotheken. Die Altersfreigabe aus Radarr wird wie bei Jellyfin-Titeln geprüft.
 - **Einstellungen:** Reiter „Startseite“ → „Demnächst (Sonarr und Radarr)“: Adressen, API-Schlüssel (Sonarr/Radarr → Settings → General), Zeiträume und „Verbindung prüfen“. Die Schlüssel werden nur im Kopf `X-Api-Key` gesendet, nie protokolliert und nicht in Konfigurationssicherungen gespeichert. Die Kalender werden 30 Minuten zwischengespeichert.
 - **Schnittstelle:**
-  - `GET /LocalRecs/Upcoming?utcOffsetMinutes=120` → `{ "Items": [ { "Kind": "Episode"|"Movie", "Title", "Subtitle", "Date", "Series": {…}, "SeasonNumber", "EpisodeNumber", "EpisodeTitle", "MoreEpisodes", "Movie": { "RadarrId", "TmdbId", "ImdbId", "Year", "Overview", "OfficialRating", "PosterUrl", "BackdropUrl" } } ] }`
+  - `GET /LocalRecs/Upcoming?utcOffsetMinutes=120` → `{ "Items": [ { "Kind": "Episode"|"Movie", "ReleaseType", "Title", "Subtitle", "Date", "LocalDate", "Network", "EpisodeOverview", "Series": {…}, "SeasonNumber", "EpisodeNumber", "EpisodeTitle", "MoreEpisodes", "Movie": { "RadarrId", "TmdbId", "ImdbId", "Year", "Overview", "OfficialRating", "PosterUrl", "BackdropUrl" } } ] }`
+  - `ReleaseType`: `NewEpisode`, `SeasonPremiere`, `SeriesPremiere`, `Cinema`, `Digital`, `Physical`; `Subtitle` ist der fertige Text für die Karte; `Date` in UTC (bei Folgen mit Uhrzeit, bei Filmen zählt nur der Tag), `LocalDate` der Tag (`yyyy-MM-dd`) in der Zeitzone der App
+  - Felder ohne Wert fehlen im JSON
   - `PosterUrl`/`BackdropUrl` sind relativ zum Server (`LocalRecs/Upcoming/Movies/{id}/Images/Poster|Backdrop`, ohne Anmeldung, nur für Filme im aktuellen Kalender)
   - `GET /LocalRecs/Upcoming/Status` (nur Admins) prüft die Verbindung
   - `/LocalRecs/Web/Config` meldet `"Upcoming": true`
