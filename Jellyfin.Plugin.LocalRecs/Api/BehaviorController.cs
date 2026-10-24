@@ -63,10 +63,12 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 return NoContent();
             }
 
-            var matches = _behavior.ResolveSearch(user, term);
+            // Füllwörter und Bruchstücke („The“, „de“) sind keine Suche; gemerkt wird unbestätigt, bis ein Treffer geöffnet
+            // oder abgespielt wird
+            var (matches, kind) = _behavior.ResolveSearchWithKind(user, term);
             if (matches.Count > 0)
             {
-                _store.AddSearch(user.Id, term, matches, DateTime.UtcNow);
+                _store.AddSearch(user.Id, term, matches, DateTime.UtcNow, kind);
             }
 
             return NoContent();
@@ -92,6 +94,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 && (item is MediaBrowser.Controller.Entities.Movies.Movie || item is MediaBrowser.Controller.Entities.TV.Series))
             {
                 _store.AddView(user.Id, item.Id, DateTime.UtcNow);
+                _store.ConfirmSearch(user.Id, new[] { item.Id }, DateTime.UtcNow);
             }
 
             return NoContent();
@@ -125,7 +128,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 Daypart = daypart.Label,
                 PlaysInDaypart = daypart.Plays,
                 Order = daypart.Order,
-                Searches = stored.Searches.AsEnumerable().Reverse().Select(s => new NotedSearch { Term = s.Term, At = s.At }).ToList(),
+                Searches = stored.Searches.Where(s => s.Confirmed).Reverse().Select(s => new NotedSearch { Term = s.Term, At = s.At }).ToList(),
                 Views = stored.Views.AsEnumerable().Reverse()
                     .Select(v => new NotedView { ItemId = v.ItemId.ToString("N"), Name = _libraryManager.GetItemById(v.ItemId)?.Name ?? string.Empty, At = v.At })
                     .ToList()

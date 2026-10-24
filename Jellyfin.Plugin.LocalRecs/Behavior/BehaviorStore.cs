@@ -22,6 +22,24 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
         /// <summary>Default number of days an entry is kept.</summary>
         public const int DefaultRetentionDays = 365;
 
+        /// <summary>Kind of a search that found titles by name.</summary>
+        public const string SearchKindTitle = "Title";
+
+        /// <summary>Kind of a search that found titles by a person.</summary>
+        public const string SearchKindPerson = "Person";
+
+        /// <summary>Kind of a search that found titles by genre.</summary>
+        public const string SearchKindGenre = "Genre";
+
+        // Zwischenstände beim Tippen ersetzen einander innerhalb dieser Zeit
+        private static readonly TimeSpan TypingWindow = TimeSpan.FromMinutes(2);
+
+        // So lange nach der Suche zählt das Öffnen oder Abspielen eines Treffers als Abschluss
+        private static readonly TimeSpan ConfirmWindow = TimeSpan.FromMinutes(30);
+
+        // Nicht abgeschlossene Suchen werden nicht aufbewahrt
+        private static readonly TimeSpan UnconfirmedRetention = TimeSpan.FromHours(1);
+
         private readonly ILogger<BehaviorStore> _logger;
         private readonly string _path;
         private readonly int? _retentionDays;
@@ -73,7 +91,7 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
                 return new UserBehavior
                 {
                     Enabled = entry.Enabled,
-                    Searches = entry.Searches.Where(s => s.At >= limit).Select(s => new SearchEntry { Term = s.Term, At = s.At, Matches = s.Matches.ToList() }).ToList(),
+                    Searches = entry.Searches.Where(s => s.At >= limit).Select(s => new SearchEntry { Term = s.Term, At = s.At, Matches = s.Matches.ToList(), Kind = s.Kind, Confirmed = s.Confirmed }).ToList(),
                     Views = entry.Views.Where(v => v.At >= limit).Select(v => new ViewEntry { ItemId = v.ItemId, At = v.At }).ToList()
                 };
             }
@@ -130,25 +148,66 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
         /// <param name="term">Search term.</param>
         /// <param name="matches">Library titles the term stands for.</param>
         /// <param name="now">Current time (UTC).</param>
-        public void AddSearch(Guid userId, string term, IReadOnlyList<Guid> matches, DateTime now)
+        public void AddSearch(Guid userId, string term, IReadOnlyList<Guid> matches, DateTime now) => AddSearch(userId, term, matches, now, SearchKindTitle);
+
+        /// <summary>
+        /// Notes a search (unconfirmed until a found title is opened or played). Intermediate states while typing
+        /// („Dea“ → „Deadp“ → „Deadpool“) replace each other.
+        /// </summary>
+        /// <param name="userId">The user.</param>
+        /// <param name="term">The search term.</param>
+        /// <param name="matches">Titles it stands for.</param>
+        /// <param name="now">Now (UTC).</param>
+        /// <param name="kind">How the titles were found („Title“, „Person“, „Genre“).</param>
+        public void AddSearch(Guid userId, string term, IReadOnlyList<Guid> matches, DateTime now, string kind)
         {
             ArgumentNullException.ThrowIfNull(term);
             ArgumentNullException.ThrowIfNull(matches);
             Change(userId, b =>
             {
+                b.Searches.RemoveAll(s => !s.Confirmed && now - s.At < TypingWindow && Behavior.SearchTerms.IsTypingStep(s.Term, term));
                 var same = b.Searches.LastOrDefault(s => string.Equals(s.Term, term, StringComparison.OrdinalIgnoreCase));
                 if (same != null && now - same.At < TimeSpan.FromMinutes(10))
                 {
                     same.At = now;
                     same.Matches = matches.ToList();
+                    same.Kind = kind;
                 }
                 else
                 {
-                    b.Searches.Add(new SearchEntry { Term = term, At = now, Matches = matches.ToList() });
+                    b.Searches.Add(new SearchEntry { Term = term, At = now, Matches = matches.ToList(), Kind = kind });
                 }
 
                 Prune(b, now);
             });
+        }
+
+        /// <summary>
+        /// Confirms the most recent search (within 30 minutes) that found a title the user now opened or played.
+        /// </summary>
+        /// <param name="userId">The user.</param>
+        /// <param name="itemIds">The opened or played title (and its series).</param>
+        /// <param name="now">Now (UTC).</param>
+        /// <returns>True if a search was confirmed.</returns>
+        public bool ConfirmSearch(Guid userId, IReadOnlyCollection<Guid> itemIds, DateTime now)
+        {
+            ArgumentNullException.ThrowIfNull(itemIds);
+            var behavior = Get(userId);
+            var candidate = behavior.Searches.LastOrDefault(s => !s.Confirmed && now - s.At < ConfirmWindow && s.Matches.Any(itemIds.Contains));
+            if (candidate == null)
+            {
+                return false;
+            }
+
+            Change(userId, b =>
+            {
+                var entry = b.Searches.LastOrDefault(s => !s.Confirmed && now - s.At < ConfirmWindow && s.Matches.Any(itemIds.Contains));
+                if (entry != null)
+                {
+                    entry.Confirmed = true;
+                }
+            });
+            return true;
         }
 
         /// <summary>
@@ -176,7 +235,7 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
         {
             var max = MaxEntries;
             var limit = now.AddDays(-RetentionDays);
-            behavior.Searches.RemoveAll(s => s.At < limit);
+            behavior.Searches.RemoveAll(s => s.At < limit || (!s.Confirmed && now - s.At > UnconfirmedRetention));
             behavior.Views.RemoveAll(v => v.At < limit);
             if (behavior.Searches.Count > max)
             {
@@ -283,6 +342,13 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
 
             /// <summary>Gets or sets the library titles the term stands for.</summary>
             public List<Guid> Matches { get; set; } = new List<Guid>();
+
+            /// <summary>Gets or sets how the titles were found: „Title“, „Person“ or „Genre“ (since 12.53.0).</summary>
+            public string Kind { get; set; } = SearchKindTitle;
+
+            /// <summary>Gets or sets a value indicating whether the search was completed – a found title was opened or played (since 12.53.0).
+            /// Only completed searches count.</summary>
+            public bool Confirmed { get; set; }
         }
 
         /// <summary>

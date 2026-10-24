@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.53.0.0",
+        "changelog": "Suchen nur, wenn sie echt sind\n- Füllwörter (the, der, und …) und Begriffe unter 3 Zeichen zählen nicht\n- Nur abgeschlossene Suchen zählen (Treffer geöffnet oder abgespielt), Zwischenstände beim Tippen nicht\n- „Weil du nach … gesucht hast“ nur, wenn der Titel den Begriff enthält\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.53.0.zip",
+        "checksum": "9e5de9fe46a1399a48c2889be99fab02",
+        "timestamp": "2026-10-25T10:00:00Z"
+      },
+      {
         "version": "12.52.2.0",
         "changelog": "Fehlerbehebungen Demnächst und Jahrestage\n- Zeile mit Jahrestagen heißt „An diesem Tag erschienen“ statt „Heute vor X Jahren“\n- Uhrzeiten stimmen über die Zeitumstellung hinweg, mit Zone („15:30 Uhr MEZ“)\n- „Danach: S03E06 am So. 01.11.“ für die Folge nach der nächsten\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

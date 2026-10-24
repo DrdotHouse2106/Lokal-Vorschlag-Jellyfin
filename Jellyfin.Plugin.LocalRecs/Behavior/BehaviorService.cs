@@ -142,15 +142,32 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
         /// <param name="user">The user.</param>
         /// <param name="term">Search term.</param>
         /// <returns>Up to 10 titles.</returns>
-        public IReadOnlyList<Guid> ResolveSearch(User user, string term)
+        public IReadOnlyList<Guid> ResolveSearch(User user, string term) => ResolveSearchWithKind(user, term).Matches;
+
+        /// <summary>
+        /// Resolves a search term like <see cref="ResolveSearch"/> and tells how the titles were found. Titles found by name only
+        /// count if the name really contains the term („the“ alone finds nothing).
+        /// </summary>
+        /// <param name="user">The user.</param>
+        /// <param name="term">Search term.</param>
+        /// <returns>Up to 10 titles and the kind („Title“, „Person“, „Genre“).</returns>
+        public (IReadOnlyList<Guid> Matches, string Kind) ResolveSearchWithKind(User user, string term)
         {
             ArgumentNullException.ThrowIfNull(user);
             ArgumentNullException.ThrowIfNull(term);
+            if (!SearchTerms.IsMeaningful(term))
+            {
+                return (Array.Empty<Guid>(), BehaviorStore.SearchKindTitle);
+            }
+
             var kinds = new[] { BaseItemKind.Movie, BaseItemKind.Series };
-            var byName = _libraryManager.GetItemList(new InternalItemsQuery(user) { SearchTerm = term, IncludeItemTypes = kinds, Recursive = true, Limit = 10 });
+            var byName = _libraryManager.GetItemList(new InternalItemsQuery(user) { SearchTerm = term, IncludeItemTypes = kinds, Recursive = true, Limit = 20 })
+                .Where(i => SearchTerms.TitleFits(term, i.Name) || SearchTerms.TitleFits(term, i.OriginalTitle))
+                .Take(10)
+                .ToList();
             if (byName.Count > 0)
             {
-                return byName.Select(i => i.Id).ToList();
+                return (byName.Select(i => i.Id).ToList(), BehaviorStore.SearchKindTitle);
             }
 
             var person = _libraryManager.GetItemList(new InternalItemsQuery { SearchTerm = term, IncludeItemTypes = new[] { BaseItemKind.Person }, Limit = 1 }).FirstOrDefault();
@@ -159,18 +176,18 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
                 var withPerson = _libraryManager.GetItemList(new InternalItemsQuery(user) { PersonIds = new[] { person.Id }, IncludeItemTypes = kinds, Recursive = true, Limit = 10 });
                 if (withPerson.Count > 0)
                 {
-                    return withPerson.Select(i => i.Id).ToList();
+                    return (withPerson.Select(i => i.Id).ToList(), BehaviorStore.SearchKindPerson);
                 }
             }
 
-            return _libraryManager.GetItemList(new InternalItemsQuery(user)
+            return (_libraryManager.GetItemList(new InternalItemsQuery(user)
             {
                 Genres = new[] { term },
                 IncludeItemTypes = kinds,
                 Recursive = true,
                 Limit = 10,
                 OrderBy = new[] { (ItemSortBy.CommunityRating, SortOrder.Descending) }
-            }).Select(i => i.Id).ToList();
+            }).Select(i => i.Id).ToList(), BehaviorStore.SearchKindGenre);
         }
 
         /// <summary>
@@ -223,9 +240,12 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
                         .First();
                     var interestBonus = config.InterestWeight * best.Score;
                     bonus += interestBonus;
-                    if (interestBonus >= 0.12)
+                    // Der Suchgrund gilt nur für den gefundenen Titel selbst, nicht für ähnliche; ohne passenden Grund bleibt der bisherige
+                    var reason = best.Interest.Reason;
+                    var searchReason = reason.StartsWith("Weil du nach", StringComparison.Ordinal);
+                    if (interestBonus >= 0.12 && reason.Length > 0 && (!searchReason || best.Interest.ItemId == item.Id))
                     {
-                        reasons[item.Id] = best.Interest.Reason;
+                        reasons[item.Id] = reason;
                     }
                 }
 
@@ -293,13 +313,15 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
 
             var behavior = _store.Get(user.Id);
             var decayDays = Math.Clamp(Config.InterestDecayDays, 3, 365);
-            var entries = new List<(Guid ItemId, double Weight, string Reason)>();
-            foreach (var search in behavior.Searches)
+
+            // Nur abgeschlossene Suchen (ein Treffer wurde geöffnet oder abgespielt) mit echtem Suchbegriff
+            var entries = new List<(Guid ItemId, double Weight, string Reason, string? Term, string? Kind)>();
+            foreach (var search in behavior.Searches.Where(s => s.Confirmed && SearchTerms.IsMeaningful(s.Term)))
             {
                 var weight = InterestScoring.SearchWeight * InterestScoring.Decay(now - search.At, decayDays);
                 if (weight >= InterestScoring.MinWeight)
                 {
-                    entries.AddRange(search.Matches.Take(5).Select(id => (id, weight, "Weil du nach „" + search.Term + "“ gesucht hast")));
+                    entries.AddRange(search.Matches.Take(5).Select(id => (id, weight, "Weil du nach „" + search.Term + "“ gesucht hast", (string?)search.Term, (string?)search.Kind)));
                 }
             }
 
@@ -308,7 +330,7 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
                 var weight = InterestScoring.ViewWeight * InterestScoring.Decay(now - view.At, decayDays);
                 if (weight >= InterestScoring.MinWeight)
                 {
-                    entries.Add((view.ItemId, weight, string.Empty));
+                    entries.Add((view.ItemId, weight, string.Empty, null, null));
                 }
             }
 
@@ -320,8 +342,14 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
                     continue;
                 }
 
-                var strongest = group.OrderByDescending(e => e.Weight).First();
-                var reason = strongest.Reason.Length > 0 ? strongest.Reason : "Weil du dir „" + item.Name + "“ angesehen hast";
+                // Grund „Weil du nach … gesucht hast“ nur, wenn der Titel wirklich zum Begriff passt (bei Personen und Genres immer)
+                var fitting = group
+                    .Where(e => e.Term == null || e.Kind != BehaviorStore.SearchKindTitle || SearchTerms.TitleFits(e.Term, item.Name) || SearchTerms.TitleFits(e.Term, item.OriginalTitle))
+                    .OrderByDescending(e => e.Weight)
+                    .FirstOrDefault();
+                var reason = fitting.Reason is null ? string.Empty
+                    : fitting.Reason.Length > 0 ? fitting.Reason
+                    : "Weil du dir „" + item.Name + "“ angesehen hast";
                 result.Add(new Interest(item.Id, Features(item), InterestScoring.Combine(group.Select(e => e.Weight)), reason));
             }
 

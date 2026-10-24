@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.53.0] - 2026-10-25
+
+### Changed
+
+- **Search-based suggestions only from real searches** (e.g. the hero showed „Weil du nach „The“ gesucht hast“ on Deadpool):
+  - Stop words (the, der, die, das, a, an, und, of …) and terms without a word of at least 3 characters are ignored.
+  - Only completed searches count: a found title was opened (detail page) or played within 30 minutes. Typing steps („Dea“ → „Deadp“ → „Deadpool“) replace each other; uncompleted searches are dropped after an hour and are no longer listed under „Was Quallenkino sich merkt“.
+  - Titles found by name only count if the name really contains the term; the reason „Weil du nach … gesucht hast“ is shown only on the found title itself, not on similar titles (and never overwrites another reason with an empty one).
+  - Searches noted before 12.53.0 count as not completed and no longer show up as reasons.
+  - Server-side for all apps; no app change needed.
+
 ## [12.52.2] - 2026-10-24
 
 ### Fixed

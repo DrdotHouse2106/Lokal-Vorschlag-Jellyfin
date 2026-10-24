@@ -108,6 +108,7 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             store.AddSearch(user, "krimi", new[] { item }, now.AddMinutes(2));
             store.AddView(user, item, now);
             store.AddView(user, item, now.AddMinutes(30));
+            store.ConfirmSearch(user, new[] { item }, now.AddMinutes(3));
 
             store.IsEnabled(user).Should().BeTrue("Standard an");
             store.Get(user).Searches.Should().ContainSingle();

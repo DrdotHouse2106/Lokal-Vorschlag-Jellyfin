@@ -91,6 +91,7 @@ namespace Jellyfin.Plugin.LocalRecs
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Behavior.BehaviorStore>>(),
                     Path.Combine(GetPluginDataPath(sp), "verhalten.json")));
             serviceCollection.AddSingleton<Behavior.BehaviorService>();
+            serviceCollection.AddHostedService<Behavior.SearchConfirmationService>();
             serviceCollection.AddSingleton<Metadata.MetadataCheckService>();
             serviceCollection.AddSingleton(sp =>
                 new Banner.BannerStore(
