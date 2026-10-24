@@ -53,18 +53,19 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
         /// network and SxxEyy with title.
         /// </summary>
         /// <param name="episode">The episode.</param>
-        /// <param name="localAir">Local air time.</param>
+        /// <param name="clock">The app's clock.</param>
         /// <param name="today">Today.</param>
         /// <returns>The text.</returns>
-        public static string Text(SeriesUpcoming.SeriesEpisode episode, DateTime localAir, DateOnly today)
+        public static string Text(SeriesUpcoming.SeriesEpisode episode, LocalClock clock, DateOnly today)
         {
             ArgumentNullException.ThrowIfNull(episode);
-            var day = DateOnly.FromDateTime(localAir);
+            ArgumentNullException.ThrowIfNull(clock);
+            var day = clock.Day(episode.Date);
             var days = day.DayNumber - today.DayNumber;
             var head = episode.ReleaseType == UpcomingEntry.NewEpisode && days > 1
                 ? "Nächste Folge am " + UpcomingService.DayText(day, today)
                 : UpcomingService.Label(episode.ReleaseType, day, today);
-            var parts = new List<string> { head, localAir.ToString("HH:mm", CultureInfo.InvariantCulture) + " Uhr" };
+            var parts = new List<string> { head, clock.TimeText(episode.Date) };
             if (!string.IsNullOrWhiteSpace(episode.Network))
             {
                 parts.Add(episode.Network);
@@ -88,15 +89,16 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
         /// <param name="episodes">All episodes of the series.</param>
         /// <param name="network">Network of the series.</param>
         /// <param name="nowUtc">Now.</param>
-        /// <param name="offset">Offset of the app's time zone in minutes.</param>
+        /// <param name="clock">The app's clock.</param>
         /// <param name="itemIds">Jellyfin IDs of the episodes in the library by (season, episode).</param>
         /// <returns>The result.</returns>
-        public static SeriesUpcoming Build(IReadOnlyList<ArrEpisode> episodes, string? network, DateTime nowUtc, int offset, IReadOnlyDictionary<(int Season, int Episode), Guid> itemIds)
+        public static SeriesUpcoming Build(IReadOnlyList<ArrEpisode> episodes, string? network, DateTime nowUtc, LocalClock clock, IReadOnlyDictionary<(int Season, int Episode), Guid> itemIds)
         {
             ArgumentNullException.ThrowIfNull(episodes);
+            ArgumentNullException.ThrowIfNull(clock);
             ArgumentNullException.ThrowIfNull(itemIds);
-            var today = DateOnly.FromDateTime(nowUtc.AddMinutes(offset));
-            var startOfToday = today.ToDateTime(TimeOnly.MinValue).AddMinutes(-offset);
+            var today = clock.Day(nowUtc);
+            var startOfToday = clock.StartOfDayUtc(today);
             var result = new SeriesUpcoming();
             SeriesUpcoming.SeriesEpisode Info(ArrEpisode e) => new SeriesUpcoming.SeriesEpisode
             {
@@ -105,7 +107,8 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
                 EpisodeTitle = e.Title,
                 EpisodeOverview = e.Overview,
                 Date = e.AirDateUtc,
-                LocalDate = DateOnly.FromDateTime(e.AirDateUtc.AddMinutes(offset)).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                LocalDate = clock.Day(e.AirDateUtc).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                LocalTime = clock.TimeText(e.AirDateUtc),
                 ReleaseType = UpcomingService.EpisodeType(e.SeasonNumber, e.EpisodeNumber),
                 Network = network,
                 ItemId = itemIds.TryGetValue((e.SeasonNumber, e.EpisodeNumber), out var id) ? id.ToString("N") : null
@@ -123,11 +126,11 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
             if (next != null)
             {
                 result.Next = Info(next);
-                result.Text = Text(result.Next, next.AirDateUtc.AddMinutes(offset), today);
+                result.Text = Text(result.Next, clock, today);
                 var more = upcoming.Skip(1).Where(e => e.SeasonNumber != 0 && e.AirDateUtc <= next.AirDateUtc.AddDays(30)).OrderBy(e => e.AirDateUtc).ToList();
                 if (more.Count > 0)
                 {
-                    var until = DateOnly.FromDateTime(more[^1].AirDateUtc.AddMinutes(offset));
+                    var until = clock.Day(more[^1].AirDateUtc);
                     result.MoreEpisodes = more.Count;
                     result.MoreUntil = until.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
                     result.MoreText = "+" + more.Count + (more.Count == 1 ? " weitere am " : " weitere bis ") + until.ToString("dd.MM.", CultureInfo.InvariantCulture);
@@ -154,8 +157,9 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
         /// <param name="seriesId">Jellyfin ID of the series.</param>
         /// <param name="utcOffsetMinutes">Offset of the app's time zone, optional.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="timeZone">IANA time zone of the app, optional.</param>
         /// <returns>The result, or null.</returns>
-        public async Task<SeriesUpcoming?> GetAsync(User user, Guid seriesId, int? utcOffsetMinutes, CancellationToken cancellationToken)
+        public async Task<SeriesUpcoming?> GetAsync(User user, Guid seriesId, int? utcOffsetMinutes, CancellationToken cancellationToken, string? timeZone = null)
         {
             ArgumentNullException.ThrowIfNull(user);
             var config = Config;
@@ -202,7 +206,7 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
                     }
                 }
 
-                return Build(cached.Episodes, sonarr.Network, DateTime.UtcNow, BehaviorService.ResolveOffset(utcOffsetMinutes), itemIds);
+                return Build(cached.Episodes, sonarr.Network, DateTime.UtcNow, LocalClock.Create(timeZone, utcOffsetMinutes, BehaviorService.ResolveOffset(null)), itemIds);
             }
             catch (Exception ex) when (ex is System.Net.Http.HttpRequestException || ex is System.Text.Json.JsonException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
             {

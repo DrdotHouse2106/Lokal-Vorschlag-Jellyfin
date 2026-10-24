@@ -246,6 +246,8 @@ Eine Zeile **„Demnächst“** mit neuen Folgen und bald erscheinenden Filmen, 
 - **Einstellungen:** Reiter „Startseite“ → „Demnächst (Sonarr und Radarr)“: Adressen, API-Schlüssel (Sonarr/Radarr → Settings → General), Zeiträume und „Verbindung prüfen“. Die Schlüssel werden nur im Kopf `X-Api-Key` gesendet, nie protokolliert und nicht in Konfigurationssicherungen gespeichert. Die Kalender werden 30 Minuten zwischengespeichert.
 - **Schnittstelle:**
   - `GET /LocalRecs/Upcoming?utcOffsetMinutes=120` → `{ "Items": [ { "Kind": "Episode"|"Movie", "ReleaseType", "Title", "Subtitle", "Date", "LocalDate", "Network", "EpisodeOverview", "Series": {…}, "SeasonNumber", "EpisodeNumber", "EpisodeTitle", "MoreEpisodes", "Movie": { "RadarrId", "TmdbId", "ImdbId", "Year", "Overview", "OfficialRating", "PosterUrl", "BackdropUrl" } } ] }`
+  - Ab 12.52.2 zusätzlich bei Folgen `LocalTime` („15:30 Uhr MEZ“) und `NextAfter` { `SeasonNumber`, `EpisodeNumber`, `EpisodeTitle`, `Date`, `LocalDate`, `Text` } mit fertigem Text „Danach: S03E06 am So. 01.11.“
+  - Optional `timeZone=Europe/Berlin` (IANA-Name): Dann stimmen Tage und Uhrzeiten auch über die Umstellung zwischen Sommer- und Winterzeit. Ohne `timeZone` gilt ein Versatz von +60/+120 Minuten als deutsche Zeit, andere Versätze fest.
   - `ReleaseType`: `NewEpisode`, `SeasonPremiere`, `SeriesPremiere`, `Cinema`, `Digital`, `Physical`; `Subtitle` ist der fertige Text für die Karte; `Date` in UTC (bei Folgen mit Uhrzeit, bei Filmen zählt nur der Tag), `LocalDate` der Tag (`yyyy-MM-dd`) in der Zeitzone der App
   - Felder ohne Wert fehlen im JSON
   - `PosterUrl`/`BackdropUrl` sind relativ zum Server (`LocalRecs/Upcoming/Movies/{id}/Images/Poster|Backdrop`, ohne Anmeldung, nur für Filme im aktuellen Kalender)
@@ -263,7 +265,7 @@ Auf der Detailseite einer Serie steht oben unter den Eckdaten, was Sonarr als N�
 
 Es zählt die nächste bekannte Folge ohne Zeitgrenze (auch Monate später); Specials nur, wenn sonst nichts kommt. Rechte wie bei „Demnächst“ (nur Serien, die das Profil sehen darf), nur lesend. Die Serienliste von Sonarr wird 6 Stunden, die Folgen einer Serie 30 Minuten zwischengespeichert.
 
-**Schnittstelle:** `GET /LocalRecs/Upcoming/Series/{seriesId}?utcOffsetMinutes=120` → 204 ohne Inhalt, wenn Sonarr nicht eingerichtet ist, die Serie nicht kennt oder das Profil sie nicht sehen darf; sonst:
+**Schnittstelle:** `GET /LocalRecs/Upcoming/Series/{seriesId}?utcOffsetMinutes=120&timeZone=Europe/Berlin` (`timeZone` optional, ab 12.52.2; die Uhrzeit steht mit Zone im Text, z. B. „21:00 Uhr MEZ“, und in `Next.LocalTime`) → 204 ohne Inhalt, wenn Sonarr nicht eingerichtet ist, die Serie nicht kennt oder das Profil sie nicht sehen darf; sonst:
 
 ```
 { "Next": { "SeasonNumber", "EpisodeNumber", "EpisodeTitle", "EpisodeOverview", "Date" (UTC), "LocalDate", "ReleaseType", "Network" },

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.52.2] - 2026-10-24
+
+### Fixed
+
+- `/LocalRecs/Moments`: the anniversary row with titles of different years was titled „Heute vor X Jahren“ (the settings label); it is now „An diesem Tag erschienen“ (one year: „Heute vor 25 Jahren“). The web showed the same.
+- Times of upcoming episodes across the change from summer to winter time: the offset of the request (e.g. +120 on 24 October) was used for dates after the change. Now the app's time zone is used: new optional parameter `timeZone` (IANA, e.g. `Europe/Berlin`, the web sends it); without it an offset of +60/+120 counts as German time.
+
+### Added
+
+- `/LocalRecs/Upcoming`: `LocalTime` („15:30 Uhr MEZ“) and `NextAfter` { `SeasonNumber`, `EpisodeNumber`, `EpisodeTitle`, `Date`, `LocalDate`, `Text` („Danach: S03E06 am So. 01.11.“) } for episodes; the web shows „Danach: …“ instead of „Danach folgen noch n weitere …“.
+- `/LocalRecs/Upcoming/Series/{id}`: `Next.LocalTime`; the line names the zone („21:00 Uhr MEZ“).
+
 ## [12.52.1] - 2026-10-23
 
 ### Fixed

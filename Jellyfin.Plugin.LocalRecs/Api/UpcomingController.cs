@@ -47,10 +47,11 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// Gets the upcoming episodes and movies for the signed-in user: series the user watches or likes first, then by date.
         /// </summary>
         /// <param name="utcOffsetMinutes">Offset of the app's time zone in minutes, optional (decides „Heute“, weekdays).</param>
+        /// <param name="timeZone">IANA time zone of the app, e.g. „Europe/Berlin“, optional; exact across summer/winter time.</param>
         /// <returns>The entries.</returns>
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<UpcomingResult>> Get([FromQuery] int? utcOffsetMinutes = null)
+        public async Task<ActionResult<UpcomingResult>> Get([FromQuery] int? utcOffsetMinutes = null, [FromQuery] string? timeZone = null)
         {
             var user = _userManager.GetUserById(RecommendationsController.GetUserId(User));
             if (user == null)
@@ -58,7 +59,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 return Unauthorized();
             }
 
-            var entries = await _upcoming.GetAsync(user, utcOffsetMinutes, HttpContext.RequestAborted).ConfigureAwait(false);
+            var entries = await _upcoming.GetAsync(user, utcOffsetMinutes, HttpContext.RequestAborted, timeZone).ConfigureAwait(false);
             var series = entries.Where(e => e.SeriesItem != null).Select(e => e.SeriesItem!).DistinctBy(i => i.Id).ToList();
             var dtos = _dtoService.GetBaseItemDtos(series, SeasonalSectionHandler.Options, user).ToDictionary(d => d.Id);
             Response.Headers.CacheControl = "no-store";
@@ -77,6 +78,8 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 EpisodeNumber = e.SeriesItem != null ? e.EpisodeNumber : null,
                 EpisodeTitle = e.EpisodeTitle,
                 MoreEpisodes = e.MoreEpisodes,
+                LocalTime = e.LocalTime,
+                NextAfter = e.NextAfter,
                 Movie = e.Movie == null ? null : new UpcomingMovie
                 {
                     RadarrId = e.Movie.RadarrId,
@@ -99,11 +102,12 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// </summary>
         /// <param name="seriesId">Jellyfin ID of the series.</param>
         /// <param name="utcOffsetMinutes">Offset of the app's time zone in minutes, optional.</param>
+        /// <param name="timeZone">IANA time zone of the app, optional.</param>
         /// <returns>The upcoming episodes.</returns>
         [HttpGet("Series/{seriesId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public async Task<ActionResult<SeriesUpcoming>> GetForSeries([FromRoute] Guid seriesId, [FromQuery] int? utcOffsetMinutes = null)
+        public async Task<ActionResult<SeriesUpcoming>> GetForSeries([FromRoute] Guid seriesId, [FromQuery] int? utcOffsetMinutes = null, [FromQuery] string? timeZone = null)
         {
             var user = _userManager.GetUserById(RecommendationsController.GetUserId(User));
             if (user == null)
@@ -112,7 +116,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             }
 
             Response.Headers.CacheControl = "no-store";
-            var result = await _seriesUpcoming.GetAsync(user, seriesId, utcOffsetMinutes, HttpContext.RequestAborted).ConfigureAwait(false);
+            var result = await _seriesUpcoming.GetAsync(user, seriesId, utcOffsetMinutes, HttpContext.RequestAborted, timeZone).ConfigureAwait(false);
             if (result == null)
             {
                 return NoContent();
@@ -216,6 +220,12 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets the number of further new episodes of the series in the period.</summary>
             public int MoreEpisodes { get; set; }
+
+            /// <summary>Gets or sets the local air time with zone, e.g. „15:30 Uhr MEZ“ (episodes).</summary>
+            public string? LocalTime { get; set; }
+
+            /// <summary>Gets or sets the episode after the next one (episodes with MoreEpisodes &gt; 0): SeasonNumber, EpisodeNumber, EpisodeTitle, Date, LocalDate, Text („Danach: S03E06 am So. 01.11.“).</summary>
+            public UpcomingEntry.FollowingEpisode? NextAfter { get; set; }
 
             /// <summary>Gets or sets the movie (movies).</summary>
             public UpcomingMovie? Movie { get; set; }

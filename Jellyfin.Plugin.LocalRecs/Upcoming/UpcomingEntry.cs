@@ -68,6 +68,12 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
         /// <summary>Gets or sets the episode title (episodes).</summary>
         public string? EpisodeTitle { get; set; }
 
+        /// <summary>Gets or sets the local air time with zone, e.g. „15:30 Uhr MEZ“ (episodes).</summary>
+        public string? LocalTime { get; set; }
+
+        /// <summary>Gets or sets the episode after the next one in the period (episodes), or null.</summary>
+        public FollowingEpisode? NextAfter { get; set; }
+
         /// <summary>Gets or sets the number of further episodes of the series in the period.</summary>
         public int MoreEpisodes { get; set; }
 
@@ -76,5 +82,27 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
 
         /// <summary>Gets or sets the movie from Radarr (movies).</summary>
         public ArrMovie? Movie { get; set; }
+
+        /// <summary>The episode after the next one.</summary>
+        public class FollowingEpisode
+        {
+            /// <summary>Gets or sets the season number.</summary>
+            public int SeasonNumber { get; set; }
+
+            /// <summary>Gets or sets the episode number.</summary>
+            public int EpisodeNumber { get; set; }
+
+            /// <summary>Gets or sets the episode title.</summary>
+            public string? EpisodeTitle { get; set; }
+
+            /// <summary>Gets or sets the air time (UTC).</summary>
+            public DateTime Date { get; set; }
+
+            /// <summary>Gets or sets the local day (yyyy-MM-dd).</summary>
+            public string LocalDate { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the ready text, e.g. „Danach: S03E06 am So. 01.11.“.</summary>
+            public string Text { get; set; } = string.Empty;
+        }
     }
 }

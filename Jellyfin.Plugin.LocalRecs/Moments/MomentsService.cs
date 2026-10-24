@@ -355,7 +355,7 @@ namespace Jellyfin.Plugin.LocalRecs.Moments
 
         private MomentRow BuildAnniversary(User user, DateOnly today)
         {
-            var row = new MomentRow { Key = Anniversary, Title = "Heute vor … Jahren" };
+            var row = new MomentRow { Key = Anniversary, Title = "An diesem Tag erschienen" };
             var found = new List<(BaseItem Item, int Years)>();
             foreach (var item in _libraryManager.GetItemList(new InternalItemsQuery(user)
             {
@@ -383,7 +383,7 @@ namespace Jellyfin.Plugin.LocalRecs.Moments
             if (row.Items.Count > 0)
             {
                 var distinct = found.Select(f => f.Years).Distinct().ToList();
-                row.Title = distinct.Count == 1 ? "Heute vor " + distinct[0] + " Jahren" : "Heute vor X Jahren";
+                row.Title = distinct.Count == 1 ? "Heute vor " + distinct[0] + " Jahren" : "An diesem Tag erschienen";
             }
 
             return row;

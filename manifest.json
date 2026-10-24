@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.52.2.0",
+        "changelog": "Fehlerbehebungen Demnächst und Jahrestage\n- Zeile mit Jahrestagen heißt „An diesem Tag erschienen“ statt „Heute vor X Jahren“\n- Uhrzeiten stimmen über die Zeitumstellung hinweg, mit Zone („15:30 Uhr MEZ“)\n- „Danach: S03E06 am So. 01.11.“ für die Folge nach der nächsten\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.52.2.zip",
+        "checksum": "295b7da4ea0415321b365a650362e92e",
+        "timestamp": "2026-10-24T08:00:00Z"
+      },
+      {
         "version": "12.52.1.0",
         "changelog": "Fehlerbehebung Benutzerwechsel\n- Behoben: Nach Abmelden und Anmelden als anderer Benutzer im selben Tab lud die Startseite endlos\n- Beim Wechsel werden Live-TV-Recht, Bibliotheken und Merker des vorigen Benutzers verworfen\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

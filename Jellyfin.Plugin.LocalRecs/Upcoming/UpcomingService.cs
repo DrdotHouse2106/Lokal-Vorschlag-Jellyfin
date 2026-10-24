@@ -188,8 +188,9 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
         /// <param name="user">The user.</param>
         /// <param name="utcOffsetMinutes">Offset of the app's time zone, optional.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="timeZone">IANA time zone of the app (e.g. „Europe/Berlin“), optional; more exact than the offset.</param>
         /// <returns>The entries.</returns>
-        public async Task<IReadOnlyList<UpcomingEntry>> GetAsync(User user, int? utcOffsetMinutes, CancellationToken cancellationToken)
+        public async Task<IReadOnlyList<UpcomingEntry>> GetAsync(User user, int? utcOffsetMinutes, CancellationToken cancellationToken, string? timeZone = null)
         {
             ArgumentNullException.ThrowIfNull(user);
             var config = Config;
@@ -201,9 +202,9 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
             var snapshot = await RefreshAsync(config, cancellationToken).ConfigureAwait(false);
             try
             {
-                var offset = BehaviorService.ResolveOffset(utcOffsetMinutes);
-                var today = DateOnly.FromDateTime(DateTime.UtcNow.AddMinutes(offset));
-                var result = Episodes(user, snapshot.Episodes, offset, today);
+                var clock = LocalClock.Create(timeZone, utcOffsetMinutes, BehaviorService.ResolveOffset(null));
+                var today = clock.Day(DateTime.UtcNow);
+                var result = Episodes(user, snapshot.Episodes, clock, today);
                 result.AddRange(Movies(user, snapshot.Movies, today, config));
 
                 // Das Nächste zuerst; am selben Tag Favoriten und gerade geschaute Serien vor
@@ -382,10 +383,10 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
         }
 
         // Je Serie die nächste Folge (weitere im Zeitraum werden gezählt); nur Serien, die der Benutzer in Jellyfin sehen darf
-        private List<UpcomingEntry> Episodes(User user, IReadOnlyList<ArrEpisode> episodes, int offset, DateOnly today)
+        private List<UpcomingEntry> Episodes(User user, IReadOnlyList<ArrEpisode> episodes, LocalClock clock, DateOnly today)
         {
             var result = new List<UpcomingEntry>();
-            var startUtc = today.ToDateTime(TimeOnly.MinValue).AddMinutes(-offset);
+            var startUtc = clock.StartOfDayUtc(today);
             var endUtc = startUtc.AddDays(Math.Clamp(Config.UpcomingSeriesDays, 1, 60));
             var upcoming = episodes.Where(e => e.AirDateUtc >= startUtc && e.AirDateUtc < endUtc).ToList();
             if (upcoming.Count == 0)
@@ -417,7 +418,9 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
             var priority = PrioritySeries(user, series);
             foreach (var group in upcoming.GroupBy(e => e.SonarrSeriesId))
             {
-                var first = group.OrderBy(e => e.AirDateUtc).ThenBy(e => e.SeasonNumber).ThenBy(e => e.EpisodeNumber).First();
+                var ordered = group.OrderBy(e => e.AirDateUtc).ThenBy(e => e.SeasonNumber).ThenBy(e => e.EpisodeNumber).ToList();
+                var first = ordered[0];
+                var after = ordered.Count > 1 ? ordered[1] : null;
                 var match = (first.TvdbId != null && byProvider.TryGetValue("Tvdb:" + first.TvdbId, out var tvdb) ? tvdb : null)
                     ?? (first.TmdbId != null && byProvider.TryGetValue("Tmdb:" + first.TmdbId, out var tmdb) ? tmdb : null)
                     ?? (first.ImdbId != null && byProvider.TryGetValue("Imdb:" + first.ImdbId, out var imdb) ? imdb : null)
@@ -427,8 +430,8 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
                     continue;
                 }
 
-                var day = DateOnly.FromDateTime(first.AirDateUtc.AddMinutes(offset));
-                var more = group.Count() - 1;
+                var day = clock.Day(first.AirDateUtc);
+                var more = ordered.Count - 1;
                 var type = EpisodeType(first.SeasonNumber, first.EpisodeNumber);
                 result.Add(new UpcomingEntry
                 {
@@ -444,6 +447,17 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
                     EpisodeNumber = first.EpisodeNumber,
                     EpisodeTitle = first.Title,
                     MoreEpisodes = more,
+                    LocalTime = clock.TimeText(first.AirDateUtc),
+                    NextAfter = after == null ? null : new UpcomingEntry.FollowingEpisode
+                    {
+                        SeasonNumber = after.SeasonNumber,
+                        EpisodeNumber = after.EpisodeNumber,
+                        EpisodeTitle = after.Title,
+                        Date = after.AirDateUtc,
+                        LocalDate = clock.Day(after.AirDateUtc).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                        Text = "Danach: " + SeriesUpcomingService.Number(after.SeasonNumber, after.EpisodeNumber) + " "
+                            + (clock.Day(after.AirDateUtc).DayNumber - today.DayNumber <= 1 ? DayText(clock.Day(after.AirDateUtc), today) : "am " + DayText(clock.Day(after.AirDateUtc), today))
+                    },
                     Priority = priority.Contains(match.Id),
                     Subtitle = Label(type, day, today)
                 });

@@ -52,6 +52,9 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
             /// <summary>Gets or sets the local day (yyyy-MM-dd) in the app's time zone.</summary>
             public string LocalDate { get; set; } = string.Empty;
 
+            /// <summary>Gets or sets the local air time with zone, e.g. „21:00 Uhr MESZ“.</summary>
+            public string LocalTime { get; set; } = string.Empty;
+
             /// <summary>Gets or sets the type: NewEpisode, SeasonPremiere or SeriesPremiere.</summary>
             public string ReleaseType { get; set; } = UpcomingEntry.NewEpisode;
 

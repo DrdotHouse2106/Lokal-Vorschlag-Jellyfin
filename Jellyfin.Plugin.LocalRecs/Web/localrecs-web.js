@@ -2424,7 +2424,7 @@
     // Erschienenes („Neu: S02E05“) – die neuen Folgen werden in der Folgenliste markiert
     function seriesUpcomingBox(series) {
         var box = el('div', 'lr-info-upcoming lr-hidden');
-        getJson('LocalRecs/Upcoming/Series/' + series.Id + '?utcOffsetMinutes=' + utcOffset()).then(function (result) {
+        getJson('LocalRecs/Upcoming/Series/' + series.Id + '?utcOffsetMinutes=' + utcOffset() + timeZoneParam()).then(function (result) {
             if (!result || (!result.Text && !result.NewText)) {
                 return;
             }
@@ -2841,7 +2841,7 @@
         if (cfg.Upcoming) {
             var upcomingRow = { key: 'upcoming', title: 'Demnächst', kind: 'landscape', items: [] };
             rows.push(upcomingRow);
-            tasks.push(safe(getJson('LocalRecs/Upcoming?utcOffsetMinutes=' + offset)).then(function (result) {
+            tasks.push(safe(getJson('LocalRecs/Upcoming?utcOffsetMinutes=' + offset + timeZoneParam())).then(function (result) {
                 upcomingRow.items = itemsOf(result).map(upcomingEntry).filter(Boolean);
             }));
         }
@@ -2981,6 +2981,8 @@
             EpisodeTitle: entry.EpisodeTitle,
             EpisodeOverview: entry.EpisodeOverview ? entry.EpisodeOverview.slice(0, 600) : null,
             Network: entry.Network,
+            LocalTime: entry.LocalTime,
+            NextAfter: entry.NextAfter || null,
             MoreEpisodes: entry.MoreEpisodes || 0
         };
         if (entry.Series) {
@@ -3025,7 +3027,7 @@
         var days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
         var parts = [days[date.getDay()] + ', ' + pad2(date.getDate()) + '.' + pad2(date.getMonth() + 1) + '.' + date.getFullYear()];
         if (upcoming.Kind === 'Episode') {
-            parts.push(pad2(date.getHours()) + ':' + pad2(date.getMinutes()) + ' Uhr');
+            parts.push(upcoming.LocalTime || (pad2(date.getHours()) + ':' + pad2(date.getMinutes()) + ' Uhr'));
             if (upcoming.Network) {
                 parts.push(upcoming.Network);
             }
@@ -3059,10 +3061,12 @@
         if (overview) {
             body.appendChild(el('p', 'lr-cal-text', overview));
         }
-        if (upcoming.MoreEpisodes > 0) {
-            body.appendChild(el('p', 'lr-cal-text lr-upcoming-note', upcoming.MoreEpisodes === 1
-                ? 'Danach folgt noch 1 weitere neue Folge in den nächsten Tagen.'
-                : 'Danach folgen noch ' + upcoming.MoreEpisodes + ' weitere neue Folgen in den nächsten Tagen.'));
+        if (upcoming.NextAfter && upcoming.NextAfter.Text) {
+            // „Danach: S03E06 am So. 01.11.“ (+ Zahl weiterer Folgen im Zeitraum)
+            var later = upcoming.MoreEpisodes - 1;
+            body.appendChild(el('p', 'lr-cal-text lr-upcoming-note', upcoming.NextAfter.Text
+                + (upcoming.NextAfter.EpisodeTitle ? ' · ' + upcoming.NextAfter.EpisodeTitle : '')
+                + (later > 0 ? ' (und ' + later + ' weitere)' : '')));
         }
         if (item.Type === 'UpcomingMovie') {
             body.appendChild(el('p', 'lr-cal-text lr-upcoming-note', 'Vorgemerkt – erscheint automatisch in der Bibliothek, sobald er verfügbar ist.'));
@@ -3075,6 +3079,16 @@
             body.appendChild(actions);
         }
         dialog.appendChild(body);
+    }
+
+    // Zeitzone des Browsers (z. B. „Europe/Berlin“) – damit stimmen Uhrzeiten auch über die Zeitumstellung hinweg
+    function timeZoneParam() {
+        try {
+            var zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            return zone ? '&timeZone=' + encodeURIComponent(zone) : '';
+        } catch (e) {
+            return '';
+        }
     }
 
     function utcOffset() {
