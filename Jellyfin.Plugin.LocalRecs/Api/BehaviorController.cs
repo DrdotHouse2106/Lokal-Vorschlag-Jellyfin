@@ -51,10 +51,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         public ActionResult Search([FromBody] SearchRequest request)
         {
-            var user = _userManager.GetUserById(RecommendationsController.GetUserId(User));
+            var user = RequestUser.Resolve(this, _userManager);
             if (user == null)
             {
-                return Unauthorized();
+                return RequestUser.Missing(this);
             }
 
             var term = request?.Term?.Trim();
@@ -83,10 +83,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         public ActionResult View([FromBody] ViewRequest request)
         {
-            var user = _userManager.GetUserById(RecommendationsController.GetUserId(User));
+            var user = RequestUser.Resolve(this, _userManager);
             if (user == null)
             {
-                return Unauthorized();
+                return RequestUser.Missing(this);
             }
 
             if (Config.EnableBehaviorSignals && _store.IsEnabled(user.Id) && request != null
@@ -109,10 +109,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<BehaviorState> Get([FromQuery] int? utcOffsetMinutes = null)
         {
-            var user = _userManager.GetUserById(RecommendationsController.GetUserId(User));
+            var user = RequestUser.Resolve(this, _userManager);
             if (user == null)
             {
-                return Unauthorized();
+                return RequestUser.Missing(this);
             }
 
             Response.Headers.CacheControl = "no-store";
@@ -183,10 +183,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<DaypartState> GetDaypart([FromQuery] int? utcOffsetMinutes = null)
         {
-            var user = _userManager.GetUserById(RecommendationsController.GetUserId(User));
+            var user = RequestUser.Resolve(this, _userManager);
             if (user == null)
             {
-                return Unauthorized();
+                return RequestUser.Missing(this);
             }
 
             var (_, label, order, plays) = _behavior.RowOrder(user, utcOffsetMinutes);

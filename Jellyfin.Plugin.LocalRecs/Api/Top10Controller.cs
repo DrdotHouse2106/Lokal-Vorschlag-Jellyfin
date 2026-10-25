@@ -101,10 +101,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<QueryResult<BaseItemDto>>> GetTop10([FromQuery] string type = "all", [FromQuery] int days = 60, [FromQuery] int limit = 10)
         {
-            var requestingUser = _userManager.GetUserById(RecommendationsController.GetUserId(User));
+            var requestingUser = RequestUser.Resolve(this, _userManager);
             if (requestingUser == null)
             {
-                return Unauthorized();
+                return RequestUser.Missing(this);
             }
 
             var includeMovies = !string.Equals(type, "series", StringComparison.OrdinalIgnoreCase);

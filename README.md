@@ -511,6 +511,8 @@ Header: X-Device-Id: <Jellyfin-Geräte-ID der App>
 
 `Proof = hex(HMAC-SHA256(Schlüssel = SHA-256(UTF-8 Zugangsschlüssel), Nachricht = UTF-8 "nonce|ServerId|host"))`, `host` = die angesprochene Adresse in Kleinbuchstaben mit Port, z. B. `192.168.1.10:8096`. Die App rechnet den Proof selbst aus und schickt ihren Schlüssel nur, wenn er in `Proofs` steht (ein Eintrag je Anmeldung des Geräts) und `ServerId` stimmt. Ohne Anmeldung, aber nur bei **direkter Verbindung aus dem lokalen Netz** (laut Jellyfins Netzwerkeinstellung, keine Weiterleitungs-Header wie `X-Forwarded-For`) – sonst 403. So kann ein falscher Server die Anfrage nicht über das Internet an den echten durchreichen; die angesprochene Adresse ist Teil des Proofs. Höchstens 30 Anfragen pro Minute und Adresse (429). `Proofs` enthält ab 12.39.0 immer mindestens 4 Einträge in zufälliger Reihenfolge (aufgefüllt mit Zufallswerten), damit die Antwort nicht verrät, ob ein Gerät bekannt ist.
 
+**Mit Server-API-Schlüssel (ab 12.54.1):** Alle `/LocalRecs`-Endpunkte gelten für den angemeldeten Benutzer des Tokens. Mit einem Server-API-Schlüssel (Dashboard → API-Schlüssel), der keinen Benutzer hat, oder als Administrator gibt `?userId=<Benutzer-ID>` den Benutzer an; ohne Benutzer antwortet der Server mit 400 und einem Hinweis. Normale Benutzer sehen über `userId` nie fremde Daten.
+
 Eigene Apps (z. B. [Jellyfin-TV-Client](https://github.com/DrdotHouse2106/Jellyfin-TV-Client) für Android TV / Fire TV), holen die Empfehlungen direkt:
 
 ```

@@ -48,10 +48,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<SeasonalResult> Get([FromQuery] int? utcOffsetMinutes = null, [FromQuery] string? season = null)
         {
-            var user = _userManager.GetUserById(RecommendationsController.GetUserId(User));
+            var user = RequestUser.Resolve(this, _userManager);
             if (user == null)
             {
-                return Unauthorized();
+                return RequestUser.Missing(this);
             }
 
             Response.Headers.CacheControl = "no-store";

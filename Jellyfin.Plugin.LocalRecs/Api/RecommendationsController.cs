@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using Jellyfin.Plugin.LocalRecs.HomeScreen;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Querying;
 using Microsoft.AspNetCore.Authorization;
@@ -31,15 +32,18 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
         private readonly RecommendationSectionHandler _recommendations;
         private readonly LiveTvSectionHandler _liveTv;
+        private readonly IUserManager? _userManager;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RecommendationsController"/> class.
         /// </summary>
         /// <param name="recommendations">Handler for movie and series recommendations.</param>
         /// <param name="liveTv">Handler for live TV recommendations.</param>
+        /// <param name="userManager">User manager (for <c>userId</c> with a server API key), optional.</param>
         /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
-        public RecommendationsController(RecommendationSectionHandler recommendations, LiveTvSectionHandler liveTv)
+        public RecommendationsController(RecommendationSectionHandler recommendations, LiveTvSectionHandler liveTv, IUserManager? userManager = null)
         {
+            _userManager = userManager;
             _recommendations = recommendations ?? throw new ArgumentNullException(nameof(recommendations));
             _liveTv = liveTv ?? throw new ArgumentNullException(nameof(liveTv));
         }
@@ -86,10 +90,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public ActionResult<QueryResult<BaseItemDto>> GetRecommendations([FromQuery] string type = RecommendationSectionHandler.MoviesSection, [FromQuery] int? limit = null, [FromQuery] int? utcOffsetMinutes = null)
         {
-            var userId = GetUserId(User);
+            var userId = _userManager == null ? GetUserId(User) : RequestUser.Resolve(this, _userManager)?.Id ?? Guid.Empty;
             if (userId == Guid.Empty)
             {
-                return Unauthorized();
+                return RequestUser.Missing(this);
             }
 
             var request = new SectionRequest { UserId = userId, AdditionalData = type };
@@ -123,10 +127,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<Dictionary<string, string>> GetReasons()
         {
-            var userId = GetUserId(User);
+            var userId = _userManager == null ? GetUserId(User) : RequestUser.Resolve(this, _userManager)?.Id ?? Guid.Empty;
             if (userId == Guid.Empty)
             {
-                return Unauthorized();
+                return RequestUser.Missing(this);
             }
 
             return Ok(_recommendations.GetReasons(userId).ToDictionary(kv => kv.Key.ToString("N"), kv => kv.Value));

@@ -320,7 +320,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             }
         }
 
-        private Jellyfin.Database.Implementations.Entities.User? CurrentUser() => _userManager.GetUserById(RecommendationsController.GetUserId(User));
+        private Jellyfin.Database.Implementations.Entities.User? CurrentUser() => RequestUser.Resolve(this, _userManager);
 
         private string PublicBase()
         {

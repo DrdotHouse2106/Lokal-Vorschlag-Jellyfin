@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.54.1] - 2026-10-25
+
+### Fixed
+
+- `/LocalRecs/*` with a server API key (no user in the token) threw „Guid can't be empty“ (HTTP 400/500) on almost every endpoint. Now:
+  - With an API key, the parameter `userId` names the user (also for administrators' tokens); the answer is the same as for that user's own token.
+  - Without user and `userId`: 400 with a hint instead of an exception.
+  - Normal users cannot use `userId` to see other users' data – their own profile always counts.
+
 ## [12.54.0] - 2026-10-25
 
 ### Added

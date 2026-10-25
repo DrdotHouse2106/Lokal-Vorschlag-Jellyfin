@@ -58,10 +58,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<BannerResult> Get([FromQuery] int? count = null, [FromQuery] int? limit = null, [FromQuery] int? utcOffsetMinutes = null)
         {
-            var user = _userManager.GetUserById(RecommendationsController.GetUserId(User));
+            var user = RequestUser.Resolve(this, _userManager);
             if (user == null)
             {
-                return Unauthorized();
+                return RequestUser.Missing(this);
             }
 
             var picked = _banner.GetBanner(user, utcOffsetMinutes, count ?? limit ?? BannerPicker.DefaultCount);
@@ -95,10 +95,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult Later([FromBody] LaterRequest request)
         {
-            var user = _userManager.GetUserById(RecommendationsController.GetUserId(User));
+            var user = RequestUser.Resolve(this, _userManager);
             if (user == null)
             {
-                return Unauthorized();
+                return RequestUser.Missing(this);
             }
 
             if (request == null || !_banner.Later(user, request.ItemId, request.Days ?? BannerService.DefaultLaterDays))

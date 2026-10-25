@@ -135,7 +135,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
         private bool HasLiveTvAccess()
         {
-            var user = _userManager.GetUserById(RecommendationsController.GetUserId(User));
+            var user = RequestUser.Resolve(this, _userManager);
             return user != null && user.HasPermission(PermissionKind.EnableLiveTvAccess);
         }
 

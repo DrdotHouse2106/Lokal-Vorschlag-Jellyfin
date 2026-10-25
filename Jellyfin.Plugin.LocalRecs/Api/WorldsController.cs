@@ -344,7 +344,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             };
         }
 
-        private User? CurrentUser() => _userManager.GetUserById(RecommendationsController.GetUserId(User));
+        private User? CurrentUser() => RequestUser.Resolve(this, _userManager);
 
         private List<(WorldInfo Info, DateTime? LastWatched)> GetVisibleWorlds(User user, IReadOnlyDictionary<Guid, DateTime> lastWatched)
         {

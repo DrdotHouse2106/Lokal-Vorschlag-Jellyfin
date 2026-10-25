@@ -53,10 +53,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<UpcomingResult>> Get([FromQuery] int? utcOffsetMinutes = null, [FromQuery] string? timeZone = null)
         {
-            var user = _userManager.GetUserById(RecommendationsController.GetUserId(User));
+            var user = RequestUser.Resolve(this, _userManager);
             if (user == null)
             {
-                return Unauthorized();
+                return RequestUser.Missing(this);
             }
 
             var entries = await _upcoming.GetAsync(user, utcOffsetMinutes, HttpContext.RequestAborted, timeZone).ConfigureAwait(false);
@@ -109,10 +109,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         public async Task<ActionResult<SeriesUpcoming>> GetForSeries([FromRoute] Guid seriesId, [FromQuery] int? utcOffsetMinutes = null, [FromQuery] string? timeZone = null)
         {
-            var user = _userManager.GetUserById(RecommendationsController.GetUserId(User));
+            var user = RequestUser.Resolve(this, _userManager);
             if (user == null)
             {
-                return Unauthorized();
+                return RequestUser.Missing(this);
             }
 
             Response.Headers.CacheControl = "no-store";

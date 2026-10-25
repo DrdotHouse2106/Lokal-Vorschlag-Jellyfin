@@ -49,10 +49,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<MomentsResult> Get([FromQuery] int? utcOffsetMinutes = null, [FromQuery] string? key = null)
         {
-            var user = _userManager.GetUserById(RecommendationsController.GetUserId(User));
+            var user = RequestUser.Resolve(this, _userManager);
             if (user == null)
             {
-                return Unauthorized();
+                return RequestUser.Missing(this);
             }
 
             Response.Headers.CacheControl = "no-store";

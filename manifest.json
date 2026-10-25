@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.54.1.0",
+        "changelog": "Fehlerbehebung Server-API-Schlüssel\n- Behoben: /LocalRecs-Endpunkte warfen mit einem Server-API-Schlüssel ohne Benutzer eine Ausnahme\n- Mit API-Schlüssel oder als Admin gibt ?userId= den Benutzer an, sonst 400 mit Hinweis\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.54.1.zip",
+        "checksum": "9fc1c00475144f7455ef83d42d476a01",
+        "timestamp": "2026-10-25T17:00:00Z"
+      },
+      {
         "version": "12.54.0.0",
         "changelog": "Entdecken: Demnächst im Kino und Neu dieses Jahr\n- „Demnächst im Kino“: deutsche Kinostarts der nächsten Wochen mit Datum\n- „Neu dieses Jahr – Filme“ und „– Serien“ mit deutschen Streaming-Anbietern\n- FSK, Genres, Laufzeit, deutscher Trailer; Vorhandenes markiert und lokal geöffnet\n- Nur lesend, nichts wird angefragt\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

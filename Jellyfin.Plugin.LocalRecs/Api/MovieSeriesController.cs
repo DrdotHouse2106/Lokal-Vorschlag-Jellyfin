@@ -152,7 +152,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             return File(image.Value.Data, image.Value.ContentType);
         }
 
-        private User? CurrentUser() => _userManager.GetUserById(RecommendationsController.GetUserId(User));
+        private User? CurrentUser() => RequestUser.Resolve(this, _userManager);
 
         private SeriesSummary Summary(MovieSeriesService.MovieSeries series, BaseItemDto? next)
         {

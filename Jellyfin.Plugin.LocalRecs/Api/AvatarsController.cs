@@ -148,10 +148,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 return NotFound();
             }
 
-            var user = _userManager.GetUserById(RecommendationsController.GetUserId(User));
+            var user = RequestUser.Resolve(this, _userManager);
             if (user == null)
             {
-                return Unauthorized();
+                return RequestUser.Missing(this);
             }
 
             // Wie Jellyfin selbst: ohne „Benutzereinstellungen ändern“ kein eigenes Profilbild (Admins dürfen immer)
