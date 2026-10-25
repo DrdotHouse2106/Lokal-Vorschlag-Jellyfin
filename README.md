@@ -255,6 +255,22 @@ Eine Zeile **„Demnächst“** mit neuen Folgen und bald erscheinenden Filmen, 
   - `GET /LocalRecs/Upcoming/Status` (nur Admins) prüft die Verbindung
   - `/LocalRecs/Web/Config` meldet `"Upcoming": true`
 
+### Entdecken: Demnächst im Kino und Neu dieses Jahr (ab 12.54.0)
+
+Drei Reihen aus TMDB, für Web und Apps gleich (Quallenkino-Startseite, Apps im Bereich „Entdecken“):
+
+| Reihe (`Key`) | Inhalt | Text auf der Karte |
+|---|---|---|
+| „Demnächst im Kino“ (`cinema`) | deutsche Kinostarts der nächsten 8 Wochen (`movie/upcoming`, Region DE, Kinostart Typ 3, sonst 2), das Nächste zuerst | „Kinostart am Do. 05.11.“, „Kinostart morgen“ |
+| „Neu dieses Jahr – Filme“ (`newmovies`) | Filme mit Erscheinungsjahr = aktuelles Jahr, deutscher Termin (Kino, sonst digital, Disc, TV); Erschienenes (neueste zuerst), danach Kommendes (nächstes zuerst) | „Erschienen am 12.09.“, „Erscheint am Fr. 18.12.“ |
+| „Neu dieses Jahr – Serien“ (`newseries`) | Serien mit Start (erste Folge) in diesem Jahr, mit deutschen Streaming-Anbietern | „Gestartet am 03.03.“, „Startet morgen“ |
+
+- **Je Titel:** deutscher Titel und Text, Genres, FSK, Laufzeit, Trailer (deutsch vor englisch, Trailer vor Teaser), deutsche Abo-Anbieter („Im Abo bei Netflix“).
+- **Schon in der Bibliothek:** `InLibrary` und `JellyfinId`; die Karte zeigt „· In der Bibliothek“ und öffnet die lokale Detailseite. Sonst öffnet sie eine Ansicht mit Termin, Eckdaten, Anbietern, Beschreibung und „Trailer ansehen“ (die Apps nutzen ihre Entdecken-Detailseite über `TmdbId`/`MediaType`).
+- **Rechte:** Titel über der Altersfreigabe des Profils fehlen. Nur lesend, in Jellyseerr wird nichts angefragt.
+- **Abruf:** Braucht einen TMDB-Schlüssel (eigener oder der von Jellyfin). Sprache und Land aus den Metadaten-Einstellungen des Servers (Standard de-DE). Etwa 90 Abfragen alle 6 Stunden, sonst aus dem Zwischenspeicher. Abschaltbar im Reiter „Startseite“.
+- **Schnittstelle:** `GET /LocalRecs/Discover[?key=cinema]` → `{ "Rows": [ { "Key", "Title", "TotalRecordCount", "Items": [ { "TmdbId", "MediaType" ("movie"|"tv"), "Title", "OriginalTitle", "Year", "Overview", "PosterPath", "BackdropPath", "PosterUrl", "BackdropUrl", "ReleaseDate" (yyyy-MM-dd), "Released", "ReleaseText", "Genres", "OfficialRating", "RuntimeMinutes", "Providers", "TrailerKey" (YouTube), "TrailerName", "InLibrary", "JellyfinId", "Popularity" } ] } ], "TotalRecordCount" }`; nur nicht leere Reihen; `/LocalRecs/Web/Config` meldet `"Discover": true`.
+
 ### Kommende Folgen auf der Serienseite (ab 12.52.0)
 
 Auf der Detailseite einer Serie steht oben unter den Eckdaten, was Sonarr als Nächstes kennt, zum Beispiel:

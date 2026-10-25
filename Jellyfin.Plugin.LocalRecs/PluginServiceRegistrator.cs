@@ -112,6 +112,7 @@ namespace Jellyfin.Plugin.LocalRecs
             serviceCollection.AddSingleton<Moments.MomentsService>();
             serviceCollection.AddSingleton<Upcoming.UpcomingService>();
             serviceCollection.AddSingleton<Upcoming.SeriesUpcomingService>();
+            serviceCollection.AddSingleton<Discover.DiscoverService>();
             serviceCollection.AddSingleton<RecommendationSectionHandler>();
             serviceCollection.AddSingleton<LiveTvSectionHandler>();
 

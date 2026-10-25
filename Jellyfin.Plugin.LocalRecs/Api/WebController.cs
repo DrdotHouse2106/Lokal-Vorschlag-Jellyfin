@@ -102,6 +102,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 SeriesTitle = string.IsNullOrWhiteSpace(Config.TvSectionTitle) ? "Empfohlene Serien für dich" : Config.TvSectionTitle,
                 LiveTvTitle = string.IsNullOrWhiteSpace(Config.LiveTvSectionTitle) ? "Heute im TV für dich" : Config.LiveTvSectionTitle,
                 LiveTvRow = Config.EnableLiveTvSection,
+                Discover = Config.EnableDiscoverRows && Similarity.ExternalSimilarityService.ResolveTmdbKeyWithSource(Config).Key != null,
                 Version = WebIntegration.Version
             };
         }
@@ -170,6 +171,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets a value indicating whether „Heute im TV für dich“ is on (since 12.48.0).</summary>
             public bool LiveTvRow { get; set; }
+
+            /// <summary>Gets or sets a value indicating whether the discover rows are on and a TMDB key is available (GET /LocalRecs/Discover, since 12.54.0).</summary>
+            public bool Discover { get; set; }
 
             /// <summary>Gets or sets the plugin version.</summary>
             public string Version { get; set; } = string.Empty;

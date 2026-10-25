@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.54.0.0",
+        "changelog": "Entdecken: Demnächst im Kino und Neu dieses Jahr\n- „Demnächst im Kino“: deutsche Kinostarts der nächsten Wochen mit Datum\n- „Neu dieses Jahr – Filme“ und „– Serien“ mit deutschen Streaming-Anbietern\n- FSK, Genres, Laufzeit, deutscher Trailer; Vorhandenes markiert und lokal geöffnet\n- Nur lesend, nichts wird angefragt\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.54.0.zip",
+        "checksum": "518ece7743320a6316b4dfe2f0abdfaf",
+        "timestamp": "2026-10-25T14:00:00Z"
+      },
+      {
         "version": "12.53.0.0",
         "changelog": "Suchen nur, wenn sie echt sind\n- Füllwörter (the, der, und …) und Begriffe unter 3 Zeichen zählen nicht\n- Nur abgeschlossene Suchen zählen (Treffer geöffnet oder abgespielt), Zwischenstände beim Tippen nicht\n- „Weil du nach … gesucht hast“ nur, wenn der Titel den Begriff enthält\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

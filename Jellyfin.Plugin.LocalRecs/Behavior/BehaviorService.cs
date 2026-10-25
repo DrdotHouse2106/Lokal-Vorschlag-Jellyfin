@@ -240,6 +240,7 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
                         .First();
                     var interestBonus = config.InterestWeight * best.Score;
                     bonus += interestBonus;
+
                     // Der Suchgrund gilt nur für den gefundenen Titel selbst, nicht für ähnliche; ohne passenden Grund bleibt der bisherige
                     var reason = best.Interest.Reason;
                     var searchReason = reason.StartsWith("Weil du nach", StringComparison.Ordinal);

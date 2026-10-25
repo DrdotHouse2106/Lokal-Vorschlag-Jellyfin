@@ -594,7 +594,7 @@
     }
 
     function posterImage(item) {
-        if (item.Type === 'UpcomingMovie') {
+        if (item.Type === 'UpcomingMovie' || item.Type === 'DiscoverTitle') {
             return item.LrPoster || item.LrImage;
         }
         var tags = item.ImageTags || {};
@@ -1449,6 +1449,15 @@
             openUpcoming(item);
             return;
         }
+        if (item.LrDiscover) {
+            // Schon in der Bibliothek: die lokale Detailseite, sonst die Ansicht mit Trailer
+            if (item.LrDiscover.JellyfinId) {
+                openInfo({ Id: item.LrDiscover.JellyfinId });
+            } else {
+                openDiscoverTitle(item);
+            }
+            return;
+        }
         if (item.Type === 'Program' || item.Type === 'TvChannel') {
             if (item.Type === 'TvChannel' || isAiring(item)) {
                 play(item);
@@ -1463,7 +1472,7 @@
     // Bild für Querformat-Kacheln. "clean" = ohne eingebrannten Titel (Backdrop, Folgenbild), dann kommt Logo/Titel darüber.
     // Thumb-Bilder enthalten meist schon den Titel – die bekommen kein zweites Logo.
     function cardImage(item) {
-        if (item.Type === 'UpcomingMovie') {
+        if (item.Type === 'UpcomingMovie' || item.Type === 'DiscoverTitle') {
             return { src: item.LrImage, clean: true, poster: !!item.LrImageIsPoster };
         }
         var tags = item.ImageTags || {};
@@ -1821,7 +1830,7 @@
     // ---------------------------------------------------------------- Vorschau beim Überfahren (nur PC)
 
     function attachPreview(card, item) {
-        if (isTouch || item.LrUpcoming) {
+        if (isTouch || item.LrUpcoming || item.LrDiscover) {
             return;
         }
         card.addEventListener('mouseenter', function () {
@@ -2845,6 +2854,21 @@
                 upcomingRow.items = itemsOf(result).map(upcomingEntry).filter(Boolean);
             }));
         }
+        // Entdecken aus TMDB: „Demnächst im Kino“, „Neu dieses Jahr – Filme/Serien“ (nur lesend)
+        if (cfg.Discover) {
+            var discoverPlaceholder = { key: 'discover', title: '', kind: 'group', items: [] };
+            rows.push(discoverPlaceholder);
+            tasks.push(safe(getJson('LocalRecs/Discover')).then(function (result) {
+                ((result && result.Rows) || []).forEach(function (row) {
+                    discoverPlaceholder.items.push({
+                        key: 'discover-' + row.Key,
+                        title: row.Title,
+                        kind: 'landscape',
+                        items: (row.Items || []).map(discoverEntry)
+                    });
+                });
+            }));
+        }
         tasks.push(add('movies', cfg.MoviesTitle || 'Empfohlene Filme für dich', 'landscape', getJson('LocalRecs/Recommendations?type=movies&limit=' + ROW_LIMIT + '&utcOffsetMinutes=' + offset)));
         tasks.push(add('series', cfg.SeriesTitle || 'Empfohlene Serien für dich', 'landscape', getJson('LocalRecs/Recommendations?type=series&limit=' + ROW_LIMIT + '&utcOffsetMinutes=' + offset)));
         // Banner des Tages vom Server (täglich neu, auf allen Geräten gleich, Entdecken und Weiterschauen gemischt) – keine eigene Reihe
@@ -3012,6 +3036,75 @@
             LrPoster: movie.PosterUrl ? url(movie.PosterUrl) : null,
             LrImageIsPoster: !movie.BackdropUrl && !!movie.PosterUrl
         };
+    }
+
+    // Titel aus TMDB als Karte: Hintergrundbild, darunter der Termin („Kinostart am Do. 30.10.“), bei Vorhandenem „In der Bibliothek“
+    function discoverEntry(entry) {
+        return {
+            Id: entry.JellyfinId || ('tmdb-' + entry.MediaType + '-' + entry.TmdbId),
+            Type: 'DiscoverTitle',
+            Name: entry.Title,
+            ProductionYear: entry.Year,
+            OfficialRating: entry.OfficialRating,
+            Overview: entry.Overview ? entry.Overview.slice(0, 600) : null,
+            MomentReason: (entry.ReleaseText || '') + (entry.InLibrary ? ' · In der Bibliothek' : ''),
+            LrImage: entry.BackdropUrl || entry.PosterUrl || null,
+            LrPoster: entry.PosterUrl || null,
+            LrImageIsPoster: !entry.BackdropUrl && !!entry.PosterUrl,
+            LrDiscover: {
+                MediaType: entry.MediaType,
+                ReleaseText: entry.ReleaseText,
+                Genres: entry.Genres || [],
+                RuntimeMinutes: entry.RuntimeMinutes,
+                Providers: entry.Providers || [],
+                TrailerKey: entry.TrailerKey,
+                JellyfinId: entry.JellyfinId
+            }
+        };
+    }
+
+    // Ansicht eines Titels, der noch nicht in der Bibliothek ist: Termin, Eckdaten, Anbieter, Beschreibung, Trailer
+    function openDiscoverTitle(item) {
+        var info = item.LrDiscover || {};
+        var dialog = overlayShell('lr-calendar lr-upcoming');
+        var body = el('div', 'lr-cal-body');
+        if (item.LrPoster) {
+            var poster = el('img', 'lr-upcoming-poster');
+            poster.alt = '';
+            poster.src = item.LrPoster;
+            body.appendChild(poster);
+        }
+        body.appendChild(el('h2', 'lr-cal-title', item.Name + (item.ProductionYear ? ' (' + item.ProductionYear + ')' : '')));
+        if (info.ReleaseText) {
+            body.appendChild(el('p', 'lr-upcoming-label', info.ReleaseText));
+        }
+        var facts = [];
+        if (info.Genres.length) {
+            facts.push(info.Genres.slice(0, 3).join(', '));
+        }
+        if (item.OfficialRating) {
+            facts.push('FSK ' + item.OfficialRating);
+        }
+        if (info.RuntimeMinutes) {
+            facts.push(info.RuntimeMinutes + ' Min.' + (info.MediaType === 'tv' ? ' je Folge' : ''));
+        }
+        if (facts.length) {
+            body.appendChild(el('p', 'lr-cal-text lr-upcoming-when', facts.join(' · ')));
+        }
+        if (info.Providers.length) {
+            body.appendChild(el('p', 'lr-cal-text', 'Im Abo bei ' + info.Providers.join(', ')));
+        }
+        if (item.Overview) {
+            body.appendChild(el('p', 'lr-cal-text', item.Overview));
+        }
+        if (info.TrailerKey) {
+            var actions = el('div', 'lr-upcoming-actions');
+            actions.appendChild(button('lr-btn', 'play_arrow', 'Trailer ansehen', function () {
+                window.open('https://www.youtube.com/watch?v=' + encodeURIComponent(info.TrailerKey), '_blank', 'noopener');
+            }));
+            body.appendChild(actions);
+        }
+        dialog.appendChild(body);
     }
 
     function pad2(n) {
@@ -3239,7 +3332,7 @@
             return rowElement(row.title, row.items.map(libraryCard), 'lr-row-libraries');
         }
         // Zeilen mit Termin oder Begründung bleiben auch auf dem Handy im Querformat, damit die Zeile darunter Platz hat
-        if (phoneLayout() && row.key !== 'livetv' && row.key !== 'onnow' && row.key !== 'upcoming' && row.key.indexOf('moment-') !== 0) {
+        if (phoneLayout() && row.key !== 'livetv' && row.key !== 'onnow' && row.key !== 'upcoming' && row.key.indexOf('moment-') !== 0 && row.key.indexOf('discover-') !== 0) {
             return rowElement(row.title, row.items.map(portraitCard), 'lr-row-portrait');
         }
         var withReason = row.key === 'movies' || row.key === 'series';

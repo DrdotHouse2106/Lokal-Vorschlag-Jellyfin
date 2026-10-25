@@ -157,6 +157,14 @@
                             <div class="fieldDescription checkboxFieldDescription">Was das Profil vor etwa einem Jahr gesehen hat (ohne „Daumen runter“ und ohne seitdem Wiederholtes).</div>
                         </div>
 
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="enableDiscoverRows" />
+                                <span>Entdecken: „Demnächst im Kino“ und „Neu dieses Jahr“</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Deutsche Kinostarts der nächsten 8 Wochen sowie Filme und Serien, die dieses Jahr erscheinen bzw. gestartet sind – aus TMDB, mit deutschem Termin, FSK, Genres, Trailer und deutschen Streaming-Anbietern. Was schon in der Bibliothek liegt, ist markiert. Nur lesend, es wird nichts angefragt. Braucht einen TMDB-Schlüssel; alle 6 Stunden neu abgefragt.</div>
+                        </div>
+
                         <h3>Demnächst (Sonarr und Radarr)</h3>
                         <div class="checkboxContainer checkboxContainer-withDescription">
                             <label>
@@ -1350,6 +1358,7 @@
                             page.querySelector('#momentsAnniversaries').checked = config.MomentsAnniversaries !== false;
                             page.querySelector('#momentsYearAgo').checked = config.MomentsYearAgo !== false;
                             page.querySelector('#enableUpcoming').checked = config.EnableUpcoming !== false;
+                            page.querySelector('#enableDiscoverRows').checked = config.EnableDiscoverRows !== false;
                             page.querySelector('#sonarrUrl').value = config.SonarrUrl || '';
                             page.querySelector('#sonarrApiKey').value = config.SonarrApiKey || '';
                             page.querySelector('#radarrUrl').value = config.RadarrUrl || '';
@@ -1498,6 +1507,7 @@
                             config.MomentsAnniversaries = page.querySelector('#momentsAnniversaries').checked;
                             config.MomentsYearAgo = page.querySelector('#momentsYearAgo').checked;
                             config.EnableUpcoming = page.querySelector('#enableUpcoming').checked;
+                            config.EnableDiscoverRows = page.querySelector('#enableDiscoverRows').checked;
                             config.SonarrUrl = page.querySelector('#sonarrUrl').value.trim();
                             config.SonarrApiKey = page.querySelector('#sonarrApiKey').value.trim();
                             config.RadarrUrl = page.querySelector('#radarrUrl').value.trim();
