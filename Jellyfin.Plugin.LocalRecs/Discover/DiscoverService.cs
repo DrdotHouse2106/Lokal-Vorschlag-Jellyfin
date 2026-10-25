@@ -116,13 +116,19 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
         /// <param name="details">Parsed details with release dates.</param>
         /// <param name="today">Today.</param>
         /// <param name="series">True for series.</param>
+        /// <param name="exclude">TMDB IDs already shown in another row (e.g. „Demnächst im Kino“), optional.</param>
         /// <returns>The items.</returns>
-        public static List<DiscoverItem> BuildNewThisYear(IEnumerable<(DiscoverItem Item, IReadOnlyList<(int Type, DateOnly Date)> Releases)> details, DateOnly today, bool series)
+        public static List<DiscoverItem> BuildNewThisYear(IEnumerable<(DiscoverItem Item, IReadOnlyList<(int Type, DateOnly Date)> Releases)> details, DateOnly today, bool series, ISet<int>? exclude = null)
         {
             ArgumentNullException.ThrowIfNull(details);
             var result = new List<(DiscoverItem Item, DateOnly Day)>();
             foreach (var (item, releases) in details)
             {
+                if (exclude != null && exclude.Contains(item.TmdbId))
+                {
+                    continue;
+                }
+
                 var day = series
                     ? releases.Where(r => r.Type == 0).Select(r => (DateOnly?)r.Date).FirstOrDefault()
                     : TmdbDiscover.LocalRelease(releases);
@@ -301,7 +307,8 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                 }
 
                 var cinema = BuildCinema(await Details(cinemaIds.OrderByDescending(i => i.Popularity).Select(i => i.Id).Distinct().Take(40), false).ConfigureAwait(false), today);
-                var movies = BuildNewThisYear(await Details(movieIds.Select(i => i.Id).Distinct().Take(45), false).ConfigureAwait(false), today, false);
+                // Kinostarts stehen in „Demnächst im Kino“, nicht noch einmal unter „Neu dieses Jahr“
+                var movies = BuildNewThisYear(await Details(movieIds.Select(i => i.Id).Distinct().Take(45), false).ConfigureAwait(false), today, false, cinema.Select(i => i.TmdbId).ToHashSet());
                 var series = BuildNewThisYear(await Details(seriesIds.Select(i => i.Id).Distinct().Take(45), true).ConfigureAwait(false), today, true);
                 var rows = new List<Row>
                 {

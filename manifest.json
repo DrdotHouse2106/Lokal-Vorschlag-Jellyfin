@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.54.3.0",
+        "changelog": "Entdecken: Anbieter und Überschneidungen\n- Anbieter in deutscher Schreibweise ohne Doppelungen (Paramount+, Disney+, ADN), höchstens 3\n- Kinostarts nicht doppelt in „Neu dieses Jahr – Filme“\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.54.3.zip",
+        "checksum": "2df06fa27e5714ef1ff1576f51a1a2f7",
+        "timestamp": "2026-10-25T19:00:00Z"
+      },
+      {
         "version": "12.54.2.0",
         "changelog": "Entdecken nachgeschärft\n- „Neu dieses Jahr“: keine Nischentitel, nur übersetzte Titel in lateinischer Schrift, Mindestzahl an Stimmen\n- Sortierung nach Beliebtheit und Nähe des Termins\n- Streaming-Anbieter ohne Doppelungen („… with Ads“, „… Amazon Channel“)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

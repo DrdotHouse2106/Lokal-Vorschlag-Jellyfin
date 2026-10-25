@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.54.3] - 2026-10-25
+
+### Changed
+
+- Discover providers in German spelling and without duplicates: „Paramount Plus“ and „Paramount+“ → „Paramount+“, „Disney Plus“ → „Disney+“ (generally „… Plus“ → „…+“), „Anime Digital Network“ → „ADN“, „Crunchyroll Premium“/„… Amazon Channel“ → „Crunchyroll“; at most 3 providers per title.
+- Movies shown in „Demnächst im Kino“ are no longer repeated in „Neu dieses Jahr – Filme“.
+
 ## [12.54.2] - 2026-10-25
 
 ### Changed

@@ -56,7 +56,7 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             item.MediaType.Should().Be("tv");
             item.OfficialRating.Should().Be("16");
             item.RuntimeMinutes.Should().Be(45);
-            item.Providers.Should().Equal("Disney Plus");
+            item.Providers.Should().Equal("Disney+");
             releases.Should().ContainSingle().Which.Should().Be((0, new DateOnly(2026, 3, 3)));
         }
 
@@ -140,8 +140,13 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
         [InlineData("Amazon Prime Video with Ads", "Amazon Prime Video")]
         [InlineData("HBO Max Amazon Channel", "HBO Max")]
         [InlineData("Netflix Standard with Ads", "Netflix")]
-        [InlineData("Paramount Plus Apple TV Channel", "Paramount Plus")]
-        [InlineData("Disney Plus", "Disney Plus")]
+        [InlineData("Paramount Plus Apple TV Channel", "Paramount+")]
+        [InlineData("Paramount Plus", "Paramount+")]
+        [InlineData("Paramount+", "Paramount+")]
+        [InlineData("Disney Plus", "Disney+")]
+        [InlineData("Crunchyroll Amazon Channel", "Crunchyroll")]
+        [InlineData("Anime Digital Network", "ADN")]
+        [InlineData("Netflix", "Netflix")]
         public void ProviderName(string name, string expected)
         {
             TmdbDiscover.ProviderName(name).Should().Be(expected);
@@ -153,6 +158,22 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             const string Json = "{\"id\":9,\"name\":\"S\",\"watch/providers\":{\"results\":{\"DE\":{\"flatrate\":[{\"provider_name\":\"Amazon Prime Video\"},{\"provider_name\":\"Amazon Prime Video with Ads\"},"
                 + "{\"provider_name\":\"HBO Max Amazon Channel\"},{\"provider_name\":\"HBO Max\"}]}}}}";
             TmdbDiscover.ParseDetails(Json, true, "DE")!.Value.Item.Providers.Should().Equal("Amazon Prime Video", "HBO Max");
+        }
+
+        [Fact]
+        public void Providers_AtMostThree_PlusAndPlusSignMerged()
+        {
+            const string Json = "{\"id\":9,\"name\":\"S\",\"watch/providers\":{\"results\":{\"DE\":{\"flatrate\":[{\"provider_name\":\"Paramount Plus\"},{\"provider_name\":\"Paramount+\"},"
+                + "{\"provider_name\":\"Crunchyroll\"},{\"provider_name\":\"Anime Digital Network\"},{\"provider_name\":\"Netflix\"}]}}}}";
+            TmdbDiscover.ParseDetails(Json, true, "DE")!.Value.Item.Providers.Should().Equal("Paramount+", "Crunchyroll", "ADN");
+        }
+
+        [Fact]
+        public void NewMovies_LeaveOutCinemaStarts()
+        {
+            var today = new DateOnly(2026, 10, 25);
+            var row = DiscoverService.BuildNewThisYear(new[] { Detail(1, (3, new DateOnly(2026, 10, 30))), Detail(2, (3, new DateOnly(2026, 10, 1))) }, today, false, new HashSet<int> { 1 });
+            row.Select(i => i.TmdbId).Should().Equal(2);
         }
 
         [Theory]

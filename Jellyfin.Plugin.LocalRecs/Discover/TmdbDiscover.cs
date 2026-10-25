@@ -16,6 +16,18 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
         /// <summary>Base address of TMDB images.</summary>
         public const string ImageBase = "https://image.tmdb.org/t/p/";
 
+        /// <summary>Most providers per title.</summary>
+        public const int MaxProviders = 3;
+
+        // Übliche deutsche Schreibweisen der Anbieter
+        private static readonly Dictionary<string, string> ProviderNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Anime Digital Network"] = "ADN",
+            ["Crunchyroll Premium"] = "Crunchyroll",
+            ["Amazon Prime"] = "Amazon Prime Video",
+            ["Max"] = "HBO Max"
+        };
+
         /// <summary>
         /// Reads the IDs (with popularity) of a list answer.
         /// </summary>
@@ -118,7 +130,7 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
             if (root.TryGetProperty("watch/providers", out var providers) && providers.TryGetProperty("results", out var providerResults)
                 && providerResults.TryGetProperty(country.ToUpperInvariant(), out var local) && local.TryGetProperty("flatrate", out var flat) && flat.ValueKind == JsonValueKind.Array)
             {
-                item.Providers = flat.EnumerateArray().Select(p => Text(p, "provider_name")).OfType<string>().Select(ProviderName).Distinct(StringComparer.OrdinalIgnoreCase).Take(4).ToList();
+                item.Providers = flat.EnumerateArray().Select(p => Text(p, "provider_name")).OfType<string>().Select(ProviderName).Distinct(StringComparer.OrdinalIgnoreCase).Take(MaxProviders).ToList();
             }
 
             return (item, releases);
@@ -126,7 +138,8 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
 
         /// <summary>
         /// Gets the main name of a streaming provider: „Amazon Prime Video with Ads“ → „Amazon Prime Video“,
-        /// „HBO Max Amazon Channel“ → „HBO Max“, „Netflix Standard with Ads“ → „Netflix“.
+        /// „HBO Max Amazon Channel“ → „HBO Max“, „Netflix Standard with Ads“ → „Netflix“, „Paramount Plus“ → „Paramount+“,
+        /// „Disney Plus“ → „Disney+“, „Anime Digital Network“ → „ADN“.
         /// </summary>
         /// <param name="name">Name at TMDB.</param>
         /// <returns>The main name.</returns>
@@ -142,7 +155,13 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                 }
             }
 
-            return result;
+            // „… Plus“ wie im deutschen Angebot als „…+“ (Paramount+, Disney+, Apple TV+, RTL+)
+            if (result.EndsWith(" Plus", StringComparison.OrdinalIgnoreCase) && result.Length > 5)
+            {
+                result = result[..^5].TrimEnd() + "+";
+            }
+
+            return ProviderNames.TryGetValue(result, out var known) ? known : result;
         }
 
         /// <summary>
