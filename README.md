@@ -262,10 +262,11 @@ Drei Reihen aus TMDB, für Web und Apps gleich (Quallenkino-Startseite, Apps im 
 | Reihe (`Key`) | Inhalt | Text auf der Karte |
 |---|---|---|
 | „Demnächst im Kino“ (`cinema`) | deutsche Kinostarts der nächsten 8 Wochen (`movie/upcoming`, Region DE, Kinostart Typ 3, sonst 2), das Nächste zuerst | „Kinostart am Do. 05.11.“, „Kinostart morgen“ |
-| „Neu dieses Jahr – Filme“ (`newmovies`) | Filme mit Erscheinungsjahr = aktuelles Jahr, deutscher Termin (Kino, sonst digital, Disc, TV); Erschienenes (neueste zuerst), danach Kommendes (nächstes zuerst) | „Erschienen am 12.09.“, „Erscheint am Fr. 18.12.“ |
+| „Neu dieses Jahr – Filme“ (`newmovies`) | Filme mit Erscheinungsjahr = aktuelles Jahr, deutscher Termin (Kino, sonst digital, Disc, TV); sortiert nach Beliebtheit und Nähe des Termins zu heute | „Erschienen am 12.09.“, „Erscheint am Fr. 18.12.“ |
 | „Neu dieses Jahr – Serien“ (`newseries`) | Serien mit Start (erste Folge) in diesem Jahr, mit deutschen Streaming-Anbietern | „Gestartet am 03.03.“, „Startet morgen“ |
 
-- **Je Titel:** deutscher Titel und Text, Genres, FSK, Laufzeit, Trailer (deutsch vor englisch, Trailer vor Teaser), deutsche Abo-Anbieter („Im Abo bei Netflix“).
+- **Je Titel:** deutscher Titel und Text, Genres, FSK (fehlt, wenn TMDB keine kennt), Laufzeit, Trailer (deutsch vor englisch, Trailer vor Teaser), deutsche Abo-Anbieter („Im Abo bei Netflix“; Varianten wie „… with Ads“ oder „… Amazon Channel“ unter dem Hauptnamen zusammengefasst).
+- **Auswahl „Neu dieses Jahr“ (ab 12.54.2):** nur Titel in lateinischer Schrift mit deutscher Übersetzung (Text oder eigener deutscher Titel). Erschienene brauchen mindestens 25 (Filme) bzw. 10 (Serien) Stimmen bei TMDB, noch nicht erschienene eine Mindestbeliebtheit – so fallen Nischen- und Direct-to-Video-Titel weg. Reihenfolge: Beliebtheit, gewichtet nach der Nähe des Termins zu heute. „Demnächst im Kino“ zeigt ebenfalls nur übersetzte Titel in lateinischer Schrift.
 - **Schon in der Bibliothek:** `InLibrary` und `JellyfinId`; die Karte zeigt „· In der Bibliothek“ und öffnet die lokale Detailseite. Sonst öffnet sie eine Ansicht mit Termin, Eckdaten, Anbietern, Beschreibung und „Trailer ansehen“ (die Apps nutzen ihre Entdecken-Detailseite über `TmdbId`/`MediaType`).
 - **Rechte:** Titel über der Altersfreigabe des Profils fehlen. Nur lesend, in Jellyseerr wird nichts angefragt.
 - **Abruf:** Braucht einen TMDB-Schlüssel (eigener oder der von Jellyfin). Sprache und Land aus den Metadaten-Einstellungen des Servers (Standard de-DE). Etwa 90 Abfragen alle 6 Stunden, sonst aus dem Zwischenspeicher. Abschaltbar im Reiter „Startseite“.

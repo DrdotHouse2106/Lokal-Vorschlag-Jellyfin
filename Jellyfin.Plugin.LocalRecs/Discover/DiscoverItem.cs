@@ -72,6 +72,9 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
         /// <summary>Gets or sets the Jellyfin ID (without dashes) if in the library, otherwise null.</summary>
         public string? JellyfinId { get; set; }
 
+        /// <summary>Gets or sets the number of votes at TMDB.</summary>
+        public int VoteCount { get; set; }
+
         /// <summary>Gets or sets the popularity at TMDB (for ordering).</summary>
         public double Popularity { get; set; }
 

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.54.2] - 2026-10-25
+
+### Changed
+
+- Discover „Neu dieses Jahr“ (movies and series): only titles in Latin script with a German translation (overview or own German title); released titles need at least 25 (movies) / 10 (series) votes at TMDB, upcoming ones a minimum popularity – niche and direct-to-video titles drop out. Order: popularity weighted by how close the date is to today (no longer purely by date). More candidates are looked at (45 instead of 30) to fill the rows. „Demnächst im Kino“ also only shows translated titles in Latin script.
+- Streaming providers merged under their main name („Amazon Prime Video with Ads“ → „Amazon Prime Video“, „HBO Max Amazon Channel“ → „HBO Max“).
+- New field `VoteCount`. `OfficialRating` stays absent when TMDB has no German rating (checked).
+
 ## [12.54.1] - 2026-10-25
 
 ### Fixed

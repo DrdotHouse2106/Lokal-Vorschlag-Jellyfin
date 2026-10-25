@@ -60,7 +60,8 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                 Overview = Text(root, "overview"),
                 PosterPath = Text(root, "poster_path"),
                 BackdropPath = Text(root, "backdrop_path"),
-                Popularity = root.TryGetProperty("popularity", out var pop) && pop.ValueKind == JsonValueKind.Number ? pop.GetDouble() : 0
+                Popularity = root.TryGetProperty("popularity", out var pop) && pop.ValueKind == JsonValueKind.Number ? pop.GetDouble() : 0,
+                VoteCount = root.TryGetProperty("vote_count", out var votes) && votes.ValueKind == JsonValueKind.Number ? votes.GetInt32() : 0
             };
             item.PosterUrl = item.PosterPath == null ? null : ImageBase + "w342" + item.PosterPath;
             item.BackdropUrl = item.BackdropPath == null ? null : ImageBase + "w1280" + item.BackdropPath;
@@ -117,10 +118,88 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
             if (root.TryGetProperty("watch/providers", out var providers) && providers.TryGetProperty("results", out var providerResults)
                 && providerResults.TryGetProperty(country.ToUpperInvariant(), out var local) && local.TryGetProperty("flatrate", out var flat) && flat.ValueKind == JsonValueKind.Array)
             {
-                item.Providers = flat.EnumerateArray().Select(p => Text(p, "provider_name")).OfType<string>().Distinct().Take(4).ToList();
+                item.Providers = flat.EnumerateArray().Select(p => Text(p, "provider_name")).OfType<string>().Select(ProviderName).Distinct(StringComparer.OrdinalIgnoreCase).Take(4).ToList();
             }
 
             return (item, releases);
+        }
+
+        /// <summary>
+        /// Gets the main name of a streaming provider: „Amazon Prime Video with Ads“ → „Amazon Prime Video“,
+        /// „HBO Max Amazon Channel“ → „HBO Max“, „Netflix Standard with Ads“ → „Netflix“.
+        /// </summary>
+        /// <param name="name">Name at TMDB.</param>
+        /// <returns>The main name.</returns>
+        public static string ProviderName(string name)
+        {
+            ArgumentNullException.ThrowIfNull(name);
+            var result = name.Trim();
+            foreach (var suffix in new[] { " Standard with Ads", " Basic with Ads", " with Ads", " Amazon Channel", " Apple TV Channel", " Roku Premium Channel", " via Prime Video" })
+            {
+                if (result.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) && result.Length > suffix.Length)
+                {
+                    result = result[..^suffix.Length].Trim();
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Gets whether a text is written in Latin script (letters only; digits and signs do not count).
+        /// </summary>
+        /// <param name="text">The text.</param>
+        /// <returns>True if all letters are Latin.</returns>
+        public static bool IsLatin(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            // Lateinische Buchstaben einschließlich Umlauten und Akzenten (bis U+024F und U+1E00–U+1EFF)
+            return text.Where(char.IsLetter).All(c => c <= '\u024F' || (c >= '\u1E00' && c <= '\u1EFF'));
+        }
+
+        /// <summary>
+        /// Gets whether a title is fit for a German row: a title in Latin script and a German text (or at least a German title
+        /// different from the original), and enough interest – released ones with at least <paramref name="minVotes"/> votes,
+        /// upcoming ones with at least <paramref name="minPopularity"/> popularity.
+        /// </summary>
+        /// <param name="item">The title.</param>
+        /// <param name="released">True if already released.</param>
+        /// <param name="minVotes">Minimum votes for released titles.</param>
+        /// <param name="minPopularity">Minimum popularity for upcoming titles.</param>
+        /// <returns>True if it fits.</returns>
+        public static bool IsRelevant(DiscoverItem item, bool released, int minVotes, double minPopularity)
+        {
+            ArgumentNullException.ThrowIfNull(item);
+            if (!IsLatin(item.Title))
+            {
+                return false;
+            }
+
+            var translated = !string.IsNullOrWhiteSpace(item.Overview) || !string.Equals(item.Title, item.OriginalTitle, StringComparison.OrdinalIgnoreCase);
+            if (!translated)
+            {
+                return false;
+            }
+
+            return released ? item.VoteCount >= minVotes : item.Popularity >= minPopularity;
+        }
+
+        /// <summary>
+        /// Gets the order score of a „new this year“ title: popularity (logarithmic) the more, the nearer the date is to today.
+        /// </summary>
+        /// <param name="item">The title.</param>
+        /// <param name="day">Its date.</param>
+        /// <param name="today">Today.</param>
+        /// <returns>The score (higher first).</returns>
+        public static double Score(DiscoverItem item, DateOnly day, DateOnly today)
+        {
+            ArgumentNullException.ThrowIfNull(item);
+            var distance = Math.Abs(day.DayNumber - today.DayNumber);
+            return Math.Log(1 + Math.Max(0, item.Popularity) + (item.VoteCount / 50.0)) / (1 + (distance / 60.0));
         }
 
         /// <summary>

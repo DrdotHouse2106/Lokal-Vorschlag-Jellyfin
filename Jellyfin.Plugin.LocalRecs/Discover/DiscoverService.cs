@@ -43,6 +43,15 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
         /// <summary>Weeks ahead for cinema starts.</summary>
         public const int CinemaDays = 56;
 
+        /// <summary>Minimum votes of released movies in „Neu dieses Jahr“.</summary>
+        public const int MinMovieVotes = 25;
+
+        /// <summary>Minimum votes of released series in „Neu dieses Jahr“.</summary>
+        public const int MinSeriesVotes = 10;
+
+        /// <summary>Minimum popularity of titles not yet released.</summary>
+        public const double MinUpcomingPopularity = 10;
+
         private const string TmdbBase = "https://api.themoviedb.org/3/";
         private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(6);
         private static readonly TimeSpan ErrorRetry = TimeSpan.FromMinutes(15);
@@ -88,7 +97,7 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
             var result = new List<(DiscoverItem Item, DateOnly Day)>();
             foreach (var (item, releases) in details)
             {
-                if (TmdbDiscover.CinemaStart(releases) is DateOnly day && day >= today && day <= today.AddDays(CinemaDays))
+                if (TmdbDiscover.CinemaStart(releases) is DateOnly day && day >= today && day <= today.AddDays(CinemaDays) && TmdbDiscover.IsRelevant(item, false, 0, 0))
                 {
                     item.ReleaseDate = day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
                     item.Released = day <= today;
@@ -101,8 +110,8 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
         }
 
         /// <summary>
-        /// Builds „Neu dieses Jahr“: date in the year (movies: German release, series: first air date). Already released ones
-        /// first (newest first), then the upcoming ones (soonest first).
+        /// Builds „Neu dieses Jahr“: date in the year (movies: German release, series: first air date), only relevant titles
+        /// (<see cref="TmdbDiscover.IsRelevant"/>), ordered by a mix of popularity and closeness of the date to today.
         /// </summary>
         /// <param name="details">Parsed details with release dates.</param>
         /// <param name="today">Today.</param>
@@ -117,7 +126,8 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                 var day = series
                     ? releases.Where(r => r.Type == 0).Select(r => (DateOnly?)r.Date).FirstOrDefault()
                     : TmdbDiscover.LocalRelease(releases);
-                if (day is not DateOnly date || date.Year != today.Year)
+                if (day is not DateOnly date || date.Year != today.Year
+                    || !TmdbDiscover.IsRelevant(item, date <= today, series ? MinSeriesVotes : MinMovieVotes, MinUpcomingPopularity))
                 {
                     continue;
                 }
@@ -128,9 +138,13 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                 result.Add((item, date));
             }
 
-            var released = result.Where(r => r.Day <= today).OrderByDescending(r => r.Day).ThenByDescending(r => r.Item.Popularity);
-            var upcoming = result.Where(r => r.Day > today).OrderBy(r => r.Day).ThenByDescending(r => r.Item.Popularity);
-            return released.Concat(upcoming).Select(r => r.Item).DistinctBy(i => i.TmdbId).Take(MaxItems).ToList();
+            return result
+                .OrderByDescending(r => TmdbDiscover.Score(r.Item, r.Day, today))
+                .ThenBy(r => r.Day)
+                .Select(r => r.Item)
+                .DistinctBy(i => i.TmdbId)
+                .Take(MaxItems)
+                .ToList();
         }
 
         /// <summary>
@@ -280,15 +294,15 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
 
                 var movieIds = new List<(int Id, double Popularity)>();
                 var seriesIds = new List<(int Id, double Popularity)>();
-                for (var page = 1; page <= 2; page++)
+                for (var page = 1; page <= 3; page++)
                 {
                     movieIds.AddRange(await List("discover/movie?language=" + language + "&region=" + country + "&primary_release_year=" + year + "&sort_by=popularity.desc&include_adult=false&page=" + page).ConfigureAwait(false));
                     seriesIds.AddRange(await List("discover/tv?language=" + language + "&first_air_date_year=" + year + "&sort_by=popularity.desc&include_adult=false&include_null_first_air_dates=false&page=" + page).ConfigureAwait(false));
                 }
 
                 var cinema = BuildCinema(await Details(cinemaIds.OrderByDescending(i => i.Popularity).Select(i => i.Id).Distinct().Take(40), false).ConfigureAwait(false), today);
-                var movies = BuildNewThisYear(await Details(movieIds.Select(i => i.Id).Distinct().Take(30), false).ConfigureAwait(false), today, false);
-                var series = BuildNewThisYear(await Details(seriesIds.Select(i => i.Id).Distinct().Take(30), true).ConfigureAwait(false), today, true);
+                var movies = BuildNewThisYear(await Details(movieIds.Select(i => i.Id).Distinct().Take(45), false).ConfigureAwait(false), today, false);
+                var series = BuildNewThisYear(await Details(seriesIds.Select(i => i.Id).Distinct().Take(45), true).ConfigureAwait(false), today, true);
                 var rows = new List<Row>
                 {
                     new Row { Key = CinemaKey, Title = "Demnächst im Kino", Items = cinema },

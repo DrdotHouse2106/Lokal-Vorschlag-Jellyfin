@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.54.2.0",
+        "changelog": "Entdecken nachgeschärft\n- „Neu dieses Jahr“: keine Nischentitel, nur übersetzte Titel in lateinischer Schrift, Mindestzahl an Stimmen\n- Sortierung nach Beliebtheit und Nähe des Termins\n- Streaming-Anbieter ohne Doppelungen („… with Ads“, „… Amazon Channel“)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.54.2.zip",
+        "checksum": "4549564437f87ba2ceae33a0d408ee4d",
+        "timestamp": "2026-10-25T18:00:00Z"
+      },
+      {
         "version": "12.54.1.0",
         "changelog": "Fehlerbehebung Server-API-Schlüssel\n- Behoben: /LocalRecs-Endpunkte warfen mit einem Server-API-Schlüssel ohne Benutzer eine Ausnahme\n- Mit API-Schlüssel oder als Admin gibt ?userId= den Benutzer an, sonst 400 mit Hinweis\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
