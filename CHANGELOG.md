@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.55.0] - 2026-10-27
+
+### Added
+
+- Worlds with an in-universe order (field `chronologie` in the world list, first for Star Trek): `/LocalRecs/Worlds` has the new field `Chronology` – sections `{ "Section": "…" }` and titles `{ "ItemId", "Label", "Seasons" }` (`Seasons` absent = whole series; the same series may appear several times with different seasons). Only titles the user can see; sections without a following title are left out; `null` without a list.
+- `GET /LocalRecs/Worlds/{id}/Items?sort=chrono`: titles by their first position in the chronology, the rest by year.
+- Web module: sort option „Chronologisch (Handlungszeit)“ on the world page (only for worlds with a chronology) with section headings and time/seasons below each card. Default stays „Neueste zuerst“.
+
 ## [12.54.3] - 2026-10-25
 
 ### Changed

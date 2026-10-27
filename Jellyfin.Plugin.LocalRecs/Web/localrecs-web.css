@@ -966,6 +966,23 @@ html.lr-noscroll body {
     padding: 0 2em;
 }
 
+.lr-world-section {
+    grid-column: 1 / -1;
+    margin: 0.8em 0 0;
+    font-size: 1.1em;
+    font-weight: 600;
+    opacity: 0.85;
+}
+
+.lr-world-section:first-child {
+    margin-top: 0;
+}
+
+.lr-chrono-label {
+    margin-top: 0.3em;
+    text-align: center;
+}
+
 .lr-world-controls {
     display: flex;
     justify-content: space-between;

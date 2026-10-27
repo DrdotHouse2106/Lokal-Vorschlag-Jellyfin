@@ -25,6 +25,9 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         /// <summary>Gets the library items chosen in the list as trailer title per world ID (field "trailer").</summary>
         public Dictionary<string, Guid> PinnedTrailers { get; } = new Dictionary<string, Guid>();
 
+        /// <summary>Gets the order by in-story time per world: sections and library titles (titles not in the library left out).</summary>
+        public Dictionary<string, List<ChronologyItem>> Chronologies { get; } = new Dictionary<string, List<ChronologyItem>>();
+
         /// <summary>Gets the collections of the library (for suggestions).</summary>
         public IReadOnlyList<CollectionEntry> Collections { get; private set; } = Array.Empty<CollectionEntry>();
 
@@ -96,6 +99,25 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                 if (world.Trailer != null && items.FirstOrDefault(i => Matches(world.Trailer, i)) is { } trailerItem)
                 {
                     result.PinnedTrailers[world.Id] = trailerItem.Id;
+                }
+
+                // Reihenfolge nach Handlungszeit: Titel der Liste den Titeln der Bibliothek zuordnen
+                if (world.Chronology.Count > 0)
+                {
+                    var chronology = new List<ChronologyItem>();
+                    foreach (var entry in world.Chronology)
+                    {
+                        if (entry.Section != null)
+                        {
+                            chronology.Add(new ChronologyItem(entry.Section, null, null, Array.Empty<int>()));
+                        }
+                        else if (entry.Title != null && items.FirstOrDefault(i => Matches(entry.Title, i)) is { } match)
+                        {
+                            chronology.Add(new ChronologyItem(null, match.Id, entry.Label, match.IsSeries ? entry.Seasons : Array.Empty<int>()));
+                        }
+                    }
+
+                    result.Chronologies[world.Id] = chronology;
                 }
 
                 result.Sources[world.Id] = sources;
@@ -201,5 +223,14 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
             /// <summary>Gets or sets the movies and series in the collection.</summary>
             public IReadOnlyList<Guid> ChildIds { get; set; } = Array.Empty<Guid>();
         }
+
+        /// <summary>
+        /// Ein aufgelöster Eintrag der Reihenfolge nach Handlungszeit: Abschnitt oder Titel der Bibliothek.
+        /// </summary>
+        /// <param name="Section">Section heading, or null.</param>
+        /// <param name="ItemId">Library item, or null for a section.</param>
+        /// <param name="Label">Ready text, or null.</param>
+        /// <param name="Seasons">Seasons (series), empty for all.</param>
+        public sealed record ChronologyItem(string? Section, Guid? ItemId, string? Label, IReadOnlyList<int> Seasons);
     }
 }

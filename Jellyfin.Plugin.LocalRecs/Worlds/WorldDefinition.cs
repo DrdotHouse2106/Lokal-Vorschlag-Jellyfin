@@ -61,6 +61,9 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         /// </summary>
         public WorldTitleRef? Trailer { get; set; }
 
+        /// <summary>Gets or sets the order by in-story time (field "chronologie"), empty if the world has none.</summary>
+        public IReadOnlyList<WorldChronologyEntry> Chronology { get; set; } = Array.Empty<WorldChronologyEntry>();
+
         /// <summary>Gets or sets former IDs of the world (e.g. after a rename), still accepted in URLs.</summary>
         public IReadOnlyList<string> Aliases { get; set; } = Array.Empty<string>();
 
@@ -100,6 +103,7 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                     Excludes = GetTitles(element, "ausschluss"),
                     Logos = GetLogos(element),
                     Trailer = GetTrailer(element),
+                    Chronology = GetChronology(element),
                     Aliases = GetStrings(element, "aliase").Select(ToId).Where(a => a.Length > 0 && a != id).Distinct().ToList()
                 };
                 if (world.Studios.Count > 0 || world.Collections.Count > 0 || world.Includes.Count > 0)
@@ -247,6 +251,46 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
             }
 
             return GetStrings(element, "logo");
+        }
+
+        // „chronologie“: [ { "abschnitt": "…" } | { "tmdb": "314", "typ": "serie", "label": "2151", "staffeln": [1, 2] } ]
+        private static List<WorldChronologyEntry> GetChronology(JsonElement element)
+        {
+            var result = new List<WorldChronologyEntry>();
+            if (!element.TryGetProperty("chronologie", out var list) || list.ValueKind != JsonValueKind.Array)
+            {
+                return result;
+            }
+
+            foreach (var entry in list.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.Object))
+            {
+                var section = GetString(entry, "abschnitt")?.Trim();
+                if (!string.IsNullOrEmpty(section))
+                {
+                    result.Add(new WorldChronologyEntry { Section = section });
+                    continue;
+                }
+
+                var reference = new WorldTitleRef
+                {
+                    Tmdb = GetString(entry, "tmdb")?.Trim(),
+                    Imdb = GetString(entry, "imdb")?.Trim(),
+                    Tvdb = GetString(entry, "tvdb")?.Trim(),
+                    Type = GetString(entry, "typ")?.Trim().ToLowerInvariant(),
+                    Name = GetString(entry, "name")?.Trim()
+                };
+                if (string.IsNullOrEmpty(reference.Tmdb) && string.IsNullOrEmpty(reference.Imdb) && string.IsNullOrEmpty(reference.Tvdb))
+                {
+                    continue;
+                }
+
+                var seasons = entry.TryGetProperty("staffeln", out var s) && s.ValueKind == JsonValueKind.Array
+                    ? s.EnumerateArray().Where(n => n.ValueKind == JsonValueKind.Number && n.TryGetInt32(out _)).Select(n => n.GetInt32()).Where(n => n >= 0).Distinct().ToList()
+                    : new List<int>();
+                result.Add(new WorldChronologyEntry { Title = reference, Label = GetString(entry, "label")?.Trim(), Seasons = seasons });
+            }
+
+            return result;
         }
 
         private static WorldTitleRef? GetTrailer(JsonElement element)

@@ -307,6 +307,7 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                 }
 
                 var cinema = BuildCinema(await Details(cinemaIds.OrderByDescending(i => i.Popularity).Select(i => i.Id).Distinct().Take(40), false).ConfigureAwait(false), today);
+
                 // Kinostarts stehen in „Demnächst im Kino“, nicht noch einmal unter „Neu dieses Jahr“
                 var movies = BuildNewThisYear(await Details(movieIds.Select(i => i.Id).Distinct().Take(45), false).ConfigureAwait(false), today, false, cinema.Select(i => i.TmdbId).ToHashSet());
                 var series = BuildNewThisYear(await Details(seriesIds.Select(i => i.Id).Distinct().Take(45), true).ConfigureAwait(false), today, true);

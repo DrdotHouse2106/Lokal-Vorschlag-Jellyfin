@@ -2702,7 +2702,13 @@
             }
         }
         var select = el('select', 'lr-select');
-        [['year', 'Neueste zuerst'], ['year-asc', 'Älteste zuerst'], ['added', 'Neu hinzugefügt'], ['rating', 'Bewertung'], ['name', 'Name']].forEach(function (pair) {
+        var sortOptions = [['year', 'Neueste zuerst'], ['year-asc', 'Älteste zuerst'], ['added', 'Neu hinzugefügt'], ['rating', 'Bewertung'], ['name', 'Name']];
+        // Handlungszeit nur, wenn die Welt eine Chronologie mitbringt
+        var chronology = world.Chronology && world.Chronology.length ? world.Chronology : null;
+        if (chronology) {
+            sortOptions.push(['chrono', 'Chronologisch (Handlungszeit)']);
+        }
+        sortOptions.forEach(function (pair) {
             var option = el('option', null, pair[1]);
             option.value = pair[0];
             select.appendChild(option);
@@ -2716,7 +2722,76 @@
         var grid = el('div', 'lr-grid lr-world-grid');
         dialog.appendChild(grid);
 
+        function seasonText(seasons) {
+            if (!seasons || !seasons.length) {
+                return '';
+            }
+            var sorted = seasons.slice().sort(function (a, b) {
+                return a - b;
+            });
+            var contiguous = sorted.every(function (n, i) {
+                return i === 0 || n === sorted[i - 1] + 1;
+            });
+            if (sorted.length === 1) {
+                return 'Staffel ' + sorted[0];
+            }
+            return 'Staffel ' + (contiguous ? sorted[0] + '–' + sorted[sorted.length - 1] : sorted.join(', '));
+        }
+
+        // Chronologie: Abschnitte als Überschriften, Handlungszeit (und Staffeln) unter jeder Karte
+        function loadChronology() {
+            grid.innerHTML = '';
+            grid.appendChild(el('div', 'lr-spinner'));
+            var ids = [];
+            chronology.forEach(function (entry) {
+                if (entry.ItemId && ids.indexOf(entry.ItemId) < 0) {
+                    ids.push(entry.ItemId);
+                }
+            });
+            var request = ids.length ? getJson(itemsQuery('Items?Ids=' + ids.join(','))) : Promise.resolve({ Items: [] });
+            request.then(function (result) {
+                var byId = {};
+                itemsOf(result).forEach(function (i) {
+                    byId[i.Id] = i;
+                });
+                grid.innerHTML = '';
+                var pendingSection = null;
+                var shown = 0;
+                chronology.forEach(function (entry) {
+                    if (!entry.ItemId) {
+                        pendingSection = entry.Section || null;
+                        return;
+                    }
+                    var item = byId[entry.ItemId];
+                    if (!item || (filter === 'movies' && item.Type !== 'Movie') || (filter === 'series' && item.Type !== 'Series')) {
+                        return;
+                    }
+                    if (pendingSection) {
+                        grid.appendChild(el('h3', 'lr-world-section', pendingSection));
+                        pendingSection = null;
+                    }
+                    var card = posterCard(item);
+                    var caption = [entry.Label, seasonText(entry.Seasons)].filter(Boolean).join(' · ');
+                    if (caption) {
+                        card.appendChild(el('div', 'lr-card-sub lr-chrono-label', caption));
+                    }
+                    grid.appendChild(card);
+                    shown++;
+                });
+                if (!shown) {
+                    grid.appendChild(el('div', 'lr-empty', 'Keine Titel gefunden.'));
+                }
+            }).catch(function () {
+                grid.innerHTML = '';
+                grid.appendChild(el('div', 'lr-empty', 'Die Welt konnte nicht geladen werden.'));
+            });
+        }
+
         function load() {
+            if (sort === 'chrono' && chronology) {
+                loadChronology();
+                return;
+            }
             grid.innerHTML = '';
             grid.appendChild(el('div', 'lr-spinner'));
             var query = 'LocalRecs/Worlds/' + world.Id + '/Items?limit=500&sort=' + sort + (filter !== 'all' ? '&type=' + filter : '');

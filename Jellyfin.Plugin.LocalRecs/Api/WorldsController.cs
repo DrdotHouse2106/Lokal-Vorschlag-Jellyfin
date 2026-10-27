@@ -126,7 +126,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// Contains every title of the world: from studios, collections and the list (TMDB/IMDb/TVDB IDs).
         /// </summary>
         /// <param name="worldId">World ID (or a former ID).</param>
-        /// <param name="sort">"year" (newest first, default), "year-asc", "name", "rating" or "added" (recently added first).</param>
+        /// <param name="sort">"year" (newest first, default), "year-asc", "name", "rating", "added" (recently added first) or "chrono" (in-story order of the world's chronology, since 12.55.0).</param>
         /// <param name="type">Optional filter: "movies" or "series".</param>
         /// <param name="startIndex">Index of the first title (paging).</param>
         /// <param name="limit">Maximum number of titles (default 100, max. 500).</param>
@@ -162,8 +162,20 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 .Where(i => string.IsNullOrEmpty(type)
                     || (string.Equals(type, "movies", StringComparison.OrdinalIgnoreCase) && i is MediaBrowser.Controller.Entities.Movies.Movie)
                     || (string.Equals(type, "series", StringComparison.OrdinalIgnoreCase) && i is MediaBrowser.Controller.Entities.TV.Series));
+
+            // Handlungszeit: Reihenfolge der Chronologie (jeder Titel einmal, an seiner ersten Stelle), übrige Titel nach Jahr dahinter
+            var chronoOrder = new Dictionary<Guid, int>();
+            if (string.Equals(sort, "chrono", StringComparison.OrdinalIgnoreCase) && _worlds.GetMembership().Chronologies.TryGetValue(world.Id, out var chronology))
+            {
+                foreach (var entry in chronology.Where(e => e.ItemId != null))
+                {
+                    chronoOrder.TryAdd(entry.ItemId!.Value, chronoOrder.Count);
+                }
+            }
+
             items = sort?.ToLowerInvariant() switch
             {
+                "chrono" => items.OrderBy(i => chronoOrder.TryGetValue(i.Id, out var position) ? position : int.MaxValue).ThenBy(i => ReleaseDate(i) ?? DateTime.MaxValue),
                 "name" => items.OrderBy(i => i.SortName ?? i.Name, StringComparer.OrdinalIgnoreCase),
                 "added" => items.OrderByDescending(i => i.DateCreated).ThenBy(i => i.SortName ?? i.Name, StringComparer.OrdinalIgnoreCase),
                 "rating" => items.OrderByDescending(i => i.CommunityRating ?? 0).ThenBy(i => i.SortName ?? i.Name, StringComparer.OrdinalIgnoreCase),
@@ -368,11 +380,47 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                     LogoUrl = WorldLogoService.ResolveAll(world.Logos, listSource, hasFanart).Count > 0 ? "/LocalRecs/Worlds/" + world.Id + "/Logo" : null,
                     TrailerItemId = trailer?.Item.Id.ToString("N"),
                     TrailerItemName = trailer?.Item.Name,
-                    TrailerId = trailer?.Trailer.Id.ToString("N")
+                    TrailerId = trailer?.Trailer.Id.ToString("N"),
+                    Chronology = Chronology(world.Id, entry.Visible)
                 }, watched));
             }
 
             return result;
+        }
+
+        // Reihenfolge nach Handlungszeit mit den Titeln, die der Benutzer sehen darf; Abschnitte ohne Titel fallen weg
+        private List<ChronologyEntry>? Chronology(string worldId, IReadOnlyCollection<Guid> visible)
+        {
+            if (!_worlds.GetMembership().Chronologies.TryGetValue(worldId, out var chronology))
+            {
+                return null;
+            }
+
+            var result = new List<ChronologyEntry>();
+            ChronologyEntry? pendingSection = null;
+            foreach (var entry in chronology)
+            {
+                if (entry.Section != null)
+                {
+                    pendingSection = new ChronologyEntry { Section = entry.Section };
+                    continue;
+                }
+
+                if (entry.ItemId is not Guid id || !visible.Contains(id))
+                {
+                    continue;
+                }
+
+                if (pendingSection != null)
+                {
+                    result.Add(pendingSection);
+                    pendingSection = null;
+                }
+
+                result.Add(new ChronologyEntry { ItemId = id.ToString("N"), Label = entry.Label, Seasons = entry.Seasons.Count > 0 ? entry.Seasons.ToList() : null });
+            }
+
+            return result.Any(e => e.ItemId != null) ? result : null;
         }
 
         private List<BaseItem> GetItems(User user, string worldId, HashSet<Guid> members, int? limit)
@@ -464,6 +512,30 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets the ID of its first local trailer (playable like any video, e.g. /Videos/{id}/stream), or null.</summary>
             public string? TrailerId { get; set; }
+
+            /// <summary>
+            /// Gets or sets the order by in-story time (since 12.55.0), or null if the world has none – then apps show no switch.
+            /// The order of the list is the story order; a series may appear several times with different seasons.
+            /// </summary>
+            public List<ChronologyEntry>? Chronology { get; set; }
+        }
+
+        /// <summary>
+        /// An entry of the order by in-story time: a section heading or a title of the library.
+        /// </summary>
+        public class ChronologyEntry
+        {
+            /// <summary>Gets or sets the section heading (e.g. „Kelvin-Zeitlinie (alternativ)“), only in section entries.</summary>
+            public string? Section { get; set; }
+
+            /// <summary>Gets or sets the Jellyfin ID of the title (without dashes), only in title entries.</summary>
+            public string? ItemId { get; set; }
+
+            /// <summary>Gets or sets the ready text, e.g. „2151“, or null.</summary>
+            public string? Label { get; set; }
+
+            /// <summary>Gets or sets the seasons (series only), or null for the whole series.</summary>
+            public List<int>? Seasons { get; set; }
         }
 
         /// <summary>

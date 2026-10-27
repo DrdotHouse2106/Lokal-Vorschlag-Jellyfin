@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.55.0.0",
+        "changelog": "Welten: Reihenfolge nach Handlungszeit\n- Neues Feld Chronology in /LocalRecs/Worlds (Abschnitte, Titel mit Zeitangabe und Staffeln), zuerst für Star Trek\n- Sortierung „Chronologisch (Handlungszeit)“ auf der Welt-Seite und sort=chrono\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.55.0.zip",
+        "checksum": "cbb1ee8ca66fd8357d61b398f9e7677f",
+        "timestamp": "2026-10-27T12:00:00Z"
+      },
+      {
         "version": "12.54.3.0",
         "changelog": "Entdecken: Anbieter und Überschneidungen\n- Anbieter in deutscher Schreibweise ohne Doppelungen (Paramount+, Disney+, ADN), höchstens 3\n- Kinostarts nicht doppelt in „Neu dieses Jahr – Filme“\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
