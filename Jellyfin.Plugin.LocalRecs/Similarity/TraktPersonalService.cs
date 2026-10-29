@@ -581,7 +581,6 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
 
         private void UpdateAccount(Guid userId, Action<Account> change)
         {
-            string json;
             lock (_lock)
             {
                 LoadStore();
@@ -592,9 +591,14 @@ namespace Jellyfin.Plugin.LocalRecs.Similarity
                 }
 
                 change(account);
-                json = JsonSerializer.Serialize(_accounts);
-            }
 
+                // Im Lock schreiben, damit kein älterer Stand einen neueren überschreibt
+                SaveStore(JsonSerializer.Serialize(_accounts));
+            }
+        }
+
+        private void SaveStore(string json)
+        {
             try
             {
                 var directory = Path.GetDirectoryName(_storePath);

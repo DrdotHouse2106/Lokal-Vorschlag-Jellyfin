@@ -239,7 +239,7 @@ The portrait banner card shows the backdrop cropped to portrait with logo or tit
 
 ### Server API key (since 12.54.1)
 
-All `/LocalRecs` endpoints apply to the user of the token. With a server API key (no user) or as an administrator, `?userId=<user id>` names the user; without any user the server answers 400 with a hint. Normal users never see other users' data through `userId`.
+All `/LocalRecs` endpoints apply to the user of the token. With a server API key (no user) or as an administrator, `?userId=<user id>` names the user; without any user the server answers 400 with a hint. Normal users never see other users' data through `userId`. Since 12.55.1 administrators can use `userId` only for reading (GET); changes always go to their own profile. With a server API key `userId` is still needed for writes too.
 
 ### Upcoming (since 12.48.0)
 

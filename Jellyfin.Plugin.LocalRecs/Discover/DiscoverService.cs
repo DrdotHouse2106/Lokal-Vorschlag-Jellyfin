@@ -271,7 +271,7 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                 var failed = false;
                 async Task<List<(int Id, double Popularity)>> List(string path)
                 {
-                    var json = await GetAsync(key, path, cancellationToken).ConfigureAwait(false);
+                    var (json, _) = await GetAsync(key, path, cancellationToken).ConfigureAwait(false);
                     if (json == null)
                     {
                         failed = true;
@@ -286,8 +286,19 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                     var append = series ? "content_ratings,videos,watch/providers" : "release_dates,videos,watch/providers";
                     return await InParallel(ids, 4, async id =>
                     {
-                        var json = await GetAsync(key, (series ? "tv/" : "movie/") + id.ToString(CultureInfo.InvariantCulture) + "?language=" + language + "&append_to_response=" + append + "&include_video_language=" + language.Split('-')[0] + ",en", cancellationToken).ConfigureAwait(false);
-                        return json == null ? null : TmdbDiscover.ParseDetails(json, series, country);
+                        var (json, gone) = await GetAsync(key, (series ? "tv/" : "movie/") + id.ToString(CultureInfo.InvariantCulture) + "?language=" + language + "&append_to_response=" + append + "&include_video_language=" + language.Split('-')[0] + ",en", cancellationToken).ConfigureAwait(false);
+                        if (json == null)
+                        {
+                            // Gelöschte Titel (404) sind kein Ausfall, sonst würde alle 15 Minuten neu geladen
+                            if (!gone)
+                            {
+                                failed = true;
+                            }
+
+                            return null;
+                        }
+
+                        return TmdbDiscover.ParseDetails(json, series, country);
                     }).ConfigureAwait(false);
                 }
 
@@ -317,8 +328,9 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                     new Row { Key = NewMoviesKey, Title = "Neu dieses Jahr – Filme", Items = movies },
                     new Row { Key = NewSeriesKey, Title = "Neu dieses Jahr – Serien", Items = series }
                 };
-                var empty = rows.All(r => r.Items.Count == 0);
-                _snapshot = (signature, DateTime.UtcNow.Add(failed && empty ? ErrorRetry : CacheDuration), rows);
+
+                // Fehlte eine Antwort von TMDB, bald neu laden statt den Teilausfall stundenlang zu behalten
+                _snapshot = (signature, DateTime.UtcNow.Add(failed ? ErrorRetry : CacheDuration), rows);
                 return rows;
             }
             finally
@@ -327,7 +339,7 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
             }
         }
 
-        private async Task<string?> GetAsync(string key, string path, CancellationToken cancellationToken)
+        private async Task<(string? Json, bool Gone)> GetAsync(string key, string path, CancellationToken cancellationToken)
         {
             var url = TmdbBase + path;
             var bearer = key.Length > 40;
@@ -341,13 +353,15 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
             try
             {
                 using var response = await _send(request, cancellationToken).ConfigureAwait(false);
-                return response.IsSuccessStatusCode ? await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false) : null;
+                return response.IsSuccessStatusCode
+                    ? (await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false), false)
+                    : (null, response.StatusCode == System.Net.HttpStatusCode.NotFound);
             }
             catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
             {
                 // Nur der Typ – die Adresse kann den Schlüssel enthalten
                 _logger.LogDebug("Entdecken: TMDB nicht erreichbar ({Type})", ex.GetType().Name);
-                return null;
+                return (null, false);
             }
         }
 

@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.55.1.0",
+        "changelog": "Korrekturen aus einer Durchsicht\n- Web: Startseite startet auch nach mehr als 2 Minuten auf Login oder „Wer schaut?“\n- „Demnächst“: Kinostart von gestern nicht mehr als „heute“\n- Datendateien werden nacheinander geschrieben\n- Entdecken lädt nach TMDB-Ausfällen nach 15 Minuten neu\n- Administratoren: userId nur noch für lesende Anfragen\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.55.1.zip",
+        "checksum": "eae2bc94553fbc03f16fd57afb54c966",
+        "timestamp": "2026-10-29T12:00:00Z"
+      },
+      {
         "version": "12.55.0.0",
         "changelog": "Welten: Reihenfolge nach Handlungszeit\n- Neues Feld Chronology in /LocalRecs/Worlds (Abschnitte, Titel mit Zeitangabe und Staffeln), zuerst für Star Trek\n- Sortierung „Chronologisch (Handlungszeit)“ auf der Welt-Seite und sort=chrono\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

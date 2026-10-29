@@ -31,6 +31,7 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         private readonly ILogger<FeedbackStore> _logger;
         private readonly string _filePath;
         private readonly object _lock = new object();
+        private readonly object _saveLock = new object();
         private FeedbackData _data = new FeedbackData();
         private bool _dirty;
 
@@ -234,6 +235,17 @@ namespace Jellyfin.Plugin.LocalRecs.Services
         /// </summary>
         public void SaveIfDirty()
         {
+            // Nur ein Schreibvorgang gleichzeitig, sonst kann ein älterer Stand einen neueren überschreiben
+            lock (_saveLock)
+            {
+                SaveSnapshot();
+            }
+        }
+
+        private static string Id(Guid userId, string section, string key) => userId.ToString("N") + "|" + section + "|" + key;
+
+        private void SaveSnapshot()
+        {
             string json;
             lock (_lock)
             {
@@ -267,8 +279,6 @@ namespace Jellyfin.Plugin.LocalRecs.Services
                 }
             }
         }
-
-        private static string Id(Guid userId, string section, string key) => userId.ToString("N") + "|" + section + "|" + key;
 
         private void Load()
         {

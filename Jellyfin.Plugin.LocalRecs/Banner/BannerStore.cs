@@ -174,7 +174,6 @@ namespace Jellyfin.Plugin.LocalRecs.Banner
         public void Set(Guid userId, DateOnly day, IReadOnlyList<Guid> ids)
         {
             ArgumentNullException.ThrowIfNull(ids);
-            string json;
             lock (_lock)
             {
                 Load();
@@ -190,10 +189,9 @@ namespace Jellyfin.Plugin.LocalRecs.Banner
                     days.Remove(old);
                 }
 
-                json = JsonSerializer.Serialize(_users);
+                // Im Lock schreiben, damit kein älterer Stand einen neueren überschreibt
+                Write(_path, JsonSerializer.Serialize(_users), _logger);
             }
-
-            Write(_path, json, _logger);
         }
 
         private static void Write(string path, string json, ILogger logger)
@@ -220,7 +218,6 @@ namespace Jellyfin.Plugin.LocalRecs.Banner
 
         private void ChangeLater(Guid userId, Action<Dictionary<Guid, DateTime>> change)
         {
-            string json;
             lock (_lock)
             {
                 LoadLater();
@@ -237,10 +234,8 @@ namespace Jellyfin.Plugin.LocalRecs.Banner
                     later.Remove(expired);
                 }
 
-                json = JsonSerializer.Serialize(_later);
+                Write(_laterPath, JsonSerializer.Serialize(_later), _logger);
             }
-
-            Write(_laterPath, json, _logger);
         }
 
         private void LoadLater()

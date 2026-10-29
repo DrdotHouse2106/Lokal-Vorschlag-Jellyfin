@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.55.1] - 2026-10-29
+
+### Fixed
+
+- Web module: if the login page or „Wer schaut?“ stayed open longer than 2 minutes, the start page, settings and user switch never started until a reload. It now keeps waiting (every second after 2 minutes) and also checks on every page change.
+- „Demnächst“ movies: a cinema start from yesterday was shown as „heute“ and pushed the later digital release aside. The window now starts today; past days read „gestern“ or the date.
+- Data files (behaviour, banner, „Später ansehen“, Trakt settings, live TV, feedback) are written one at a time, so an older state can no longer overwrite a newer one.
+- Discover: if a TMDB answer was missing (except deleted titles), the rows are reloaded after 15 minutes instead of keeping the gap for 6 hours.
+
+### Changed
+
+- Administrators can use `?userId=` only for reading (GET); write requests always apply to their own profile. Server API keys are unchanged.
+
 ## [12.55.0] - 2026-10-27
 
 ### Added

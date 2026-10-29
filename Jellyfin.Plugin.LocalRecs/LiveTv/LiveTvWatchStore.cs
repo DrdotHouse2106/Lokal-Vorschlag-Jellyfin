@@ -16,6 +16,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         private readonly ILogger<LiveTvWatchStore> _logger;
         private readonly string _filePath;
         private readonly object _lock = new object();
+        private readonly object _saveLock = new object();
         private readonly Dictionary<string, LiveTvWatchEntry> _entries = new Dictionary<string, LiveTvWatchEntry>();
         private bool _dirty;
 
@@ -147,6 +148,37 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         /// </summary>
         public void SaveIfDirty()
         {
+            // Nur ein Schreibvorgang gleichzeitig, sonst kann ein älterer Stand einen neueren überschreiben
+            lock (_saveLock)
+            {
+                SaveSnapshot();
+            }
+        }
+
+        private static LiveTvWatchEntry Clone(LiveTvWatchEntry e)
+        {
+            return new LiveTvWatchEntry
+            {
+                UserId = e.UserId,
+                BroadcastKey = e.BroadcastKey,
+                Title = e.Title,
+                SeriesName = e.SeriesName,
+                EpisodeTitle = e.EpisodeTitle,
+                Genres = e.Genres.ToList(),
+                People = e.People.ToList(),
+                ChannelName = e.ChannelName,
+                IsMovie = e.IsMovie,
+                IsSports = e.IsSports,
+                ProductionYear = e.ProductionYear,
+                StartDate = e.StartDate,
+                EndDate = e.EndDate,
+                Minutes = e.Minutes,
+                LastWatched = e.LastWatched
+            };
+        }
+
+        private void SaveSnapshot()
+        {
             List<LiveTvWatchEntry> snapshot;
             lock (_lock)
             {
@@ -179,28 +211,6 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                     _dirty = true;
                 }
             }
-        }
-
-        private static LiveTvWatchEntry Clone(LiveTvWatchEntry e)
-        {
-            return new LiveTvWatchEntry
-            {
-                UserId = e.UserId,
-                BroadcastKey = e.BroadcastKey,
-                Title = e.Title,
-                SeriesName = e.SeriesName,
-                EpisodeTitle = e.EpisodeTitle,
-                Genres = e.Genres.ToList(),
-                People = e.People.ToList(),
-                ChannelName = e.ChannelName,
-                IsMovie = e.IsMovie,
-                IsSports = e.IsSports,
-                ProductionYear = e.ProductionYear,
-                StartDate = e.StartDate,
-                EndDate = e.EndDate,
-                Minutes = e.Minutes,
-                LastWatched = e.LastWatched
-            };
         }
 
         private void Load()

@@ -6195,17 +6195,31 @@
         }
     }, true);
 
+    // Nicht aufgeben: Login oder „Wer schaut?“ können beliebig lange offen sein. Erst alle 200 ms, nach 2 Minuten
+    // jede Sekunde; ein Seitenwechsel (viewshow/hashchange) prüft sofort.
     function whenReady(callback) {
         var tries = 0;
-        var timer = window.setInterval(function () {
-            tries++;
-            if (window.ApiClient && userId()) {
-                window.clearInterval(timer);
-                callback();
-            } else if (tries > 600) {
-                window.clearInterval(timer);
+        var done = false;
+        var timer = null;
+        function check() {
+            if (done) {
+                return;
             }
-        }, 200);
+            if (window.ApiClient && userId()) {
+                done = true;
+                window.clearTimeout(timer);
+                document.removeEventListener('viewshow', check);
+                window.removeEventListener('hashchange', check);
+                callback();
+                return;
+            }
+            tries++;
+            window.clearTimeout(timer);
+            timer = window.setTimeout(check, tries > 600 ? 1000 : 200);
+        }
+        document.addEventListener('viewshow', check);
+        window.addEventListener('hashchange', check);
+        timer = window.setTimeout(check, 200);
     }
 
     // Design (Farben) sofort aus dem Zwischenspeicher, damit nichts aufblitzt

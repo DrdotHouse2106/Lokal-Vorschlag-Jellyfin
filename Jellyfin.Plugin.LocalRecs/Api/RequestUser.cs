@@ -4,14 +4,15 @@ using Jellyfin.Data;
 using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Database.Implementations.Enums;
 using MediaBrowser.Controller.Library;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Jellyfin.Plugin.LocalRecs.Api
 {
     /// <summary>
     /// Für wen eine Anfrage an <c>/LocalRecs</c> gilt: den angemeldeten Benutzer des Tokens. Mit einem Server-API-Schlüssel
-    /// (ohne Benutzer) oder als Administrator gilt stattdessen der Parameter <c>userId</c>. Andere Benutzer können ihn nicht
-    /// nutzen, um fremde Daten zu sehen – für sie zählt immer das eigene Profil.
+    /// (ohne Benutzer) gilt stattdessen der Parameter <c>userId</c>, als Administrator nur bei lesenden Anfragen (GET).
+    /// Andere Benutzer können ihn nicht nutzen, um fremde Daten zu sehen – für sie zählt immer das eigene Profil.
     /// </summary>
     public static class RequestUser
     {
@@ -43,7 +44,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                     return own;
                 }
 
-                return own.HasPermission(PermissionKind.IsAdministrator) ? userManager.GetUserById(requested) : own;
+                // Administratoren dürfen fremde Daten nur lesen; Änderungen gelten immer für das eigene Profil
+                var reading = HttpMethods.IsGet(controller.HttpContext?.Request.Method ?? string.Empty)
+                    || HttpMethods.IsHead(controller.HttpContext?.Request.Method ?? string.Empty);
+                return reading && own.HasPermission(PermissionKind.IsAdministrator) ? userManager.GetUserById(requested) : own;
             }
 
             var apiKey = controller.User?.Claims.Any(c => string.Equals(c.Type, ApiKeyClaim, StringComparison.OrdinalIgnoreCase)

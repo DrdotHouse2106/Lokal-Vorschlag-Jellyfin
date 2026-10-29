@@ -256,7 +256,6 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
 
         private void Change(Guid userId, Action<UserBehavior> change)
         {
-            string json;
             lock (_lock)
             {
                 Load();
@@ -268,9 +267,14 @@ namespace Jellyfin.Plugin.LocalRecs.Behavior
 
                 change(entry);
                 Interlocked.Increment(ref _version);
-                json = JsonSerializer.Serialize(_users);
-            }
 
+                // Im Lock schreiben, damit kein älterer Stand einen neueren überschreibt
+                Save(JsonSerializer.Serialize(_users));
+            }
+        }
+
+        private void Save(string json)
+        {
             try
             {
                 var directory = Path.GetDirectoryName(_path);

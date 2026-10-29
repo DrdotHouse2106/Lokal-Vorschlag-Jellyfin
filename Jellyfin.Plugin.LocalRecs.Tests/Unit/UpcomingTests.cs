@@ -70,6 +70,8 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
         }
 
         [Theory]
+        [InlineData(2026, 10, 20, "Di. 20.10.")]
+        [InlineData(2026, 10, 22, "gestern")]
         [InlineData(2026, 10, 23, "heute")]
         [InlineData(2026, 10, 24, "morgen")]
         [InlineData(2026, 10, 26, "Mo. 26.10.")]

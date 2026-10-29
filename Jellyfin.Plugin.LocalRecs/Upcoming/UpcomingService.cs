@@ -58,7 +58,7 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
         private static PluginConfiguration Config => Plugin.Instance?.Configuration ?? new PluginConfiguration();
 
         /// <summary>
-        /// Gets the day as text: „heute“, „morgen“ or the date with weekday („Fr. 24.10.“).
+        /// Gets the day as text: „gestern“, „heute“, „morgen“ or the date with weekday („Fr. 24.10.“).
         /// </summary>
         /// <param name="day">The day.</param>
         /// <param name="today">Today.</param>
@@ -66,7 +66,12 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
         public static string DayText(DateOnly day, DateOnly today)
         {
             var days = day.DayNumber - today.DayNumber;
-            if (days <= 0)
+            if (days < 0)
+            {
+                return days == -1 ? "gestern" : WeekdayDate(day);
+            }
+
+            if (days == 0)
             {
                 return "heute";
             }
@@ -76,8 +81,7 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
                 return "morgen";
             }
 
-            var german = CultureInfo.GetCultureInfo("de-DE");
-            return german.DateTimeFormat.GetAbbreviatedDayName(day.DayOfWeek).TrimEnd('.') + ". " + day.ToString("dd.MM.", CultureInfo.InvariantCulture);
+            return WeekdayDate(day);
         }
 
         /// <summary>
@@ -107,7 +111,7 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
         public static string Label(string releaseType, DateOnly day, DateOnly today)
         {
             var when = DayText(day, today);
-            var on = when is "heute" or "morgen" ? when : "am " + when;
+            var on = when is "gestern" or "heute" or "morgen" ? when : "am " + when;
             return releaseType switch
             {
                 UpcomingEntry.SeasonPremiere => "Staffelstart " + on,
@@ -297,6 +301,12 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
         /// Forgets the cached calendars (after the settings changed).
         /// </summary>
         public void Invalidate() => _snapshot = new Snapshot();
+
+        private static string WeekdayDate(DateOnly day)
+        {
+            var german = CultureInfo.GetCultureInfo("de-DE");
+            return german.DateTimeFormat.GetAbbreviatedDayName(day.DayOfWeek).TrimEnd('.') + ". " + day.ToString("dd.MM.", CultureInfo.InvariantCulture);
+        }
 
         private static async Task<string> CheckOneAsync(string? url, string? key, Func<string, string, Task<string>> check)
         {
@@ -501,7 +511,9 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
         private List<UpcomingEntry> Movies(User user, IReadOnlyList<ArrMovie> movies, DateOnly today, PluginConfiguration config)
         {
             var result = new List<UpcomingEntry>();
-            var fromUtc = today.ToDateTime(TimeOnly.MinValue).AddDays(-1);
+
+            // Ab heute: ein Kinostart von gestern ist vorbei und darf den späteren Digital-Termin nicht verdrängen
+            var fromUtc = today.ToDateTime(TimeOnly.MinValue);
             var toUtc = today.ToDateTime(TimeOnly.MinValue).AddDays(Math.Clamp(config.UpcomingMovieDays, 1, 90) + 1);
             var candidates = movies.Select(m => (Movie: m, Release: Release(m, fromUtc, toUtc))).Where(m => m.Release != null).ToList();
             if (candidates.Count == 0)
