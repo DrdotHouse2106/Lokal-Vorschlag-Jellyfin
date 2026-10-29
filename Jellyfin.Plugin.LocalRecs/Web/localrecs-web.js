@@ -1218,16 +1218,37 @@
         });
     }
 
+    // Nächste Folge einer Serie. Ohne Jellyfin-„Als Nächstes“ nur die erste Folge einer noch nie gesehenen Serie –
+    // ist alles gesehen, gibt es kein Ziel (dann öffnet sich die Detailseite) statt einer alten, schon gesehenen Folge.
+    function nextOfSeries(seriesId) {
+        return getJson(itemsQuery('Shows/NextUp?seriesId=' + seriesId + '&limit=1&EnableResumable=true')).then(function (result) {
+            var next = itemsOf(result)[0];
+            if (next) {
+                return next;
+            }
+            return getJson(itemsQuery('Shows/' + seriesId + '/Episodes?limit=1')).then(function (episodes) {
+                var first = itemsOf(episodes)[0];
+                return first && !(first.UserData && first.UserData.Played) ? first : null;
+            });
+        });
+    }
+
     function resolvePlayable(item) {
         if (item.Type === 'Series') {
-            return getJson(itemsQuery('Shows/NextUp?seriesId=' + item.Id + '&limit=1')).then(function (result) {
-                var next = itemsOf(result)[0];
-                if (next) {
-                    return next;
+            return nextOfSeries(item.Id);
+        }
+        // Folgen frisch nachsehen: Karten können aus dem Zwischenspeicher der letzten Sitzung stammen („Weiterschauen“,
+        // „Als Nächstes“ von gestern). Ist die Folge inzwischen gesehen, gilt die nächste der Serie.
+        if (item.Type === 'Episode') {
+            return getJson(itemsQuery('Items/' + item.Id)).then(function (fresh) {
+                var data = (fresh && fresh.UserData) || {};
+                if (!data.Played || data.PlaybackPositionTicks) {
+                    return fresh || item;
                 }
-                return getJson(itemsQuery('Shows/' + item.Id + '/Episodes?limit=1')).then(function (episodes) {
-                    return itemsOf(episodes)[0] || null;
-                });
+                diagStep('Folge ' + item.Id + ' ist schon gesehen – nächste Folge der Serie', false, true);
+                return fresh.SeriesId ? nextOfSeries(fresh.SeriesId) : null;
+            }, function () {
+                return item;
             });
         }
         if (item.Type === 'Program') {

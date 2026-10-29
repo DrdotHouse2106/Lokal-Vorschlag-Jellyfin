@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.55.2.0",
+        "changelog": "Weiterschauen: keine schon gesehenen Folgen mehr\n- Folgen werden vor dem Abspielen frisch geprüft (Startseite zeigt anfangs den Stand des letzten Besuchs)\n- Gesehen: nächste Folge der Serie; alles gesehen: Detailseite statt alter Folge\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.55.2.zip",
+        "checksum": "f072f7f3b29d27c03562d9618e2afd1d",
+        "timestamp": "2026-10-29T20:00:00Z"
+      },
+      {
         "version": "12.55.1.0",
         "changelog": "Korrekturen aus einer Durchsicht\n- Web: Startseite startet auch nach mehr als 2 Minuten auf Login oder „Wer schaut?“\n- „Demnächst“: Kinostart von gestern nicht mehr als „heute“\n- Datendateien werden nacheinander geschrieben\n- Entdecken lädt nach TMDB-Ausfällen nach 15 Minuten neu\n- Administratoren: userId nur noch für lesende Anfragen\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

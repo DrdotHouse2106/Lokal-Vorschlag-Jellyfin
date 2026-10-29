@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.55.2] - 2026-10-29
+
+### Fixed
+
+- Web module: right after opening the app, the start page shows the rows of the last visit until fresh ones arrive. Tapping a started episode in „Weiterschauen“ (or „Als Nächstes“) could start yesterday's episode that has been watched since. Episodes are now checked fresh before playing: if watched, the next episode of the series plays; if everything is watched, the detail page opens.
+- Play on a series without „Als Nächstes“ no longer starts the first (already watched) episode; it only starts episode 1 of a series never watched, otherwise the detail page opens.
+
 ## [12.55.1] - 2026-10-29
 
 ### Fixed
