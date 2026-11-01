@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.57.1.0",
+        "changelog": "Trailer im Vollbild\n- „Trailer ansehen“ spielt YouTube-Trailer im Web eingebettet im Vollbild mit Autoplay\n- Esc/Zurück führt zurück in den Dialog\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.57.1.zip",
+        "checksum": "9fb653829aead8b8ebcde0176df16392",
+        "timestamp": "2026-11-01T18:00:00Z"
+      },
+      {
         "version": "12.57.0.0",
         "changelog": "Entdecken: deutsche Trailer\n- Ohne deutschen TMDB-Trailer: deutscher Trailer von KinoCheck (24 h zwischengespeichert, abschaltbar)\n- Untertitelte Trailer nach deutsch synchronisierten, vor englischen\n- Neue Felder TrailerLanguage und TrailerSource; Web: „Trailer ansehen (EN)“\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.57.1] - 2026-11-01
+
+### Changed
+
+- Web module, Discover: „Trailer ansehen“ plays the YouTube trailer embedded in fullscreen with autoplay (youtube-nocookie.com) instead of opening a new tab. Esc/back or leaving fullscreen closes the player and returns to the dialog; on iPhone the player fills the window and YouTube switches to fullscreen when playing.
+
 ## [12.57.0] - 2026-11-01
 
 ### Added

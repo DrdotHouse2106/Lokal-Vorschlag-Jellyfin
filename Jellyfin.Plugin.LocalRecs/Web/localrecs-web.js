@@ -2204,6 +2204,9 @@
 
     function closeTopOverlay() {
         var top = overlayStack.pop();
+        if (top && top.classList.contains('lr-yt')) {
+            leaveFullscreen();
+        }
         if (top) {
             top.querySelectorAll('video').forEach(function (v) {
                 v.pause();
@@ -2212,6 +2215,66 @@
         }
         if (!overlayStack.length) {
             document.documentElement.classList.remove('lr-noscroll');
+        }
+    }
+
+    function fullscreenElement() {
+        return document.fullscreenElement || document.webkitFullscreenElement || null;
+    }
+
+    function leaveFullscreen() {
+        try {
+            if (document.fullscreenElement && document.exitFullscreen) {
+                document.exitFullscreen().catch(function () {});
+            } else if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+        } catch (e) {
+            // ignorieren
+        }
+    }
+
+    // YouTube-Trailer im Vollbild über dem Dialog: Autoplay, Vollbild per requestFullscreen (iPhone kann das nur für
+    // Videos – dort füllt die Ebene das Fenster und playsinline=0 lässt YouTube selbst ins Vollbild gehen).
+    // Esc, Zurück oder das Verlassen des Vollbilds schließen nur den Player; der Dialog bleibt offen.
+    function playYoutubeFullscreen(key) {
+        var overlay = el('div', 'lr-overlay lr-yt');
+        var frame = document.createElement('iframe');
+        frame.className = 'lr-yt-frame';
+        frame.src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(key)
+            + '?autoplay=1&fs=1&playsinline=0&rel=0&modestbranding=1&hl=de';
+        frame.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
+        frame.setAttribute('allowfullscreen', '');
+        frame.title = 'Trailer';
+        overlay.appendChild(frame);
+        var close = button('lr-round lr-close lr-yt-close', 'close', null, closeTopOverlay);
+        close.title = 'Schließen';
+        overlay.appendChild(close);
+        document.body.appendChild(overlay);
+        overlayStack.push(overlay);
+        var entered = false;
+        var onChange = function () {
+            if (fullscreenElement() === overlay) {
+                entered = true;
+            } else if (entered) {
+                // Vollbild verlassen (Esc/Zurück): Player schließen, zurück zum Dialog
+                document.removeEventListener('fullscreenchange', onChange);
+                document.removeEventListener('webkitfullscreenchange', onChange);
+                if (overlayStack[overlayStack.length - 1] === overlay) {
+                    closeTopOverlay();
+                }
+            }
+        };
+        document.addEventListener('fullscreenchange', onChange);
+        document.addEventListener('webkitfullscreenchange', onChange);
+        try {
+            var request = overlay.requestFullscreen || overlay.webkitRequestFullscreen;
+            var result = request ? request.call(overlay) : null;
+            if (result && typeof result.catch === 'function') {
+                result.catch(function () {});
+            }
+        } catch (e) {
+            // ohne Vollbild-Recht bleibt die fensterfüllende Ebene
         }
     }
 
@@ -3202,7 +3265,7 @@
             var trailerLanguage = info.TrailerLanguage && info.TrailerLanguage !== 'de'
                 ? ' (' + (info.TrailerLanguage === 'OmU' ? 'OmU' : info.TrailerLanguage.toUpperCase()) + ')' : '';
             actions.appendChild(button('lr-btn', 'play_arrow', 'Trailer ansehen' + trailerLanguage, function () {
-                window.open('https://www.youtube.com/watch?v=' + encodeURIComponent(info.TrailerKey), '_blank', 'noopener');
+                playYoutubeFullscreen(info.TrailerKey);
             }));
         }
         body.appendChild(actions);
