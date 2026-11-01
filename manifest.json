@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.56.0.0",
+        "changelog": "Entdecken: Anfragen über Jellyseerr\n- Titel aus „Demnächst im Kino“ und „Neu dieses Jahr“ im Web anfragen (über Jellyfin Enhanced)\n- Stand bei Jellyseerr: schon angefragt, teilweise oder schon vorhanden\n- Kinostarts mit Hinweis: kommt, sobald digital verfügbar\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.56.0.zip",
+        "checksum": "8d6e57b20dc28dfc30aa0d7b8edf5470",
+        "timestamp": "2026-11-01T12:00:00Z"
+      },
+      {
         "version": "12.55.2.0",
         "changelog": "Weiterschauen: keine schon gesehenen Folgen mehr\n- Folgen werden vor dem Abspielen frisch geprüft (Startseite zeigt anfangs den Stand des letzten Besuchs)\n- Gesehen: nächste Folge der Serie; alles gesehen: Detailseite statt alter Folge\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

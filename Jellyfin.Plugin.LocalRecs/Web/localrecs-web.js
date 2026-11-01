@@ -3148,6 +3148,8 @@
             LrPoster: entry.PosterUrl || null,
             LrImageIsPoster: !entry.BackdropUrl && !!entry.PosterUrl,
             LrDiscover: {
+                TmdbId: entry.TmdbId,
+                Released: !!entry.Released,
                 MediaType: entry.MediaType,
                 ReleaseText: entry.ReleaseText,
                 Genres: entry.Genres || [],
@@ -3193,14 +3195,99 @@
         if (item.Overview) {
             body.appendChild(el('p', 'lr-cal-text', item.Overview));
         }
+        var actions = el('div', 'lr-upcoming-actions');
         if (info.TrailerKey) {
-            var actions = el('div', 'lr-upcoming-actions');
             actions.appendChild(button('lr-btn', 'play_arrow', 'Trailer ansehen', function () {
                 window.open('https://www.youtube.com/watch?v=' + encodeURIComponent(info.TrailerKey), '_blank', 'noopener');
             }));
-            body.appendChild(actions);
         }
+        body.appendChild(actions);
+        var seerrNote = el('p', 'lr-cal-text lr-upcoming-note');
+        body.appendChild(seerrNote);
         dialog.appendChild(body);
+        if (info.TmdbId && (info.MediaType === 'movie' || info.MediaType === 'tv')) {
+            seerrRequestButton(info, actions, seerrNote);
+        }
+    }
+
+    // Jellyseerr über den Proxy von Jellyfin Enhanced (wie die TV-Apps). Nur ob es eingerichtet und der Benutzer
+    // verknüpft ist, wird 10 Minuten gemerkt; der Status des Titels wird jedes Mal frisch abgefragt.
+    var SEERR_PATH = 'JellyfinEnhanced/jellyseerr';
+    var seerrState = { at: 0, usable: null, user: null };
+
+    function seerrUsable() {
+        if (seerrState.user === userId() && Date.now() - seerrState.at < 600000) {
+            return Promise.resolve(seerrState.usable);
+        }
+        var user = userId();
+        return getJson(SEERR_PATH + '/status').then(function (status) {
+            if (!status || status.active !== true) {
+                return false;
+            }
+            return getJson(SEERR_PATH + '/user-status').then(function (me) {
+                return !!(me && me.active === true && me.userFound === true);
+            });
+        }).catch(function () {
+            return false;
+        }).then(function (usable) {
+            seerrState = { at: Date.now(), usable: usable, user: user };
+            return usable;
+        });
+    }
+
+    // Jellyseerr-Status: 2 angefragt, 3 in Bearbeitung, 4 teilweise da, 5 verfügbar
+    function seerrStatusText(code) {
+        if (code === 5) {
+            return 'Schon vorhanden';
+        }
+        if (code === 4) {
+            return 'Teilweise vorhanden';
+        }
+        if (code === 2 || code === 3) {
+            return 'Schon angefragt';
+        }
+        return null;
+    }
+
+    function seerrRequestButton(info, actions, note) {
+        seerrUsable().then(function (usable) {
+            if (!usable) {
+                return null;
+            }
+            return getJson(SEERR_PATH + '/' + info.MediaType + '/' + info.TmdbId + '?language=de').then(function (details) {
+                var media = (details && details.mediaInfo) || {};
+                var text = seerrStatusText(media.status);
+                // Teilweise vorhandene Serien lassen sich um die fehlenden Staffeln ergänzen
+                var canRequest = !text || (info.MediaType === 'tv' && media.status === 4);
+                if (text) {
+                    note.textContent = text;
+                }
+                if (!canRequest) {
+                    return;
+                }
+                if (info.MediaType === 'movie' && !info.Released) {
+                    // Kinostarts: Radarr überwacht den Film und lädt ihn erst, wenn es eine Veröffentlichung gibt
+                    note.textContent = 'Kommt nach dem Kinostart, sobald er digital verfügbar ist.';
+                }
+                var requestButton = button('lr-btn', 'add', info.MediaType === 'tv' ? (text ? 'Fehlende Staffeln anfragen' : 'Serie anfragen') : 'Anfragen', function () {
+                    requestButton.disabled = true;
+                    var body = { mediaType: info.MediaType, mediaId: info.TmdbId };
+                    if (info.MediaType === 'tv') {
+                        body.seasons = 'all';
+                    }
+                    postJson(SEERR_PATH + '/request', body).then(function () {
+                        requestButton.remove();
+                        note.textContent = 'Angefragt' + (info.MediaType === 'movie' && !info.Released ? ' – kommt nach dem Kinostart, sobald er digital verfügbar ist.' : '.');
+                    }, function () {
+                        requestButton.disabled = false;
+                        note.textContent = 'Anfragen ist gerade nicht möglich.';
+                    });
+                });
+                actions.insertBefore(requestButton, actions.firstChild);
+            });
+        }).catch(function (err) {
+            diagStep('Jellyseerr-Status nicht abrufbar: ' + errorText(err), false, true);
+        });
     }
 
     function pad2(n) {

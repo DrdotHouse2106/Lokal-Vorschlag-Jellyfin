@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.56.0] - 2026-11-01
+
+### Added
+
+- Web module, Discover rows („Demnächst im Kino“, „Neu dieses Jahr“): the view of a title not in the library shows its Jellyseerr state („Schon angefragt“, „Teilweise vorhanden“, „Schon vorhanden“) or a „Anfragen“ button (series: „Serie anfragen“ / „Fehlende Staffeln anfragen“), via Jellyfin Enhanced like the TV apps. Upcoming cinema releases can be requested too, with the note „Kommt nach dem Kinostart, sobald er digital verfügbar ist“. Only on button press; no button without Jellyfin Enhanced or a linked Jellyseerr user.
+
 ## [12.55.2] - 2026-10-29
 
 ### Fixed
