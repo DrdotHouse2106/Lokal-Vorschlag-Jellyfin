@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.57.2.0",
+        "changelog": "Trailer: Sprache und Untertitel\n- OmU nur bei deutschen Untertiteln, auch bei KinoCheck (synchronisierte Fassung bevorzugt)\n- ENG SUB, [Subtitled], OV gelten als fremdsprachig\n- Web: Untertitel nur bei fremdsprachigen Trailern\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.57.2.zip",
+        "checksum": "49040134cf4352a029d5a4a003955471",
+        "timestamp": "2026-11-01T20:00:00Z"
+      },
+      {
         "version": "12.57.1.0",
         "changelog": "Trailer im Vollbild\n- „Trailer ansehen“ spielt YouTube-Trailer im Web eingebettet im Vollbild mit Autoplay\n- Esc/Zurück führt zurück in den Dialog\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

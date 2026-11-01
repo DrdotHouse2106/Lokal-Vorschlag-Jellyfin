@@ -66,7 +66,7 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
         private readonly IServerConfigurationManager? _serverConfig;
         private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _send;
         private readonly SemaphoreSlim _refresh = new SemaphoreSlim(1, 1);
-        private readonly System.Collections.Concurrent.ConcurrentDictionary<(bool Series, int Id), (DateTime ValidUntil, string? Key, string? Name)> _kinoCheck = new();
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<(bool Series, int Id), (DateTime ValidUntil, string? Key, string? Name, string? Language)> _kinoCheck = new();
         private (string Signature, DateTime ValidUntil, IReadOnlyList<Row> Rows)? _snapshot;
 
         /// <summary>
@@ -174,11 +174,12 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                     _kinoCheck[(series, item.TmdbId)] = hit;
                 }
 
-                if (hit.Key != null)
+                // Nur, wenn besser als der TMDB-Trailer (deutsch vor OmU vor fremdsprachig)
+                if (hit.Key != null && TmdbDiscover.LanguageRank(hit.Language) < TmdbDiscover.LanguageRank(item.TrailerLanguage))
                 {
                     item.TrailerKey = hit.Key;
                     item.TrailerName = hit.Name;
-                    item.TrailerLanguage = "de";
+                    item.TrailerLanguage = hit.Language;
                     item.TrailerSource = "kinocheck";
                 }
 
@@ -377,7 +378,7 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
             }
         }
 
-        private async Task<(DateTime ValidUntil, string? Key, string? Name)> KinoCheckAsync(int tmdbId, bool series, CancellationToken cancellationToken)
+        private async Task<(DateTime ValidUntil, string? Key, string? Name, string? Language)> KinoCheckAsync(int tmdbId, bool series, CancellationToken cancellationToken)
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, KinoCheck.ApiBase + KinoCheck.Path(tmdbId, series));
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -386,22 +387,22 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                 using var response = await _send(request, cancellationToken).ConfigureAwait(false);
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
-                    return (DateTime.UtcNow.AddHours(24), null, null);
+                    return (DateTime.UtcNow.AddHours(24), null, null, null);
                 }
 
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogDebug("Entdecken: KinoCheck antwortet {Status}", (int)response.StatusCode);
-                    return (DateTime.UtcNow.AddHours(1), null, null);
+                    return (DateTime.UtcNow.AddHours(1), null, null, null);
                 }
 
                 var picked = KinoCheck.PickTrailer(await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
-                return (DateTime.UtcNow.AddHours(24), picked?.Key, picked?.Name);
+                return (DateTime.UtcNow.AddHours(24), picked?.Key, picked?.Name, picked?.Language);
             }
             catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
             {
                 _logger.LogDebug("Entdecken: KinoCheck nicht erreichbar ({Type})", ex.GetType().Name);
-                return (DateTime.UtcNow.AddHours(1), null, null);
+                return (DateTime.UtcNow.AddHours(1), null, null, null);
             }
         }
 

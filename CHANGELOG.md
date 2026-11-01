@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.57.2] - 2026-11-01
+
+### Fixed
+
+- Trailer language: „OmU“ only with recognisable German subtitles („OmU“, „German Sub“, „deutsche Untertitel“), also in KinoCheck titles („… German Deutsch OmU“ was „de“). Foreign subtitles or original version („[ENG SUB]“, „English Subtitles“, „[Subtitled]“ without German, „OV“) count as foreign („en“). KinoCheck: German dubbed before OmU; replaces the TMDB trailer only if better.
+- Web module: YouTube captions only for foreign trailers (`cc_load_policy=1&cc_lang_pref=de`); none for German audio or OmU (`cc_load_policy=0`).
+
 ## [12.57.1] - 2026-11-01
 
 ### Changed

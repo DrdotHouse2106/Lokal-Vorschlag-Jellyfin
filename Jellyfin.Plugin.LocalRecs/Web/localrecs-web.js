@@ -2237,12 +2237,18 @@
     // YouTube-Trailer im Vollbild über dem Dialog: Autoplay, Vollbild per requestFullscreen (iPhone kann das nur für
     // Videos – dort füllt die Ebene das Fenster und playsinline=0 lässt YouTube selbst ins Vollbild gehen).
     // Esc, Zurück oder das Verlassen des Vollbilds schließen nur den Player; der Dialog bleibt offen.
-    function playYoutubeFullscreen(key) {
+    // Untertitel nur bei fremdsprachigen Trailern (deutsch bzw. automatisch übersetzt); bei deutschem Ton und bei OmU
+    // (meist eingebrannt) ausdrücklich aus
+    function youtubeCaptionParams(language) {
+        return language === 'de' || language === 'OmU' ? '&cc_load_policy=0' : '&cc_load_policy=1&cc_lang_pref=de&hl=de';
+    }
+
+    function playYoutubeFullscreen(key, language) {
         var overlay = el('div', 'lr-overlay lr-yt');
         var frame = document.createElement('iframe');
         frame.className = 'lr-yt-frame';
         frame.src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(key)
-            + '?autoplay=1&fs=1&playsinline=0&rel=0&modestbranding=1&hl=de';
+            + '?autoplay=1&fs=1&playsinline=0&rel=0&modestbranding=1' + youtubeCaptionParams(language);
         frame.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
         frame.setAttribute('allowfullscreen', '');
         frame.title = 'Trailer';
@@ -3265,7 +3271,7 @@
             var trailerLanguage = info.TrailerLanguage && info.TrailerLanguage !== 'de'
                 ? ' (' + (info.TrailerLanguage === 'OmU' ? 'OmU' : info.TrailerLanguage.toUpperCase()) + ')' : '';
             actions.appendChild(button('lr-btn', 'play_arrow', 'Trailer ansehen' + trailerLanguage, function () {
-                playYoutubeFullscreen(info.TrailerKey);
+                playYoutubeFullscreen(info.TrailerKey, info.TrailerLanguage);
             }));
         }
         body.appendChild(actions);

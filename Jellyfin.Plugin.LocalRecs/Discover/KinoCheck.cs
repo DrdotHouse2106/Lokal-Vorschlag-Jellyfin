@@ -26,12 +26,12 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
         /// <summary>
         /// Picks the best German trailer of an answer: the field <c>trailer</c> and the list <c>videos</c>, each with
         /// <c>youtube_video_id</c>, <c>title</c>, <c>language</c> and <c>categories</c>. Trailer before teaser, other
-        /// categories (clips, reviews) are skipped, as are videos marked with another language than German. An error object
+        /// categories (clips, reviews) are skipped, as are foreign videos; German dubbed before German subtitles (title with „OmU“). An error object
         /// (KinoCheck answers „not found“ with status 200 and <c>error</c>) yields null.
         /// </summary>
         /// <param name="json">The answer.</param>
-        /// <returns>YouTube key and title, or null.</returns>
-        public static (string Key, string? Name)? PickTrailer(string json)
+        /// <returns>YouTube key, title and language mark („de“ or „OmU“), or null.</returns>
+        public static (string Key, string? Name, string Language)? PickTrailer(string json)
         {
             if (string.IsNullOrWhiteSpace(json))
             {
@@ -56,16 +56,10 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                     return null;
                 }
 
-                var candidates = new List<(string Key, string? Name, int Rank, int Order)>();
+                var candidates = new List<(string Key, string? Name, string Language, int Rank, int Order)>();
                 void Add(JsonElement video, int order)
                 {
                     if (video.ValueKind != JsonValueKind.Object || Text(video, "youtube_video_id") is not string key)
-                    {
-                        return;
-                    }
-
-                    var language = Text(video, "language");
-                    if (language != null && !language.StartsWith("de", StringComparison.OrdinalIgnoreCase))
                     {
                         return;
                     }
@@ -79,9 +73,12 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                     var title = categories.Count == 0 ? name ?? string.Empty : string.Empty;
                     var rank = categories.Any(x => x.Equals("Trailer", StringComparison.OrdinalIgnoreCase)) || title.Contains("trailer", StringComparison.OrdinalIgnoreCase) ? 0
                         : categories.Any(x => x.Equals("Teaser", StringComparison.OrdinalIgnoreCase)) || title.Contains("teaser", StringComparison.OrdinalIgnoreCase) ? 1 : -1;
-                    if (rank >= 0)
+
+                    // Sprache auch am Titel: „German Deutsch OmU“ ist untertitelt, obwohl KinoCheck „de“ meldet
+                    var language = TmdbDiscover.TrailerLanguage(name, Text(video, "language") ?? "de");
+                    if (rank >= 0 && (language == "de" || language == "OmU"))
                     {
-                        candidates.Add((key, name, rank, order));
+                        candidates.Add((key, name, language, rank, order));
                     }
                 }
 
@@ -99,8 +96,9 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                     }
                 }
 
-                var best = candidates.OrderBy(x => x.Rank).ThenBy(x => x.Order).FirstOrDefault();
-                return best.Key == null ? null : (best.Key, best.Name);
+                // Synchronisiert vor OmU, dann Trailer vor Teaser
+                var best = candidates.OrderBy(x => TmdbDiscover.LanguageRank(x.Language)).ThenBy(x => x.Rank).ThenBy(x => x.Order).FirstOrDefault();
+                return best.Key == null ? null : (best.Key, best.Name, best.Language);
             }
         }
 

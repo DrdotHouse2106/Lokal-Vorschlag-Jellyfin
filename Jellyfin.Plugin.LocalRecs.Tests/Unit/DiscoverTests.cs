@@ -205,23 +205,30 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
         [InlineData("Official Trailer", "en", "en")]
         [InlineData("Trailer (deutsch)", "en", "de")]
         [InlineData("Offizieller Trailer", "de", "de")]
-        [InlineData("Apokalypse Z [Subtitled]", "en", "OmU")]
+        [InlineData("Apokalypse Z [Subtitled]", "en", "en")]
         [InlineData("Trailer German Subtitles", "en", "OmU")]
         [InlineData("Trailer OmU", "de", "OmU")]
+        [InlineData("CRYSTAL LAKE Trailer German Deutsch OmU (2026)", "de", "OmU")]
+        [InlineData("Official Trailer [ENG SUB]", "en", "en")]
+        [InlineData("Official Trailer [ENG SUB]", "de", "en")]
+        [InlineData("Trailer English Subtitles", "it", "it")]
+        [InlineData("Trailer mit deutschen Untertiteln", "en", "OmU")]
+        [InlineData("Trailer (OV)", "en", "en")]
+        [InlineData("CLAYFACE Finaler Trailer German Deutsch (2026) DC", "de", "de")]
         public void TrailerLanguage_GermanSubtitledOther(string name, string language, string expected)
         {
             TmdbDiscover.TrailerLanguage(name, language).Should().Be(expected);
         }
 
         [Fact]
-        public void ParseMovie_DubbedBeforeSubtitled_LanguageIsSet()
+        public void ParseMovie_SubtitledWithoutGerman_IsForeign()
         {
             var json = "{\"id\":5,\"title\":\"Film\",\"videos\":{\"results\":["
                 + "{\"site\":\"YouTube\",\"type\":\"Trailer\",\"key\":\"sub\",\"name\":\"Trailer [Subtitled]\",\"iso_639_1\":\"en\"},"
                 + "{\"site\":\"YouTube\",\"type\":\"Trailer\",\"key\":\"en\",\"name\":\"Official Trailer\",\"iso_639_1\":\"en\"}]}}";
             var item = TmdbDiscover.ParseDetails(json, false, "DE")!.Value.Item;
-            item.TrailerKey.Should().Be("sub", "untertitelt vor rein englisch");
-            item.TrailerLanguage.Should().Be("OmU");
+            item.TrailerKey.Should().Be("sub");
+            item.TrailerLanguage.Should().Be("en", "„[Subtitled]“ ohne deutsch ist fremdsprachig, nicht OmU");
             item.TrailerSource.Should().Be("tmdb");
         }
 
@@ -232,7 +239,7 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
                 + "\"videos\":[{\"youtube_video_id\":\"clip1\",\"title\":\"Clip\",\"categories\":[\"Clip\"]},"
                 + "{\"youtube_video_id\":\"trailerEN\",\"title\":\"Trailer\",\"language\":\"en\",\"categories\":[\"Trailer\"]},"
                 + "{\"youtube_video_id\":\"trailer1\",\"title\":\"Buddy Trailer German Deutsch (2026)\",\"language\":\"de\",\"categories\":[\"Trailer\"]}]}";
-            KinoCheck.PickTrailer(json).Should().Be(("trailer1", "Buddy Trailer German Deutsch (2026)"));
+            KinoCheck.PickTrailer(json).Should().Be(("trailer1", "Buddy Trailer German Deutsch (2026)", "de"));
         }
 
         [Fact]
@@ -242,7 +249,17 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             var json = "{\"id\":\"n27\",\"tmdb_id\":1400940,\"imdb_id\":\"tt34890576\",\"language\":\"de\",\"title\":\"Clayface\",\"url\":\"https://kinocheck.de/film/n27/clayface-2026\","
                 + "\"trailer\":{\"id\":\"fyv1\",\"youtube_video_id\":\"KYUtM4-uoFo\",\"title\":\"CLAYFACE Finaler Trailer German Deutsch (2026) DC\",\"language\":\"de\",\"categories\":[\"Trailer\"],\"views\":67326},"
                 + "\"recommendations\":[],\"videos\":[{\"youtube_video_id\":\"clip\",\"title\":\"CLAYFACE Clip German Deutsch\",\"language\":\"de\",\"categories\":[\"Clip\"]}]}";
-            KinoCheck.PickTrailer(json).Should().Be(("KYUtM4-uoFo", "CLAYFACE Finaler Trailer German Deutsch (2026) DC"));
+            KinoCheck.PickTrailer(json).Should().Be(("KYUtM4-uoFo", "CLAYFACE Finaler Trailer German Deutsch (2026) DC", "de"));
+        }
+
+        [Fact]
+        public void KinoCheck_DubbedBeforeOmU_OmUMarked()
+        {
+            var omuOnly = "{\"trailer\":{\"youtube_video_id\":\"omu\",\"title\":\"WAR Trailer German Deutsch OmU (2026)\",\"language\":\"de\",\"categories\":[\"Trailer\"]},\"videos\":[]}";
+            KinoCheck.PickTrailer(omuOnly).Should().Be(("omu", "WAR Trailer German Deutsch OmU (2026)", "OmU"));
+            var both = "{\"trailer\":{\"youtube_video_id\":\"omu\",\"title\":\"WAR Trailer German Deutsch OmU (2026)\",\"language\":\"de\",\"categories\":[\"Trailer\"]},"
+                + "\"videos\":[{\"youtube_video_id\":\"dub\",\"title\":\"WAR Teaser German Deutsch (2026)\",\"language\":\"de\",\"categories\":[\"Teaser\"]}]}";
+            KinoCheck.PickTrailer(both)!.Value.Key.Should().Be("dub", "synchronisierter Teaser vor OmU-Trailer");
         }
 
         [Theory]

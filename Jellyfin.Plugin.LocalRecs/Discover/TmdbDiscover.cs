@@ -275,8 +275,10 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
         }
 
         /// <summary>
-        /// Gets the language mark of a trailer: „de“ (German, also by name „deutsch“/„german“), „OmU“ (subtitled), else the
-        /// ISO language or null.
+        /// Gets the language mark of a trailer from its name and language: „OmU“ only with recognisable German subtitles
+        /// („OmU“, „German Sub…“, „deutsche Untertitel“); foreign subtitles or original version („ENG SUB“, „English
+        /// Subtitles“, „[Subtitled]“ without German, „OV“) count as foreign („en“ or the given language); „de“ for German
+        /// (language „de“ or „deutsch“/„german“ in the name); else the language or null.
         /// </summary>
         /// <param name="name">Name of the video.</param>
         /// <param name="language">ISO 639-1 language, optional.</param>
@@ -284,16 +286,32 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
         public static string? TrailerLanguage(string? name, string? language)
         {
             var title = name ?? string.Empty;
-            if (string.Equals(language, "de", StringComparison.OrdinalIgnoreCase)
-                || title.Contains("deutsch", StringComparison.OrdinalIgnoreCase)
-                || title.Contains("german", StringComparison.OrdinalIgnoreCase))
+            var lang = string.IsNullOrWhiteSpace(language) ? null : language.ToLowerInvariant();
+            if (Matches(title, @"\bomu\b|\b(german|deutsch\w*)[\s-]*(sub|subs|subtitles?|untertitel\w*)\b|\buntertitel\w*\b"))
             {
-                // „German Subtitles“ ist untertitelt, nicht synchronisiert
-                return IsSubtitled(title) ? "OmU" : "de";
+                return "OmU";
             }
 
-            return IsSubtitled(title) ? "OmU" : language?.ToLowerInvariant();
+            // Fremde Untertitel bzw. Originalfassung: für den Zuschauer fremdsprachig, auch wenn „de“ angegeben ist
+            if (Matches(title, @"\b(eng|english|en)[\s-]*(sub|subs|subtitles?|subbed)\b|\bsubtitled\b|\bsubtitles?\b|\bsubs?\b|\bov\b|\bomdu\b"))
+            {
+                return lang == null || lang == "de" ? "en" : lang;
+            }
+
+            if (lang == "de" || title.Contains("deutsch", StringComparison.OrdinalIgnoreCase) || title.Contains("german", StringComparison.OrdinalIgnoreCase))
+            {
+                return "de";
+            }
+
+            return lang;
         }
+
+        /// <summary>
+        /// Gets the rank of a trailer language: German dubbed 0, German subtitles 1, else 2.
+        /// </summary>
+        /// <param name="language">The mark from <see cref="TrailerLanguage"/>.</param>
+        /// <returns>The rank.</returns>
+        public static int LanguageRank(string? language) => language == "de" ? 0 : language == "OmU" ? 1 : 2;
 
         // Trailer auf YouTube: deutsch synchronisiert vor untertitelt vor englisch, offizieller Trailer vor Teaser
         private static (string? Key, string? Name, string? Language) Trailer(JsonElement root)
@@ -306,15 +324,15 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
             var best = results.EnumerateArray()
                 .Where(v => string.Equals(Text(v, "site"), "YouTube", StringComparison.OrdinalIgnoreCase) && Text(v, "key") != null)
                 .Select(v => (Key: Text(v, "key")!, Name: Text(v, "name"), Type: Text(v, "type"), Language: TrailerLanguage(Text(v, "name"), Text(v, "iso_639_1")), Official: v.TryGetProperty("official", out var o) && o.ValueKind == JsonValueKind.True))
-                .OrderBy(v => v.Language == "de" ? 0 : v.Language == "OmU" ? 1 : 2)
+                .OrderBy(v => LanguageRank(v.Language))
                 .ThenBy(v => v.Type == "Trailer" ? 0 : v.Type == "Teaser" ? 1 : 2)
                 .ThenBy(v => v.Official ? 0 : 1)
                 .FirstOrDefault();
             return best.Key == null ? (null, null, null) : (best.Key, best.Name, best.Language);
         }
 
-        private static bool IsSubtitled(string title) =>
-            System.Text.RegularExpressions.Regex.IsMatch(title, @"\b(subtitled|subtitles|untertitel\w*|omu|sub|subs)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        private static bool Matches(string title, string pattern) =>
+            System.Text.RegularExpressions.Regex.IsMatch(title, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
         private static string? Text(JsonElement e, string name) => e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(v.GetString()) ? v.GetString() : null;
     }
