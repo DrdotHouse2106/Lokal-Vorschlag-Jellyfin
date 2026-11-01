@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.58.0] - 2026-11-01
+
+### Added
+
+- „Weniger davon“ for „Heute im TV für dich“, per user: show less often (score × 0.3, no longer a regular show), never (hidden, all episodes of the series) or genre less often (× 0.6). Effective on the next request (the recommendation cache of the user is dropped), undoable. API `GET`/`POST`/`DELETE /LocalRecs/LiveTv/Feedback`; stored in `livetv-weniger.json`, written under the lock. Administrators may only read with `userId`.
+- Web module: „Weniger davon“ in the detail window and preview card of live TV programs (seltener / Genre seltener / nie mehr) with „Rückgängig“.
+
 ## [12.57.2] - 2026-11-01
 
 ### Fixed

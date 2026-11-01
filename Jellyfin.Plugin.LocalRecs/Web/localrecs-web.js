@@ -750,6 +750,74 @@
         return b;
     }
 
+    // „Weniger davon“ für „Heute im TV für dich“: Sendung seltener, nie mehr oder das Genre seltener. Wirkt sofort
+    // (der Server verwirft seine Zwischenspeicherung), die Startseite lädt neu; „Rückgängig“ nimmt es zurück.
+    function dislikeButton(item, withLabel) {
+        var wrap = el('span', 'lr-dislike');
+        // Erstes echtes Genre – „Series“, „Movie“, „Sports“ u. Ä. sind Kategorien der Programmzeitschrift
+        var genre = (item.Genres || []).filter(function (g) {
+            return g && !/^(series|serie|movie|film|sports?|news|kids|children|show|program|programm)$/i.test(g.trim());
+        })[0];
+        var menu = null;
+        var b = button(withLabel ? 'lr-btn-link' : 'lr-round', 'thumb_down_off_alt', withLabel ? 'Weniger davon' : null, function (e) {
+            if (e) {
+                e.stopPropagation();
+            }
+            if (menu) {
+                menu.remove();
+                menu = null;
+                return;
+            }
+            menu = el('div', 'lr-dislike-menu');
+            var options = [['weniger', 'Seltener vorschlagen'], ['nie', 'Nie mehr vorschlagen']];
+            if (genre) {
+                options.splice(1, 0, ['genre_weniger', 'Weniger ' + genre]);
+            }
+            options.forEach(function (pair) {
+                menu.appendChild(button('lr-btn-link', null, pair[1], function (ev) {
+                    if (ev) {
+                        ev.stopPropagation();
+                    }
+                    sendDislike(item, pair[0], genre, wrap);
+                    menu.remove();
+                    menu = null;
+                }));
+            });
+            wrap.appendChild(menu);
+        });
+        b.title = 'Weniger davon in „Heute im TV für dich“';
+        wrap.appendChild(b);
+        return wrap;
+    }
+
+    function sendDislike(item, kind, genre, wrap) {
+        var body = { ProgramId: item.Id, Art: kind };
+        if (kind === 'genre_weniger') {
+            body.Genre = genre;
+        }
+        postJson('LocalRecs/LiveTv/Feedback', body).then(function () {
+            var note = el('span', 'lr-dislike-note', kind === 'nie' ? 'Wird nicht mehr vorgeschlagen.' : kind === 'genre_weniger' ? 'Weniger ' + genre + '.' : 'Wird seltener vorgeschlagen.');
+            var undo = button('lr-btn-link', 'undo', 'Rückgängig', function (e) {
+                if (e) {
+                    e.stopPropagation();
+                }
+                del('LocalRecs/LiveTv/Feedback?' + (kind === 'genre_weniger' ? 'genre=' + encodeURIComponent(genre) : 'programId=' + item.Id)).then(function () {
+                    note.remove();
+                    refresh(true);
+                });
+            });
+            note.appendChild(undo);
+            var old = wrap.querySelector('.lr-dislike-note');
+            if (old) {
+                old.remove();
+            }
+            wrap.appendChild(note);
+            refresh(true);
+        }).catch(function (err) {
+            diagStep('Weniger davon fehlgeschlagen: ' + errorText(err), false, true);
+        });
+    }
+
     function seriesReminderButton(item) {
         var seriesButton = button('lr-btn-link', 'repeat', 'Serie merken', function () {
             post('LocalRecs/Reminders/Series/' + programKey(item.Id)).then(function () {
@@ -1911,6 +1979,9 @@
         }));
         actions.appendChild(favoriteButton(item));
         actions.appendChild(likeButton(item));
+        if (item.Type === 'Program') {
+            actions.appendChild(dislikeButton(item, false));
+        }
         // Glocke auch in der Vorschaukarte – sie verdeckt sonst die Glocke der Kachel
         if (item.Type === 'Program' && isUpcoming(item.StartDate)) {
             actions.appendChild(reminderButton(item, false));
@@ -2362,6 +2433,7 @@
                 actions.appendChild(channelButton);
             }
             addRecordButtons(item, actions, false, channelButton);
+            actions.appendChild(dislikeButton(item, true));
         }
         if (isEpisode && item.SeriesId) {
             actions.appendChild(button('lr-btn-link', 'tv', 'Zur Serie', function () {

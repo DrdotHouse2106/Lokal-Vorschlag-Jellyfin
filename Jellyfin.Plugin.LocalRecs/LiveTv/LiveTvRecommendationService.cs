@@ -38,6 +38,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         private readonly LiveTvWatchStore _watchStore;
         private readonly FeedbackStore _feedback;
         private readonly XmltvSource _xmltv;
+        private readonly LiveTvFeedbackStore? _dislikes;
         private readonly ConcurrentDictionary<Guid, (DateTime Created, IReadOnlyList<BaseItem> Items)> _cache =
             new ConcurrentDictionary<Guid, (DateTime Created, IReadOnlyList<BaseItem> Items)>();
 
@@ -51,6 +52,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         /// <param name="watchStore">Live TV watch history.</param>
         /// <param name="feedback">Evaluation of the recommendations.</param>
         /// <param name="xmltv">Additional XMLTV source for people.</param>
+        /// <param name="dislikes">„Weniger davon“ of the users, optional.</param>
         public LiveTvRecommendationService(
             ILogger<LiveTvRecommendationService> logger,
             ILibraryManager libraryManager,
@@ -58,7 +60,8 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             ILiveTvManager liveTvManager,
             LiveTvWatchStore watchStore,
             FeedbackStore feedback,
-            XmltvSource xmltv)
+            XmltvSource xmltv,
+            LiveTvFeedbackStore? dislikes = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _libraryManager = libraryManager ?? throw new ArgumentNullException(nameof(libraryManager));
@@ -67,6 +70,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             _watchStore = watchStore ?? throw new ArgumentNullException(nameof(watchStore));
             _feedback = feedback ?? throw new ArgumentNullException(nameof(feedback));
             _xmltv = xmltv ?? throw new ArgumentNullException(nameof(xmltv));
+            _dislikes = dislikes;
         }
 
         /// <summary>
@@ -78,6 +82,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         /// <param name="watchedBroadcasts">Broadcast keys and episode keys (see <see cref="EpisodeKey"/>) the user already watched.</param>
         /// <param name="limit">Maximum number of programs.</param>
         /// <param name="onlyRegularShowsAfter">Programs starting after this time (UTC) are only kept if they are regular shows.</param>
+        /// <param name="dislikes">„Weniger davon“ of the user, optional: „nie“ hides, „weniger“ and marked genres lower the score.</param>
         /// <returns>The recommended programs, in chronological order.</returns>
         public static IReadOnlyList<ProgramCandidate> Rank(
             TvInterestProfile profile,
@@ -85,10 +90,18 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             HashSet<string> excludedGenres,
             HashSet<string> watchedBroadcasts,
             int limit,
-            DateTime? onlyRegularShowsAfter = null)
+            DateTime? onlyRegularShowsAfter = null,
+            LiveTvDislikes? dislikes = null)
         {
             ArgumentNullException.ThrowIfNull(profile);
             ArgumentNullException.ThrowIfNull(programs);
+            dislikes ??= LiveTvDislikes.Empty;
+
+            // Markierte Sendungen sind keine Stammsendungen mehr (die stünden sonst immer vorn)
+            foreach (var titleKey in dislikes.Titles.Keys)
+            {
+                profile.UnmarkRegular(titleKey);
+            }
 
             if (profile.IsEmpty)
             {
@@ -96,7 +109,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             }
 
             var ranked = programs
-                .Where(p => !LiveTvText.IsExcluded(p.Genres, excludedGenres) && !watchedBroadcasts.Contains(p.BroadcastKey))
+                .Where(p => !LiveTvText.IsExcluded(p.Genres, excludedGenres) && !watchedBroadcasts.Contains(p.BroadcastKey) && !dislikes.IsHidden(p.TitleKey))
 
                 // Schon gesehene Folgen (live oder in der Bibliothek) nicht noch einmal vorschlagen
                 .Where(p => p.IsSports || EpisodeKey(p.TitleKey, p.EpisodeTitle) is not { } episodeKey || !watchedBroadcasts.Contains(episodeKey))
@@ -106,7 +119,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
 
                 // Sport nur bei gleicher Sportart oder gleichem Titel: wer Fußball schaut, bekommt kein Handball, Golf oder Tennis
                 .Where(p => !p.IsSports || profile.HasSport(p.Sport) || profile.HasTitle(p.TitleKey))
-                .Select(p => (Program: p, Score: profile.Score(p.Genres, p.TitleKey, p.People, p.Sport)))
+                .Select(p => (Program: p, Score: profile.Score(p.Genres, p.TitleKey, p.People, p.Sport) * dislikes.Factor(p.TitleKey, p.Genres)))
                 .Where(x => x.Score >= MinScore)
                 .GroupBy(x => DedupeKey(x.Program))
                 .Select(g => g.OrderBy(x => x.Program.StartDate).First()) // pro Sendung nur der nächste Termin
@@ -159,6 +172,12 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
             _cache[userId] = (now, items);
             return items;
         }
+
+        /// <summary>
+        /// Drops the cached recommendations of a user, e.g. after „Weniger davon“, so the next request computes them anew.
+        /// </summary>
+        /// <param name="userId">User ID.</param>
+        public void Invalidate(Guid userId) => _cache.TryRemove(userId, out _);
 
         /// <summary>
         /// Picks the best programs, but at most a third of the row from the same main genre
@@ -278,7 +297,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
                 return c;
             });
 
-            var ranked = Rank(profile, candidates, excluded, watchedKeys, config.LiveTvRecommendationCount, lookaheadEnd);
+            var ranked = Rank(profile, candidates, excluded, watchedKeys, config.LiveTvRecommendationCount, lookaheadEnd, _dislikes?.GetDislikes(userId));
             _feedback.RecordRecommended(userId, FeedbackStore.LiveTv, ranked.Select(c => (FeedbackKey(c), LiveTvDisplay.Title(c.Title, c.EpisodeTitle, c.IsSports))), now);
 
             _logger.LogDebug(

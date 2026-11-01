@@ -3272,3 +3272,35 @@ body.lr-tidy-header #jellyfinEnhancedSettingsLink {
     right: max(1em, env(safe-area-inset-right));
     z-index: 2;
 }
+
+/* „Weniger davon“ bei Live-TV-Sendungen */
+.lr-dislike {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4em;
+}
+
+.lr-dislike-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 14em;
+    padding: 0.4em;
+    border-radius: 0.6em;
+    background: rgba(24, 24, 28, 0.97);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+
+.lr-dislike-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    font-size: 0.9em;
+    opacity: 0.85;
+}

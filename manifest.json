@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.58.0.0",
+        "changelog": "Live-TV: „Weniger davon“\n- Sendungen in „Heute im TV für dich“ seltener, nie mehr oder das Genre seltener vorschlagen\n- Wirkt sofort und lässt sich zurücknehmen (Web: im Detailfenster und in der Vorschaukarte)\n- API /LocalRecs/LiveTv/Feedback für die TV-Apps\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.58.0.zip",
+        "checksum": "134d54d8cd665409cbc49984622db16b",
+        "timestamp": "2026-11-01T22:00:00Z"
+      },
+      {
         "version": "12.57.2.0",
         "changelog": "Trailer: Sprache und Untertitel\n- OmU nur bei deutschen Untertiteln, auch bei KinoCheck (synchronisierte Fassung bevorzugt)\n- ENG SUB, [Subtitled], OV gelten als fremdsprachig\n- Web: Untertitel nur bei fremdsprachigen Trailern\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

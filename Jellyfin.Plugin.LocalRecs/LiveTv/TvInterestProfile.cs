@@ -121,6 +121,18 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         }
 
         /// <summary>
+        /// Removes the regular-show mark of a show (e.g. after „Weniger davon“).
+        /// </summary>
+        /// <param name="titleKey">Normalized title.</param>
+        public void UnmarkRegular(string? titleKey)
+        {
+            if (!string.IsNullOrEmpty(titleKey))
+            {
+                _regularTitles.Remove(titleKey);
+            }
+        }
+
+        /// <summary>
         /// Checks whether the user has watched this kind of sport (e.g. "fußball").
         /// </summary>
         /// <param name="sport">Sport.</param>

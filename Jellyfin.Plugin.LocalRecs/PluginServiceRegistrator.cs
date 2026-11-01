@@ -122,6 +122,10 @@ namespace Jellyfin.Plugin.LocalRecs
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<LiveTvWatchStore>>(),
                     Path.Combine(GetPluginDataPath(sp), "livetv-history.json")));
             serviceCollection.AddSingleton<XmltvSource>();
+            serviceCollection.AddSingleton(sp =>
+                new LiveTvFeedbackStore(
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<LiveTvFeedbackStore>>(),
+                    Path.Combine(GetPluginDataPath(sp), "livetv-weniger.json")));
             serviceCollection.AddSingleton<LiveTvRecommendationService>();
             serviceCollection.AddSingleton(sp =>
                 new FeedbackStore(
