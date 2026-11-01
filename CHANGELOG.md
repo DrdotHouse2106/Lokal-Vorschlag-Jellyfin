@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.57.0] - 2026-11-01
+
+### Added
+
+- Discover: German trailers from KinoCheck (`api.kinocheck.de`, TMDB ID only) when TMDB has none in German; trailer before teaser; answers cached 24 hours. Setting „Entdecken: deutsche Trailer von KinoCheck“ (on by default).
+- New fields `TrailerLanguage` („de“, „OmU“, else e.g. „en“) and `TrailerSource` („tmdb“/„kinocheck“) in `/LocalRecs/Discover`. Web module: „Trailer ansehen (EN)“/„(OmU)“ for non-German trailers.
+
+### Changed
+
+- TMDB trailers: German also recognised by name („deutsch“, „german“); subtitled („[Subtitled]“, „OmU“) ranks after German dubbed and before English.
+
 ## [12.56.0] - 2026-11-01
 
 ### Added

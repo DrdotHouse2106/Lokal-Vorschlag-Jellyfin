@@ -126,7 +126,8 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                 item.Year = primaryDay.Year;
             }
 
-            (item.TrailerKey, item.TrailerName) = Trailer(root);
+            (item.TrailerKey, item.TrailerName, item.TrailerLanguage) = Trailer(root);
+            item.TrailerSource = item.TrailerKey == null ? null : "tmdb";
             if (root.TryGetProperty("watch/providers", out var providers) && providers.TryGetProperty("results", out var providerResults)
                 && providerResults.TryGetProperty(country.ToUpperInvariant(), out var local) && local.TryGetProperty("flatrate", out var flat) && flat.ValueKind == JsonValueKind.Array)
             {
@@ -273,23 +274,47 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
             return (series ? "Startet " : "Erscheint ") + on;
         }
 
-        // Trailer auf YouTube: deutsch vor englisch, offizieller Trailer vor Teaser
-        private static (string? Key, string? Name) Trailer(JsonElement root)
+        /// <summary>
+        /// Gets the language mark of a trailer: „de“ (German, also by name „deutsch“/„german“), „OmU“ (subtitled), else the
+        /// ISO language or null.
+        /// </summary>
+        /// <param name="name">Name of the video.</param>
+        /// <param name="language">ISO 639-1 language, optional.</param>
+        /// <returns>The mark.</returns>
+        public static string? TrailerLanguage(string? name, string? language)
+        {
+            var title = name ?? string.Empty;
+            if (string.Equals(language, "de", StringComparison.OrdinalIgnoreCase)
+                || title.Contains("deutsch", StringComparison.OrdinalIgnoreCase)
+                || title.Contains("german", StringComparison.OrdinalIgnoreCase))
+            {
+                // „German Subtitles“ ist untertitelt, nicht synchronisiert
+                return IsSubtitled(title) ? "OmU" : "de";
+            }
+
+            return IsSubtitled(title) ? "OmU" : language?.ToLowerInvariant();
+        }
+
+        // Trailer auf YouTube: deutsch synchronisiert vor untertitelt vor englisch, offizieller Trailer vor Teaser
+        private static (string? Key, string? Name, string? Language) Trailer(JsonElement root)
         {
             if (!root.TryGetProperty("videos", out var videos) || !videos.TryGetProperty("results", out var results) || results.ValueKind != JsonValueKind.Array)
             {
-                return (null, null);
+                return (null, null, null);
             }
 
             var best = results.EnumerateArray()
                 .Where(v => string.Equals(Text(v, "site"), "YouTube", StringComparison.OrdinalIgnoreCase) && Text(v, "key") != null)
-                .Select(v => (Key: Text(v, "key")!, Name: Text(v, "name"), Type: Text(v, "type"), Language: Text(v, "iso_639_1"), Official: v.TryGetProperty("official", out var o) && o.ValueKind == JsonValueKind.True))
-                .OrderBy(v => v.Language == "de" ? 0 : 1)
+                .Select(v => (Key: Text(v, "key")!, Name: Text(v, "name"), Type: Text(v, "type"), Language: TrailerLanguage(Text(v, "name"), Text(v, "iso_639_1")), Official: v.TryGetProperty("official", out var o) && o.ValueKind == JsonValueKind.True))
+                .OrderBy(v => v.Language == "de" ? 0 : v.Language == "OmU" ? 1 : 2)
                 .ThenBy(v => v.Type == "Trailer" ? 0 : v.Type == "Teaser" ? 1 : 2)
                 .ThenBy(v => v.Official ? 0 : 1)
                 .FirstOrDefault();
-            return best.Key == null ? (null, null) : (best.Key, best.Name);
+            return best.Key == null ? (null, null, null) : (best.Key, best.Name, best.Language);
         }
+
+        private static bool IsSubtitled(string title) =>
+            System.Text.RegularExpressions.Regex.IsMatch(title, @"\b(subtitled|subtitles|untertitel\w*|omu|sub|subs)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
         private static string? Text(JsonElement e, string name) => e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(v.GetString()) ? v.GetString() : null;
     }

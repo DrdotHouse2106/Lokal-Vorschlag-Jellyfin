@@ -3156,6 +3156,7 @@
                 RuntimeMinutes: entry.RuntimeMinutes,
                 Providers: entry.Providers || [],
                 TrailerKey: entry.TrailerKey,
+                TrailerLanguage: entry.TrailerLanguage,
                 JellyfinId: entry.JellyfinId
             }
         };
@@ -3197,7 +3198,10 @@
         }
         var actions = el('div', 'lr-upcoming-actions');
         if (info.TrailerKey) {
-            actions.appendChild(button('lr-btn', 'play_arrow', 'Trailer ansehen', function () {
+            // Nicht deutsche Trailer gekennzeichnet: „Trailer ansehen (EN)“ bzw. „(OmU)“
+            var trailerLanguage = info.TrailerLanguage && info.TrailerLanguage !== 'de'
+                ? ' (' + (info.TrailerLanguage === 'OmU' ? 'OmU' : info.TrailerLanguage.toUpperCase()) + ')' : '';
+            actions.appendChild(button('lr-btn', 'play_arrow', 'Trailer ansehen' + trailerLanguage, function () {
                 window.open('https://www.youtube.com/watch?v=' + encodeURIComponent(info.TrailerKey), '_blank', 'noopener');
             }));
         }

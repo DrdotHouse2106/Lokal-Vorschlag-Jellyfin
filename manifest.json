@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.57.0.0",
+        "changelog": "Entdecken: deutsche Trailer\n- Ohne deutschen TMDB-Trailer: deutscher Trailer von KinoCheck (24 h zwischengespeichert, abschaltbar)\n- Untertitelte Trailer nach deutsch synchronisierten, vor englischen\n- Neue Felder TrailerLanguage und TrailerSource; Web: „Trailer ansehen (EN)“\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.57.0.zip",
+        "checksum": "38cc614bc62fc483bd8e5744c36d353e",
+        "timestamp": "2026-11-01T15:00:00Z"
+      },
+      {
         "version": "12.56.0.0",
         "changelog": "Entdecken: Anfragen über Jellyseerr\n- Titel aus „Demnächst im Kino“ und „Neu dieses Jahr“ im Web anfragen (über Jellyfin Enhanced)\n- Stand bei Jellyseerr: schon angefragt, teilweise oder schon vorhanden\n- Kinostarts mit Hinweis: kommt, sobald digital verfügbar\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

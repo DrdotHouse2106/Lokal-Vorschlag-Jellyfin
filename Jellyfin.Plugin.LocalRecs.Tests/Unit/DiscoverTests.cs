@@ -1,8 +1,14 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
+using System.Threading;
+using System;
 using FluentAssertions;
 using Jellyfin.Plugin.LocalRecs.Discover;
+using MediaBrowser.Controller.Library;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Xunit;
 
 namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
@@ -193,6 +199,108 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
         {
             const string Json = "{\"id\":10,\"title\":\"F\",\"release_dates\":{\"results\":[{\"iso_3166_1\":\"DE\",\"release_dates\":[{\"type\":3,\"release_date\":\"2026-11-05T00:00:00.000Z\",\"certification\":\"\"}]}]}}";
             TmdbDiscover.ParseDetails(Json, false, "DE")!.Value.Item.OfficialRating.Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData("Official Trailer", "en", "en")]
+        [InlineData("Trailer (deutsch)", "en", "de")]
+        [InlineData("Offizieller Trailer", "de", "de")]
+        [InlineData("Apokalypse Z [Subtitled]", "en", "OmU")]
+        [InlineData("Trailer German Subtitles", "en", "OmU")]
+        [InlineData("Trailer OmU", "de", "OmU")]
+        public void TrailerLanguage_GermanSubtitledOther(string name, string language, string expected)
+        {
+            TmdbDiscover.TrailerLanguage(name, language).Should().Be(expected);
+        }
+
+        [Fact]
+        public void ParseMovie_DubbedBeforeSubtitled_LanguageIsSet()
+        {
+            var json = "{\"id\":5,\"title\":\"Film\",\"videos\":{\"results\":["
+                + "{\"site\":\"YouTube\",\"type\":\"Trailer\",\"key\":\"sub\",\"name\":\"Trailer [Subtitled]\",\"iso_639_1\":\"en\"},"
+                + "{\"site\":\"YouTube\",\"type\":\"Trailer\",\"key\":\"en\",\"name\":\"Official Trailer\",\"iso_639_1\":\"en\"}]}}";
+            var item = TmdbDiscover.ParseDetails(json, false, "DE")!.Value.Item;
+            item.TrailerKey.Should().Be("sub", "untertitelt vor rein englisch");
+            item.TrailerLanguage.Should().Be("OmU");
+            item.TrailerSource.Should().Be("tmdb");
+        }
+
+        [Fact]
+        public void KinoCheck_PicksGermanTrailerBeforeTeaser()
+        {
+            var json = "{\"id\":\"x\",\"tmdb_id\":1,\"trailer\":{\"youtube_video_id\":\"teaser1\",\"title\":\"Teaser German Deutsch\",\"language\":\"de\",\"categories\":[\"Teaser\"]},"
+                + "\"videos\":[{\"youtube_video_id\":\"clip1\",\"title\":\"Clip\",\"categories\":[\"Clip\"]},"
+                + "{\"youtube_video_id\":\"trailerEN\",\"title\":\"Trailer\",\"language\":\"en\",\"categories\":[\"Trailer\"]},"
+                + "{\"youtube_video_id\":\"trailer1\",\"title\":\"Buddy Trailer German Deutsch (2026)\",\"language\":\"de\",\"categories\":[\"Trailer\"]}]}";
+            KinoCheck.PickTrailer(json).Should().Be(("trailer1", "Buddy Trailer German Deutsch (2026)"));
+        }
+
+        [Fact]
+        public void KinoCheck_RealAnswer_Clayface()
+        {
+            // Aufbau einer echten Antwort (gekürzt)
+            var json = "{\"id\":\"n27\",\"tmdb_id\":1400940,\"imdb_id\":\"tt34890576\",\"language\":\"de\",\"title\":\"Clayface\",\"url\":\"https://kinocheck.de/film/n27/clayface-2026\","
+                + "\"trailer\":{\"id\":\"fyv1\",\"youtube_video_id\":\"KYUtM4-uoFo\",\"title\":\"CLAYFACE Finaler Trailer German Deutsch (2026) DC\",\"language\":\"de\",\"categories\":[\"Trailer\"],\"views\":67326},"
+                + "\"recommendations\":[],\"videos\":[{\"youtube_video_id\":\"clip\",\"title\":\"CLAYFACE Clip German Deutsch\",\"language\":\"de\",\"categories\":[\"Clip\"]}]}";
+            KinoCheck.PickTrailer(json).Should().Be(("KYUtM4-uoFo", "CLAYFACE Finaler Trailer German Deutsch (2026) DC"));
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("[]")]
+        [InlineData("{\"id\":\"j8s\",\"tmdb_id\":1514026,\"title\":\"Buddy\",\"trailer\":null,\"videos\":[]}")]
+        [InlineData("{\"timestamp\":\"Sun, 01 Nov 2026 12:44:44 +0000\",\"error\":\"Error\",\"message\":\"show not found\",\"path\":\"/shows?tmdb_id=289517&language=de\"}")]
+        [InlineData("{\"videos\":[{\"youtube_video_id\":\"c\",\"title\":\"Trailer-Kritik\",\"language\":\"de\",\"categories\":[\"Review\"]}]}")]
+        [InlineData("{\"trailer\":null,\"videos\":[]}")]
+        [InlineData("kein json")]
+        public void KinoCheck_NothingUsable_IsNull(string json)
+        {
+            KinoCheck.PickTrailer(json).Should().BeNull();
+        }
+
+        [Fact]
+        public void KinoCheck_PathForMoviesAndShows()
+        {
+            KinoCheck.Path(42, false).Should().Be("movies?tmdb_id=42&language=de");
+            KinoCheck.Path(7, true).Should().Be("shows?tmdb_id=7&language=de");
+        }
+
+        [Fact]
+        public async Task GermanTrailers_KinoCheckReplacesForeign_Cached_ErrorKeepsTmdb()
+        {
+            var calls = new List<string>();
+            Task<HttpResponseMessage> Send(HttpRequestMessage request, CancellationToken ct)
+            {
+                var url = request.RequestUri!.ToString();
+                calls.Add(url);
+                var body = url.Contains("tmdb_id=1&", StringComparison.Ordinal)
+                    ? "{\"trailer\":{\"youtube_video_id\":\"deTrailer\",\"title\":\"Trailer German Deutsch\",\"language\":\"de\",\"categories\":[\"Trailer\"]},\"videos\":[]}"
+                    : "{\"error\":\"Error\",\"message\":\"show not found\"}";
+                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(body) });
+            }
+
+            var service = new DiscoverService(Mock.Of<ILogger<DiscoverService>>(), Mock.Of<ILibraryManager>(), null, Send);
+            DiscoverItem[] Items() => new[]
+            {
+                new DiscoverItem { TmdbId = 1, MediaType = "movie", TrailerKey = "en", TrailerLanguage = "en", TrailerSource = "tmdb" },
+                new DiscoverItem { TmdbId = 2, MediaType = "tv", TrailerKey = "en2", TrailerLanguage = "en", TrailerSource = "tmdb" },
+                new DiscoverItem { TmdbId = 3, MediaType = "movie", TrailerKey = "de3", TrailerLanguage = "de", TrailerSource = "tmdb" }
+            };
+
+            var first = Items();
+            await service.GermanTrailersAsync(first, CancellationToken.None);
+            first[0].TrailerKey.Should().Be("deTrailer");
+            first[0].TrailerLanguage.Should().Be("de");
+            first[0].TrailerSource.Should().Be("kinocheck");
+            first[1].TrailerKey.Should().Be("en2", "KinoCheck kennt die Serie nicht – TMDB-Trailer bleibt");
+            first[2].TrailerKey.Should().Be("de3");
+            calls.Should().HaveCount(2, "Titel mit deutschem TMDB-Trailer werden nicht nachgefragt");
+            calls.Should().Contain(c => c.StartsWith("https://api.kinocheck.de/shows?tmdb_id=2&language=de", StringComparison.Ordinal));
+
+            var second = Items();
+            await service.GermanTrailersAsync(second, CancellationToken.None);
+            second[0].TrailerKey.Should().Be("deTrailer");
+            calls.Should().HaveCount(2, "Antworten (auch „nicht gefunden“) werden zwischengespeichert");
         }
 
         private static (DiscoverItem Item, IReadOnlyList<(int Type, DateOnly Date)> Releases) Detail(int id, params (int Type, DateOnly Date)[] releases)

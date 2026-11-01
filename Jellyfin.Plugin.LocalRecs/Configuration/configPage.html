@@ -165,6 +165,14 @@
                             <div class="fieldDescription checkboxFieldDescription">Deutsche Kinostarts der nächsten 8 Wochen sowie Filme und Serien, die dieses Jahr erscheinen bzw. gestartet sind – aus TMDB, mit deutschem Termin, FSK, Genres, Trailer und deutschen Streaming-Anbietern. Was schon in der Bibliothek liegt, ist markiert. Nur lesend, es wird nichts angefragt. Braucht einen TMDB-Schlüssel; alle 6 Stunden neu abgefragt.</div>
                         </div>
 
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="discoverKinoCheck" />
+                                <span>Entdecken: deutsche Trailer von KinoCheck</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Hat TMDB zu einem Titel nur fremdsprachige Trailer, wird bei KinoCheck (api.kinocheck.de) nach einem deutschen Trailer gesucht. Gesendet wird nur die TMDB-ID des Titels (KinoCheck speichert die IP-Adresse des Servers 60 Tage); Antworten werden 24 Stunden zwischengespeichert.</div>
+                        </div>
+
                         <h3>Demnächst (Sonarr und Radarr)</h3>
                         <div class="checkboxContainer checkboxContainer-withDescription">
                             <label>
@@ -1359,6 +1367,7 @@
                             page.querySelector('#momentsYearAgo').checked = config.MomentsYearAgo !== false;
                             page.querySelector('#enableUpcoming').checked = config.EnableUpcoming !== false;
                             page.querySelector('#enableDiscoverRows').checked = config.EnableDiscoverRows !== false;
+                            page.querySelector('#discoverKinoCheck').checked = config.DiscoverKinoCheck !== false;
                             page.querySelector('#sonarrUrl').value = config.SonarrUrl || '';
                             page.querySelector('#sonarrApiKey').value = config.SonarrApiKey || '';
                             page.querySelector('#radarrUrl').value = config.RadarrUrl || '';
@@ -1508,6 +1517,7 @@
                             config.MomentsYearAgo = page.querySelector('#momentsYearAgo').checked;
                             config.EnableUpcoming = page.querySelector('#enableUpcoming').checked;
                             config.EnableDiscoverRows = page.querySelector('#enableDiscoverRows').checked;
+                            config.DiscoverKinoCheck = page.querySelector('#discoverKinoCheck').checked;
                             config.SonarrUrl = page.querySelector('#sonarrUrl').value.trim();
                             config.SonarrApiKey = page.querySelector('#sonarrApiKey').value.trim();
                             config.RadarrUrl = page.querySelector('#radarrUrl').value.trim();

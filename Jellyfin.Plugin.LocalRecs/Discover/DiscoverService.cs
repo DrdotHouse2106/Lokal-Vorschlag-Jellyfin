@@ -66,6 +66,7 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
         private readonly IServerConfigurationManager? _serverConfig;
         private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _send;
         private readonly SemaphoreSlim _refresh = new SemaphoreSlim(1, 1);
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<(bool Series, int Id), (DateTime ValidUntil, string? Key, string? Name)> _kinoCheck = new();
         private (string Signature, DateTime ValidUntil, IReadOnlyList<Row> Rows)? _snapshot;
 
         /// <summary>
@@ -151,6 +152,38 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                 .DistinctBy(i => i.TmdbId)
                 .Take(MaxItems)
                 .ToList();
+        }
+
+        /// <summary>
+        /// For titles without a German TMDB trailer, looks up a German trailer at KinoCheck and uses it instead (hits and
+        /// misses are remembered 24 hours, failures 1 hour). Without a hit the TMDB trailer stays.
+        /// </summary>
+        /// <param name="items">The titles.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task.</returns>
+        public async Task GermanTrailersAsync(IEnumerable<DiscoverItem> items, CancellationToken cancellationToken)
+        {
+            var missing = items.Where(i => i.TrailerLanguage != "de").DistinctBy(i => (i.MediaType, i.TmdbId)).ToList();
+            await InParallel(missing, 2, async item =>
+            {
+                var series = item.MediaType == "tv";
+                var now = DateTime.UtcNow;
+                if (!_kinoCheck.TryGetValue((series, item.TmdbId), out var hit) || hit.ValidUntil <= now)
+                {
+                    hit = await KinoCheckAsync(item.TmdbId, series, cancellationToken).ConfigureAwait(false);
+                    _kinoCheck[(series, item.TmdbId)] = hit;
+                }
+
+                if (hit.Key != null)
+                {
+                    item.TrailerKey = hit.Key;
+                    item.TrailerName = hit.Name;
+                    item.TrailerLanguage = "de";
+                    item.TrailerSource = "kinocheck";
+                }
+
+                return (bool?)true;
+            }).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -322,6 +355,11 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                 // Kinostarts stehen in „Demnächst im Kino“, nicht noch einmal unter „Neu dieses Jahr“
                 var movies = BuildNewThisYear(await Details(movieIds.Select(i => i.Id).Distinct().Take(45), false).ConfigureAwait(false), today, false, cinema.Select(i => i.TmdbId).ToHashSet());
                 var series = BuildNewThisYear(await Details(seriesIds.Select(i => i.Id).Distinct().Take(45), true).ConfigureAwait(false), today, true);
+                if (Config.DiscoverKinoCheck)
+                {
+                    await GermanTrailersAsync(cinema.Concat(movies).Concat(series), cancellationToken).ConfigureAwait(false);
+                }
+
                 var rows = new List<Row>
                 {
                     new Row { Key = CinemaKey, Title = "Demnächst im Kino", Items = cinema },
@@ -336,6 +374,34 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
             finally
             {
                 _refresh.Release();
+            }
+        }
+
+        private async Task<(DateTime ValidUntil, string? Key, string? Name)> KinoCheckAsync(int tmdbId, bool series, CancellationToken cancellationToken)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, KinoCheck.ApiBase + KinoCheck.Path(tmdbId, series));
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            try
+            {
+                using var response = await _send(request, cancellationToken).ConfigureAwait(false);
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    return (DateTime.UtcNow.AddHours(24), null, null);
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogDebug("Entdecken: KinoCheck antwortet {Status}", (int)response.StatusCode);
+                    return (DateTime.UtcNow.AddHours(1), null, null);
+                }
+
+                var picked = KinoCheck.PickTrailer(await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
+                return (DateTime.UtcNow.AddHours(24), picked?.Key, picked?.Name);
+            }
+            catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+            {
+                _logger.LogDebug("Entdecken: KinoCheck nicht erreichbar ({Type})", ex.GetType().Name);
+                return (DateTime.UtcNow.AddHours(1), null, null);
             }
         }
 

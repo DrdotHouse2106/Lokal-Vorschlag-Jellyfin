@@ -104,6 +104,7 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             MomentsOnTvToday = true;
             EnableUpcoming = true;
             EnableDiscoverRows = true;
+            DiscoverKinoCheck = true;
             SonarrUrl = string.Empty;
             SonarrApiKey = string.Empty;
             RadarrUrl = string.Empty;
@@ -217,6 +218,9 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
 
         /// <summary>Gets or sets a value indicating whether the discover rows from TMDB are shown („Demnächst im Kino“, „Neu dieses Jahr“, since 12.54.0).</summary>
         public bool EnableDiscoverRows { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether German trailers are looked up at KinoCheck when TMDB has none (since 12.57.0).</summary>
+        public bool DiscoverKinoCheck { get; set; }
 
         /// <summary>Gets or sets Sonarr's address, e.g. http://host:8989.</summary>
         public string SonarrUrl { get; set; }

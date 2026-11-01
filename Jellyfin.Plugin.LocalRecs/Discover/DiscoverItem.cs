@@ -66,6 +66,12 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
         /// <summary>Gets or sets the name of the trailer.</summary>
         public string? TrailerName { get; set; }
 
+        /// <summary>Gets or sets the language of the trailer: „de“ (German), „OmU“ (subtitled), else e.g. „en“, or null.</summary>
+        public string? TrailerLanguage { get; set; }
+
+        /// <summary>Gets or sets where the trailer comes from: „tmdb“ or „kinocheck“ (German trailer from KinoCheck).</summary>
+        public string? TrailerSource { get; set; }
+
         /// <summary>Gets or sets a value indicating whether the title is already in the user's libraries.</summary>
         public bool InLibrary { get; set; }
 
