@@ -103,19 +103,20 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         }
 
         /// <summary>
-        /// Takes a mark back („rückgängig“): the show (<c>programId</c>, <c>seriesId</c>, <c>title</c> or <c>key</c> from
-        /// the list) or the genre (<c>genre</c>).
+        /// Takes a mark back („rückgängig“): the show (<c>programId</c>, <c>seriesId</c>, <c>title</c>) or the genre
+        /// (<c>genre</c>), or any mark by its <c>key</c> from the list.
         /// </summary>
         /// <param name="programId">Program ID, optional.</param>
         /// <param name="seriesId">Series ID, optional.</param>
-        /// <param name="title">Title or normalized key of the show, optional.</param>
+        /// <param name="title">Title of the show, optional.</param>
         /// <param name="genre">Genre, optional.</param>
+        /// <param name="key">Key from the list (show or genre), optional.</param>
         /// <returns>204, or 404 if nothing was marked.</returns>
         [HttpDelete]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult Delete([FromQuery] Guid? programId, [FromQuery] Guid? seriesId, [FromQuery] string? title, [FromQuery] string? genre)
+        public ActionResult Delete([FromQuery] Guid? programId, [FromQuery] Guid? seriesId, [FromQuery] string? title, [FromQuery] string? genre, [FromQuery] string? key)
         {
             var user = RequestUser.Resolve(this, _userManager);
             if (user == null)
@@ -124,7 +125,13 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             }
 
             bool removed;
-            if (!string.IsNullOrWhiteSpace(genre))
+            if (!string.IsNullOrWhiteSpace(key))
+            {
+                // Key aus der Liste: Sendung oder Genre (die Schlüssel sind schon normalisiert)
+                var trimmed = key.Trim();
+                removed = _store.RemoveTitle(user.Id, trimmed) | _store.RemoveGenre(user.Id, trimmed);
+            }
+            else if (!string.IsNullOrWhiteSpace(genre))
             {
                 removed = _store.RemoveGenre(user.Id, LiveTvText.NormalizeFeature(genre));
             }
@@ -134,7 +141,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 var titleKey = LiveTvText.NormalizeTitle(name);
                 if (string.IsNullOrEmpty(titleKey))
                 {
-                    return BadRequest("Bitte programId, seriesId, title oder genre angeben.");
+                    return BadRequest("Bitte programId, seriesId, title, genre oder key angeben.");
                 }
 
                 removed = _store.RemoveTitle(user.Id, titleKey);

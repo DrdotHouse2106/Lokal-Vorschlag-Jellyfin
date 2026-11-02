@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.58.1.0",
+        "changelog": "Live-TV „Weniger davon“: Rückgängig über key\n- DELETE /LocalRecs/LiveTv/Feedback?key=… funktioniert (TV-App)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.58.1.zip",
+        "checksum": "f624ff65b5b39477c6b2ea850c647ab3",
+        "timestamp": "2026-11-02T10:00:00Z"
+      },
+      {
         "version": "12.58.0.0",
         "changelog": "Live-TV: „Weniger davon“\n- Sendungen in „Heute im TV für dich“ seltener, nie mehr oder das Genre seltener vorschlagen\n- Wirkt sofort und lässt sich zurücknehmen (Web: im Detailfenster und in der Vorschaukarte)\n- API /LocalRecs/LiveTv/Feedback für die TV-Apps\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",
