@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.58.2.0",
+        "changelog": "Filmreihen: „Teil 1 fehlt noch“\n- Ist ein späterer Teil gesehen, aber ein früherer nicht, steht nicht mehr „Weiter mit Teil 1“\n- Neues Feld NextIsGap für die Apps\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.58.2.zip",
+        "checksum": "782c37371b09cdc288b5e612b9c6c16f",
+        "timestamp": "2026-11-02T12:00:00Z"
+      },
+      {
         "version": "12.58.1.0",
         "changelog": "Live-TV „Weniger davon“: Rückgängig über key\n- DELETE /LocalRecs/LiveTv/Feedback?key=… funktioniert (TV-App)\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

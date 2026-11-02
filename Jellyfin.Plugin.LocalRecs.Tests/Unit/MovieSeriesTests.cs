@@ -30,6 +30,18 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             MovieSeriesService.NextIndex(played).Should().Be(expected);
         }
 
+        [Theory]
+        [InlineData(new[] { false, false, true }, 0, true)]
+        [InlineData(new[] { true, false, false, false }, 1, false)]
+        [InlineData(new[] { true, false, true, false }, 3, false)]
+        [InlineData(new[] { false, false }, 0, false)]
+        [InlineData(new[] { true, true }, -1, false)]
+        public void IsGap_OnlyWhenALaterPartIsWatched(bool[] played, int next, bool expected)
+        {
+            MovieSeriesService.NextIndex(played).Should().Be(next);
+            MovieSeriesService.IsGap(played, next).Should().Be(expected);
+        }
+
         [Fact]
         public void Order_StartedFirst_ByLastPlayed_ThenTaste_WorldsLast_FinishedOut()
         {
@@ -54,6 +66,10 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
         {
             Series("x", started: true, lastPlayed: DateTime.UtcNow, next: 2).Reason.Should().Be("Weiter mit Teil 3");
             Series("x", started: false, taste: 0).Reason.Should().Be("3 Teile");
+            var gap = Series("x", started: true, next: 0);
+            gap.Played = new[] { false, false, true };
+            gap.Reason.Should().Be("Teil 1 fehlt noch", "Teil 3 gesehen, Teil 1 nicht");
+            gap.NextIsGap.Should().BeTrue();
         }
 
         [Fact]

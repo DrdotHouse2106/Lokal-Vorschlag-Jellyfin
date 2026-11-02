@@ -158,7 +158,7 @@ Eigene Zeile für **Filmreihen** (TMDB-Sammlungen wie John Wick, Terminator oder
   - zuerst **angefangene Reihen**, die zuletzt geschaute zuerst
   - danach nicht angefangene Reihen, die zum Geschmack passen: nach der Position eines Teils in den Film-Empfehlungen, sonst nach den meistgesehenen Genres
   - Reihen, die schon eine **Welt** bilden (z. B. James Bond, Harry Potter), kommen in jeder Gruppe zuletzt
-- **Karte:** Hintergrundbild der Reihe (sonst des nächsten Teils), Name, Fortschrittsbalken, „x von y gesehen · Weiter mit Teil n“. Ein Klick zeigt alle vorhandenen Teile in Erscheinungsreihenfolge mit „Weiter mit Teil n“.
+- **Karte:** Hintergrundbild der Reihe (sonst des nächsten Teils), Name, Fortschrittsbalken, „x von y gesehen · Weiter mit Teil n“. Ein Klick zeigt alle vorhandenen Teile in Erscheinungsreihenfolge mit „Weiter mit Teil n“. Ab 12.58.2: Liegt der nächste Teil vor einem schon gesehenen (z. B. Teil 3 gesehen, Teil 1 nicht), heißt es „Teil 1 fehlt noch“ bzw. „Teil 1 nachholen“; die API meldet dann `NextIsGap: true` (in der Liste und in `/LocalRecs/MovieSeries/{id}`, dort jetzt auch mit `Reason`).
 - **Detailansicht eines Films:** „Weitere Teile der Reihe“ mit allen Teilen, der aktuelle ist markiert.
 - **Woher die Zuordnung kommt:**
   - die TMDB-Sammlung am Film („TmdbCollection“), falls Jellyfin sie kennt

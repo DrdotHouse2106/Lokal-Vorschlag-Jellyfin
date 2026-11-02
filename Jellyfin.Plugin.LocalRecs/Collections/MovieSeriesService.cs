@@ -67,6 +67,19 @@ namespace Jellyfin.Plugin.LocalRecs.Collections
         }
 
         /// <summary>
+        /// Gets a value indicating whether the next part is a gap: it comes before a part already watched (e.g. part 3
+        /// watched, part 1 not) – then it is „Teil 1 fehlt noch“, not „Weiter mit Teil 1“.
+        /// </summary>
+        /// <param name="played">Watched state of the parts in release order.</param>
+        /// <param name="next">Index from <see cref="NextIndex"/>.</param>
+        /// <returns>True for a gap.</returns>
+        public static bool IsGap(IReadOnlyList<bool> played, int next)
+        {
+            ArgumentNullException.ThrowIfNull(played);
+            return next >= 0 && played.Skip(next + 1).Any(p => p);
+        }
+
+        /// <summary>
         /// Finds the part to continue with: the first unwatched part after the last watched one, otherwise the first unwatched part.
         /// </summary>
         /// <param name="played">Watched state of the parts in release order.</param>
@@ -464,8 +477,13 @@ namespace Jellyfin.Plugin.LocalRecs.Collections
             /// <summary>Gets the number of watched parts.</summary>
             public int WatchedCount => Played.Count(p => p);
 
-            /// <summary>Gets the reason line: „Weiter mit Teil 3“ or „4 Teile“.</summary>
-            public string Reason => Started && NextIndex >= 0 ? "Weiter mit Teil " + (NextIndex + 1) : Parts.Count + " Teile";
+            /// <summary>Gets a value indicating whether the next part comes before a watched part (see <see cref="IsGap"/>).</summary>
+            public bool NextIsGap => IsGap(Played, NextIndex);
+
+            /// <summary>Gets the reason line: „Weiter mit Teil 3“, „Teil 1 fehlt noch“ or „4 Teile“.</summary>
+            public string Reason => Started && NextIndex >= 0
+                ? (NextIsGap ? "Teil " + (NextIndex + 1) + " fehlt noch" : "Weiter mit Teil " + (NextIndex + 1))
+                : Parts.Count + " Teile";
         }
     }
 }

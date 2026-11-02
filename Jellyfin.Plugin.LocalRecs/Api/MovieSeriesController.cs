@@ -165,6 +165,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 Watched = series.WatchedCount,
                 Started = series.Started,
                 NextIndex = series.NextIndex,
+                NextIsGap = series.NextIsGap,
                 Reason = series.Reason,
                 InWorld = series.InWorld,
                 HasPoster = !string.IsNullOrEmpty(info?.PosterPath),
@@ -185,6 +186,8 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 Total = series.Parts.Count,
                 Watched = series.WatchedCount,
                 NextIndex = series.NextIndex,
+                NextIsGap = series.NextIsGap,
+                Reason = series.Reason,
                 HasPoster = !string.IsNullOrEmpty(info?.PosterPath),
                 HasBackdrop = !string.IsNullOrEmpty(info?.BackdropPath),
                 Parts = _dtoService.GetBaseItemDtos(series.Parts.ToList(), Options, user)
@@ -222,7 +225,10 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             /// <summary>Gets or sets the index of the part to watch next (0-based, release order).</summary>
             public int NextIndex { get; set; }
 
-            /// <summary>Gets or sets the reason line („Weiter mit Teil 3“ or „4 Teile“).</summary>
+            /// <summary>Gets or sets a value indicating whether the next part comes before a watched part („Teil 1 fehlt noch“).</summary>
+            public bool NextIsGap { get; set; }
+
+            /// <summary>Gets or sets the reason line („Weiter mit Teil 3“, „Teil 1 fehlt noch“ or „4 Teile“).</summary>
             public string Reason { get; set; } = string.Empty;
 
             /// <summary>Gets or sets a value indicating whether the series belongs to a world.</summary>
@@ -258,6 +264,12 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
             /// <summary>Gets or sets the index of the part to watch next (-1 = all watched).</summary>
             public int NextIndex { get; set; }
+
+            /// <summary>Gets or sets a value indicating whether the next part comes before a watched part („Teil 1 fehlt noch“).</summary>
+            public bool NextIsGap { get; set; }
+
+            /// <summary>Gets or sets the reason line („Weiter mit Teil 3“, „Teil 1 fehlt noch“ or „4 Teile“).</summary>
+            public string Reason { get; set; } = string.Empty;
 
             /// <summary>Gets or sets a value indicating whether a poster is available.</summary>
             public bool HasPoster { get; set; }

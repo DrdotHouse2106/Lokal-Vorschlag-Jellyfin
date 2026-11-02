@@ -1737,12 +1737,14 @@
                 image: detail.HasBackdrop ? movieSeriesImage(detail, true) : undefined,
                 overview: null,
                 meta: detail.Watched + ' von ' + detail.Total + ' gesehen',
-                badge: next && detail.Watched ? 'Weiter mit Teil ' + (detail.NextIndex + 1) : null,
+                badge: next && detail.Watched ? (detail.NextIsGap ? 'Teil ' + (detail.NextIndex + 1) + ' fehlt noch' : 'Weiter mit Teil ' + (detail.NextIndex + 1)) : null,
                 actions: false
             }));
             var section = el('div', 'lr-info-section');
             if (next) {
-                section.appendChild(button('lr-btn-play', 'play_arrow', (detail.Watched ? 'Weiter mit Teil ' : 'Starten mit Teil ') + (detail.NextIndex + 1), function () {
+                // Lücke (späterer Teil gesehen, dieser nicht): „Teil 1 nachholen“ statt „Weiter mit Teil 1“
+                var playLabel = detail.NextIsGap ? 'Teil ' + (detail.NextIndex + 1) + ' nachholen' : (detail.Watched ? 'Weiter mit Teil ' : 'Starten mit Teil ') + (detail.NextIndex + 1);
+                section.appendChild(button('lr-btn-play', 'play_arrow', playLabel, function () {
                     play(next);
                 }));
             }
