@@ -38,6 +38,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         private readonly WorldListSource _listSource;
         private readonly WorldLogoService _logos;
         private readonly Discover.DiscoverService? _discover;
+        private readonly MissingRanker? _ranker;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WorldsController"/> class.
@@ -50,10 +51,12 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// <param name="listSource">Maintained world list.</param>
         /// <param name="logos">World logos.</param>
         /// <param name="discover">TMDB titles for missing titles, optional.</param>
+        /// <param name="ranker">Personal order of missing titles, optional.</param>
         /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
-        public WorldsController(WorldService worlds, RecommendationStore store, IUserManager userManager, ILibraryManager libraryManager, IDtoService dtoService, WorldListSource listSource, WorldLogoService logos, Discover.DiscoverService? discover = null)
+        public WorldsController(WorldService worlds, RecommendationStore store, IUserManager userManager, ILibraryManager libraryManager, IDtoService dtoService, WorldListSource listSource, WorldLogoService logos, Discover.DiscoverService? discover = null, MissingRanker? ranker = null)
         {
             _discover = discover;
+            _ranker = ranker;
             _logos = logos ?? throw new ArgumentNullException(nameof(logos));
             _listSource = listSource ?? throw new ArgumentNullException(nameof(listSource));
             _worlds = worlds ?? throw new ArgumentNullException(nameof(worlds));
@@ -243,19 +246,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             }
 
             var accessible = _worlds.AccessibleItems(user);
-            var missing = membership.Missing.TryGetValue(world.Id, out var list) ? list : new List<WorldMembership.MissingTitle>();
-            var enabled = Config.WorldsShowMissing && _discover != null;
-            var details = enabled && missing.Count > 0
-                ? await _discover!.GetTitlesAsync(missing.Select(m => (m.TmdbId, m.Series)).ToList(), cancellationToken).ConfigureAwait(false)
-                : Array.Empty<Discover.DiscoverItem>();
-
-            // Nur anfragbare Titel (kein Platzhalter, mit Datum, kein Kurzfilm); Altersfreigabe wie bei den Entdecken-Reihen
-            var byKey = details
-                .Where(IsRequestable)
-                .Where(d => (d.MediaType == "tv" ? new MediaBrowser.Controller.Entities.TV.Series { Name = d.Title, OfficialRating = d.OfficialRating } as BaseItem : new MediaBrowser.Controller.Entities.Movies.Movie { Name = d.Title, OfficialRating = d.OfficialRating }).IsParentalAllowed(user, true))
-                .GroupBy(d => (d.TmdbId, d.MediaType == "tv"))
-                .ToDictionary(g => g.Key, g => g.First());
-
+            var (enabled, byKey) = await LoadMissingAsync(user, membership, world, cancellationToken).ConfigureAwait(false);
             var chronology = BuildMissingChronology(membership, world.Id, accessible.Keys.ToHashSet(), byKey);
             foreach (var entry in chronology ?? new List<MissingChronologyEntry>())
             {
@@ -265,13 +256,63 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 }
             }
 
-            // Reihenfolge: nach Chronologie, sonst nach Jahr
-            var items = byKey.Values
-                .OrderBy(i => i.ChronologyIndex ?? int.MaxValue)
-                .ThenBy(i => i.Year ?? int.MaxValue)
-                .ThenBy(i => i.Title, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-            return new MissingResult { Enabled = enabled, Items = items, Chronology = chronology };
+            // Persönlich sortiert (die Chronologie behält ihre eigene Reihenfolge)
+            return new MissingResult { Enabled = enabled, Items = Personal(user, byKey.Values), Chronology = chronology };
+        }
+
+        /// <summary>
+        /// Gets the normal world view in sections (like the rows of the brand tiles on Disney+): per section the titles in the
+        /// library the user can see (newest first) and – if switched on – the missing titles, ordered for the user
+        /// (<c>MatchScore</c>, <c>Reason</c>); titles with few TMDB votes have <c>Minor: true</c> and come last
+        /// (apps show them under „Alle anzeigen“). Empty if the world has no sections; the chronology is not affected.
+        /// </summary>
+        /// <param name="worldId">World ID.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The sections in display order.</returns>
+        [HttpGet("{worldId}/Sections")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async System.Threading.Tasks.Task<ActionResult<SectionsResult>> GetSections([FromRoute] string worldId, System.Threading.CancellationToken cancellationToken)
+        {
+            var user = CurrentUser();
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            var membership = _worlds.GetMembership();
+            var world = membership.Worlds.FirstOrDefault(w => w.HasId(worldId));
+            if (world == null)
+            {
+                return NotFound();
+            }
+
+            if (world.Sections.Count == 0 || !membership.SectionOf.TryGetValue(world.Id, out var sectionOf))
+            {
+                return new SectionsResult();
+            }
+
+            var accessible = _worlds.AccessibleItems(user);
+            var (enabled, byKey) = await LoadMissingAsync(user, membership, world, cancellationToken).ConfigureAwait(false);
+            var missing = Personal(user, byKey.Values);
+            var result = new List<WorldSectionInfo>();
+            foreach (var section in world.Sections)
+            {
+                var itemIds = sectionOf
+                    .Where(kv => kv.Value == section.Name && accessible.ContainsKey(kv.Key))
+                    .Select(kv => accessible[kv.Key])
+                    .OrderByDescending(i => ReleaseDate(i) ?? DateTime.MinValue)
+                    .ThenBy(i => i.SortName ?? i.Name, StringComparer.OrdinalIgnoreCase)
+                    .Select(i => i.Id.ToString("N"))
+                    .ToList();
+                var sectionMissing = missing.Where(m => m.Section == section.Name).OrderBy(m => m.Minor).ToList();
+                if (itemIds.Count > 0 || sectionMissing.Count > 0)
+                {
+                    result.Add(new WorldSectionInfo { Key = WorldDefinition.ToId(section.Name), Title = section.Name, ItemIds = itemIds, Missing = sectionMissing });
+                }
+            }
+
+            return new SectionsResult { MissingEnabled = enabled, Sections = result };
         }
 
         /// <summary>
@@ -471,6 +512,49 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             return result.Count > 0 ? result : null;
         }
 
+        // Fehlende Titel einer Welt mit TMDB-Daten: nur anfragbare, Altersfreigabe geprüft, mit Abschnitt und „Minor“
+        private async System.Threading.Tasks.Task<(bool Enabled, Dictionary<(int TmdbId, bool Series), Discover.DiscoverItem> Items)> LoadMissingAsync(
+            User user,
+            WorldMembership membership,
+            WorldDefinition world,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            var missing = membership.Missing.TryGetValue(world.Id, out var list) ? list : new List<WorldMembership.MissingTitle>();
+            var enabled = Config.WorldsShowMissing && _discover != null;
+            var details = enabled && missing.Count > 0
+                ? await _discover!.GetTitlesAsync(missing.Select(m => (m.TmdbId, m.Series)).ToList(), cancellationToken).ConfigureAwait(false)
+                : Array.Empty<Discover.DiscoverItem>();
+            var sectionOf = missing.GroupBy(m => (m.TmdbId, m.Series)).ToDictionary(g => g.Key, g => g.First().Section);
+            var minVotes = world.Sections.ToDictionary(x => x.Name, x => x.MinMissingVotes, StringComparer.Ordinal);
+
+            // Nur anfragbare Titel (kein Platzhalter, mit Datum, kein Kurzfilm); Altersfreigabe wie bei den Entdecken-Reihen
+            var byKey = details
+                .Where(IsRequestable)
+                .Where(d => (d.MediaType == "tv" ? new MediaBrowser.Controller.Entities.TV.Series { Name = d.Title, OfficialRating = d.OfficialRating } as BaseItem : new MediaBrowser.Controller.Entities.Movies.Movie { Name = d.Title, OfficialRating = d.OfficialRating }).IsParentalAllowed(user, true))
+                .GroupBy(d => (d.TmdbId, d.MediaType == "tv"))
+                .ToDictionary(g => g.Key, g => g.First());
+            foreach (var (key, item) in byKey)
+            {
+                item.Section = sectionOf.GetValueOrDefault(key);
+                item.Minor = item.Section != null && minVotes.GetValueOrDefault(item.Section) is int min
+                    && (item.Released ? item.VoteCount < min : item.Popularity < 10);
+            }
+
+            return (enabled, byKey);
+        }
+
+        // Persönliche Reihenfolge (Geschmack, gesehene Teile, Suchen, TMDB-Bewertung); ohne Dienst nach Jahr, neueste zuerst
+        private List<Discover.DiscoverItem> Personal(User user, IEnumerable<Discover.DiscoverItem> items)
+        {
+            if (_ranker == null)
+            {
+                return items.OrderByDescending(i => i.Year ?? 0).ToList();
+            }
+
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            return MissingRanker.Rank(items, _ranker.GetProfile(user), today);
+        }
+
         private AdminTitle? ToAdminTitle(WorldMembership membership, Guid itemId, string reason)
         {
             var item = _libraryManager.GetItemById(itemId);
@@ -522,7 +606,8 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                     TrailerItemId = trailer?.Item.Id.ToString("N"),
                     TrailerItemName = trailer?.Item.Name,
                     TrailerId = trailer?.Trailer.Id.ToString("N"),
-                    Chronology = Chronology(world.Id, entry.Visible)
+                    Chronology = Chronology(world.Id, entry.Visible),
+                    HasSections = world.Sections.Count > 0
                 }, watched));
             }
 
@@ -659,6 +744,35 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             /// The order of the list is the story order; a series may appear several times with different seasons.
             /// </summary>
             public List<ChronologyEntry>? Chronology { get; set; }
+
+            /// <summary>Gets or sets a value indicating whether the world has sections for the normal view (<c>/LocalRecs/Worlds/{id}/Sections</c>).</summary>
+            public bool HasSections { get; set; }
+        }
+
+        /// <summary>The normal world view in sections.</summary>
+        public class SectionsResult
+        {
+            /// <summary>Gets or sets a value indicating whether missing titles are switched on.</summary>
+            public bool MissingEnabled { get; set; }
+
+            /// <summary>Gets or sets the sections in display order (empty if the world has none).</summary>
+            public IReadOnlyList<WorldSectionInfo> Sections { get; set; } = Array.Empty<WorldSectionInfo>();
+        }
+
+        /// <summary>A section of the world view.</summary>
+        public class WorldSectionInfo
+        {
+            /// <summary>Gets or sets the key, e.g. „realverfilmungen“.</summary>
+            public string Key { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the title, e.g. „Realverfilmungen“.</summary>
+            public string Title { get; set; } = string.Empty;
+
+            /// <summary>Gets or sets the titles in the library the user can see (Jellyfin IDs, newest first).</summary>
+            public IReadOnlyList<string> ItemIds { get; set; } = Array.Empty<string>();
+
+            /// <summary>Gets or sets the missing titles, ordered for the user; <c>Minor</c> ones last.</summary>
+            public IReadOnlyList<Discover.DiscoverItem> Missing { get; set; } = Array.Empty<Discover.DiscoverItem>();
         }
 
         /// <summary>Titles of a world that are not in the library.</summary>

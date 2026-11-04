@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.61.0] - 2026-11-05
+
+### Added
+
+- Worlds in sections (like the brand tiles on Disney+): sections from the world list (`abschnitte`, e.g. Disney: animation, live-action remakes, adventure & fantasy, family; Marvel: MCU, X-Men, Spider-Man (Sony); DC; horror by film series). `GET /LocalRecs/Worlds/{id}/Sections` returns them in display order with the visible library titles and the missing titles of each section; `HasSections` in `/LocalRecs/Worlds`. Web module: „Nach Abschnitten“ is the first sort option for such worlds. The chronology is unchanged.
+- Missing titles ordered per user: genres of watched titles (favourites and likes count more), watched parts of the same film series, recent searches, TMDB rating and popularity, newer titles slightly first. New fields `MatchScore`, `Reason`, `Section`, `Minor`, `VoteAverage`, `CollectionId`, `CollectionName`. Little-known titles in sections with a vote threshold are `Minor` (web: under „Alle anzeigen“).
+
+### Fixed
+
+- Web module: long lists of world titles are loaded in chunks (very large worlds could exceed the URL length).
+
 ## [12.60.1] - 2026-11-04
 
 ### Changed

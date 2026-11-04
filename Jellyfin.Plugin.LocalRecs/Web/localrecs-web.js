@@ -2841,6 +2841,9 @@
         frame.appendChild(badge);
         card.appendChild(frame);
         card.title = item.Name + (entry.ReleaseText ? ' – ' + entry.ReleaseText : '') + ' (nicht in der Bibliothek)';
+        if (entry.Reason) {
+            card.appendChild(el('div', 'lr-card-sub lr-missing-reason', entry.Reason));
+        }
         onActivate(card, function () {
             openDiscoverTitle(item);
         });
@@ -2863,7 +2866,8 @@
         dialog.appendChild(hero);
         var controls = el('div', 'lr-world-controls');
         var filter = 'all';
-        var sort = 'year';
+        // Welten mit Abschnitten (wie die Marken-Kacheln bei Disney+) starten in der Abschnitts-Ansicht
+        var sort = world.HasSections ? 'sections' : 'year';
         var chips = el('div', 'lr-chips');
         [['all', 'Alle'], ['movies', 'Filme'], ['series', 'Serien']].forEach(function (pair) {
             var chip = button('lr-chip' + (pair[0] === filter ? ' lr-chip-on' : ''), null, pair[1], function () {
@@ -2897,6 +2901,10 @@
         var chronology = world.Chronology && world.Chronology.length ? world.Chronology : null;
         // Fehlende Titel der Welt (nur mit Jellyseerr über Jellyfin Enhanced): abgedunkelt mit „Fehlt“, zum Anfragen
         var missing = null;
+        var missingAllowed = false;
+        if (world.HasSections) {
+            sortOptions.unshift(['sections', 'Nach Abschnitten']);
+        }
         if (chronology) {
             sortOptions.push(['chrono', 'Chronologisch (Handlungszeit)']);
         }
@@ -2913,6 +2921,100 @@
         dialog.appendChild(controls);
         var grid = el('div', 'lr-grid lr-world-grid');
         dialog.appendChild(grid);
+
+        // Jellyfin-Titel in Portionen laden (lange ID-Listen sprengen sonst die Adresslänge), Reihenfolge bleibt
+        function fetchItems(ids) {
+            var chunks = [];
+            for (var n = 0; n < ids.length; n += 80) {
+                chunks.push(ids.slice(n, n + 80));
+            }
+            return Promise.all(chunks.map(function (chunk) {
+                return getJson(itemsQuery('Items?Ids=' + chunk.join(',')));
+            })).then(function (results) {
+                var byId = {};
+                results.forEach(function (result) {
+                    itemsOf(result).forEach(function (i) {
+                        byId[i.Id] = i;
+                    });
+                });
+                return byId;
+            });
+        }
+
+        function typeFits(isMovie) {
+            return filter === 'all' || (filter === 'movies') === isMovie;
+        }
+
+        // Fehlende Titel: persönlich sortiert vom Server; wenig bekannte erst über „Alle anzeigen“
+        function appendMissing(list) {
+            var shown = list.filter(function (d) {
+                return !d.Minor && typeFits(d.MediaType === 'movie');
+            });
+            var minor = list.filter(function (d) {
+                return d.Minor && typeFits(d.MediaType === 'movie');
+            });
+            shown.forEach(function (d) {
+                grid.appendChild(missingCard(d));
+            });
+            if (minor.length) {
+                var more = button('lr-btn-link lr-world-more', 'expand_more', 'Alle anzeigen (' + minor.length + ' weitere)', function () {
+                    minor.forEach(function (d) {
+                        grid.insertBefore(missingCard(d), more);
+                    });
+                    more.remove();
+                });
+                grid.appendChild(more);
+            }
+            return shown.length + minor.length;
+        }
+
+        // Abschnitte: Titel der Bibliothek (neueste zuerst), dahinter die fehlenden des Abschnitts
+        function loadSections() {
+            grid.innerHTML = '';
+            grid.appendChild(el('div', 'lr-spinner'));
+            getJson('LocalRecs/Worlds/' + world.Id + '/Sections').then(function (result) {
+                var sections = (result && result.Sections) || [];
+                var ids = [];
+                sections.forEach(function (section) {
+                    ids = ids.concat(section.ItemIds);
+                });
+                return fetchItems(ids).then(function (byId) {
+                    grid.innerHTML = '';
+                    var all = [];
+                    var shown = 0;
+                    sections.forEach(function (section) {
+                        var items = section.ItemIds.map(function (id) {
+                            return byId[id];
+                        }).filter(Boolean);
+                        all = all.concat(items);
+                        items = items.filter(function (item) {
+                            return typeFits(item.Type === 'Movie');
+                        });
+                        var absent = missingAllowed && result.MissingEnabled ? section.Missing : [];
+                        if (!items.length && !absent.some(function (d) {
+                            return typeFits(d.MediaType === 'movie');
+                        })) {
+                            return;
+                        }
+                        grid.appendChild(el('h3', 'lr-world-section', section.Title));
+                        items.forEach(function (item) {
+                            grid.appendChild(posterCard(item));
+                        });
+                        shown += items.length + appendMissing(absent);
+                    });
+                    if (filter === 'all' && !typesChecked) {
+                        typesChecked = true;
+                        showTypeChips(all);
+                    }
+                    if (!shown) {
+                        grid.appendChild(el('div', 'lr-empty', 'Keine Titel gefunden.'));
+                    }
+                });
+            }).catch(function () {
+                grid.innerHTML = '';
+                grid.appendChild(el('div', 'lr-empty', 'Die Welt konnte nicht geladen werden.'));
+            });
+        }
 
         function seasonText(seasons) {
             if (!seasons || !seasons.length) {
@@ -2991,6 +3093,10 @@
                 loadChronology();
                 return;
             }
+            if (sort === 'sections') {
+                loadSections();
+                return;
+            }
             grid.innerHTML = '';
             grid.appendChild(el('div', 'lr-spinner'));
             var query = 'LocalRecs/Worlds/' + world.Id + '/Items?limit=500&sort=' + sort + (filter !== 'all' ? '&type=' + filter : '');
@@ -3002,11 +3108,7 @@
                     return [];
                 }
                 // Titel über Jellyfin laden (Bilder, Benutzerdaten) und Reihenfolge der Welt beibehalten
-                return getJson(itemsQuery('Items?Ids=' + ids.join(','))).then(function (items) {
-                    var byId = {};
-                    itemsOf(items).forEach(function (i) {
-                        byId[i.Id] = i;
-                    });
+                return fetchItems(ids).then(function (byId) {
                     return ids.map(function (id) {
                         return byId[id];
                     }).filter(Boolean);
@@ -3023,15 +3125,13 @@
                 items.forEach(function (item) {
                     grid.appendChild(posterCard(item));
                 });
-                // Fehlende Titel hinter den vorhandenen
+                // Fehlende Titel hinter den vorhandenen (persönlich sortiert)
                 var absent = (missing ? missing.Items : []).filter(function (d) {
-                    return filter === 'all' || (filter === 'movies') === (d.MediaType === 'movie');
+                    return typeFits(d.MediaType === 'movie');
                 });
                 if (absent.length) {
                     grid.appendChild(el('h3', 'lr-world-section', 'Noch nicht in der Bibliothek'));
-                    absent.forEach(function (d) {
-                        grid.appendChild(missingCard(d));
-                    });
+                    appendMissing(absent);
                 }
             }).catch(function () {
                 grid.innerHTML = '';
@@ -3044,6 +3144,7 @@
             if (!usable) {
                 return null;
             }
+            missingAllowed = true;
             return getJson('LocalRecs/Worlds/' + world.Id + '/Missing').then(function (result) {
                 if (!result || !result.Enabled || !result.Items || !result.Items.length) {
                     return;
@@ -3363,6 +3464,7 @@
                 Providers: entry.Providers || [],
                 TrailerKey: entry.TrailerKey,
                 TrailerLanguage: entry.TrailerLanguage,
+                Reason: entry.Reason,
                 JellyfinId: entry.JellyfinId
             }
         };
@@ -3382,6 +3484,9 @@
         body.appendChild(el('h2', 'lr-cal-title', item.Name + (item.ProductionYear ? ' (' + item.ProductionYear + ')' : '')));
         if (info.ReleaseText) {
             body.appendChild(el('p', 'lr-upcoming-label', info.ReleaseText));
+        }
+        if (info.Reason) {
+            body.appendChild(el('p', 'lr-cal-text lr-missing-reason', info.Reason));
         }
         var facts = [];
         if (info.Genres.length) {

@@ -1,0 +1,200 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using Jellyfin.Data.Enums;
+using Jellyfin.Database.Implementations.Entities;
+using Jellyfin.Database.Implementations.Enums;
+using Jellyfin.Plugin.LocalRecs.Behavior;
+using Jellyfin.Plugin.LocalRecs.Discover;
+using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.TV;
+using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.Entities;
+
+namespace Jellyfin.Plugin.LocalRecs.Worlds
+{
+    /// <summary>
+    /// Sortiert fehlende Titel einer Welt persönlich: Genres des Gesehenen (Favoriten und „Gefällt mir“ zählen mehr),
+    /// gesehene Teile derselben Filmreihe, Suchbegriffe, dazu TMDB-Bewertung und -Beliebtheit; neuere Titel leicht vorn.
+    /// Das Profil eines Benutzers wird 10 Minuten zwischengespeichert; die TMDB-Daten liegen global im DiscoverService.
+    /// </summary>
+    public class MissingRanker
+    {
+        private const int MaxPlayed = 300;
+        private static readonly TimeSpan ProfileLifetime = TimeSpan.FromMinutes(10);
+        private static readonly TimeSpan SearchWindow = TimeSpan.FromDays(60);
+
+        private readonly ILibraryManager _libraryManager;
+        private readonly IUserDataManager _userDataManager;
+        private readonly BehaviorStore? _behavior;
+        private readonly ConcurrentDictionary<Guid, (DateTime Created, TasteProfile Profile)> _profiles = new();
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MissingRanker"/> class.
+        /// </summary>
+        /// <param name="libraryManager">Library manager.</param>
+        /// <param name="userDataManager">User data manager.</param>
+        /// <param name="behavior">Search and view history, optional.</param>
+        public MissingRanker(ILibraryManager libraryManager, IUserDataManager userDataManager, BehaviorStore? behavior = null)
+        {
+            _libraryManager = libraryManager ?? throw new ArgumentNullException(nameof(libraryManager));
+            _userDataManager = userDataManager ?? throw new ArgumentNullException(nameof(userDataManager));
+            _behavior = behavior;
+        }
+
+        /// <summary>
+        /// Scores a title for a profile (0–1) and names the reason, e.g. „Weil du „Halloween“ gesehen hast“.
+        /// </summary>
+        /// <param name="item">The missing title.</param>
+        /// <param name="profile">The user's taste.</param>
+        /// <param name="today">Today.</param>
+        /// <returns>Score and reason (or null).</returns>
+        public static (double Score, string? Reason) Score(DiscoverItem item, TasteProfile profile, DateOnly today)
+        {
+            ArgumentNullException.ThrowIfNull(item);
+            ArgumentNullException.ThrowIfNull(profile);
+            var weights = item.Genres.Select(g => profile.Genres.TryGetValue(g, out var w) ? w : 0).ToList();
+            var genre = weights.Count == 0 ? 0 : (0.7 * weights.Max()) + (0.3 * weights.Average());
+            string? seenPart = null;
+            var series = item.CollectionId is int collection && profile.Collections.TryGetValue(collection, out seenPart) ? 1.0 : 0.0;
+            var searched = profile.SearchTerms.FirstOrDefault(t => Fits(t, item.Title) || (item.OriginalTitle != null && Fits(t, item.OriginalTitle)));
+            var quality = Math.Clamp((item.VoteAverage - 5) / 4, 0, 1) * Math.Min(1, Math.Log10(item.VoteCount + 1) / 4);
+            var popularity = Math.Min(1, Math.Log10(item.Popularity + 1) / 2.5);
+            var year = item.Year ?? today.Year;
+            var recency = Math.Clamp(1 - ((today.Year - year) / 40.0), 0, 1);
+            var upcoming = !item.Released && genre >= 0.3 ? 0.05 : 0;
+            var score = (0.40 * genre) + (0.25 * series) + (searched != null ? 0.20 : 0) + (0.15 * quality) + (0.10 * popularity) + (0.10 * recency) + upcoming;
+
+            string? reason = null;
+            if (seenPart != null)
+            {
+                reason = "Weil du „" + seenPart + "“ gesehen hast";
+            }
+            else if (searched != null)
+            {
+                reason = "Du hast nach „" + searched + "“ gesucht";
+            }
+            else if (genre >= 0.6)
+            {
+                var top = item.Genres.Where(g => profile.Genres.TryGetValue(g, out var w) && w >= 0.5).Take(2).ToList();
+                reason = top.Count > 0 ? "Passt zu deinen Genres: " + string.Join(", ", top) : null;
+            }
+
+            return (Math.Min(1, score), reason);
+        }
+
+        /// <summary>
+        /// Sets <see cref="DiscoverItem.MatchScore"/> and <see cref="DiscoverItem.Reason"/> and orders the titles: best fit first,
+        /// then by popularity.
+        /// </summary>
+        /// <param name="items">The missing titles.</param>
+        /// <param name="profile">The user's taste.</param>
+        /// <param name="today">Today.</param>
+        /// <returns>The ordered titles.</returns>
+        public static List<DiscoverItem> Rank(IEnumerable<DiscoverItem> items, TasteProfile profile, DateOnly today)
+        {
+            ArgumentNullException.ThrowIfNull(items);
+            var scored = new List<(DiscoverItem Item, double Score)>();
+            foreach (var item in items)
+            {
+                var (score, reason) = Score(item, profile, today);
+                item.MatchScore = (int)Math.Round(score * 100);
+                item.Reason = reason;
+                scored.Add((item, score));
+            }
+
+            return scored.OrderByDescending(x => x.Score).ThenByDescending(x => x.Item.Popularity).Select(x => x.Item).ToList();
+        }
+
+        /// <summary>
+        /// Gets the taste of a user (cached for 10 minutes).
+        /// </summary>
+        /// <param name="user">The user.</param>
+        /// <returns>The profile.</returns>
+        public TasteProfile GetProfile(User user)
+        {
+            ArgumentNullException.ThrowIfNull(user);
+            var now = DateTime.UtcNow;
+            if (_profiles.TryGetValue(user.Id, out var cached) && now - cached.Created < ProfileLifetime)
+            {
+                return cached.Profile;
+            }
+
+            var profile = BuildProfile(user, now);
+            _profiles[user.Id] = (now, profile);
+            return profile;
+        }
+
+        private static bool Fits(string term, string title)
+        {
+            var a = term.Trim().ToLowerInvariant();
+            var b = title.Trim().ToLowerInvariant();
+            return a.Length >= 4 && b.Length >= 4 && (b.Contains(a, StringComparison.Ordinal) || a.Contains(b, StringComparison.Ordinal));
+        }
+
+        private TasteProfile BuildProfile(User user, DateTime now)
+        {
+            var counts = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            var collections = new Dictionary<int, string>();
+            void Count(BaseItem item, double weight)
+            {
+                foreach (var genre in item.Genres ?? Array.Empty<string>())
+                {
+                    counts[genre] = counts.GetValueOrDefault(genre) + weight;
+                }
+            }
+
+            var movies = _libraryManager.GetItemList(new InternalItemsQuery(user)
+            {
+                IncludeItemTypes = new[] { BaseItemKind.Movie },
+                IsPlayed = true,
+                Recursive = true,
+                OrderBy = new[] { (ItemSortBy.DatePlayed, SortOrder.Descending) },
+                Limit = MaxPlayed
+            });
+            foreach (var movie in movies)
+            {
+                var data = _userDataManager.GetUserData(user, movie);
+                Count(movie, 1 + (data?.IsFavorite == true ? 1 : 0) + (data?.Likes == true ? 0.5 : 0) - (data?.Likes == false ? 1 : 0));
+                if (movie.ProviderIds.TryGetValue("TmdbCollection", out var raw) && int.TryParse(raw, NumberStyles.None, CultureInfo.InvariantCulture, out var collection))
+                {
+                    collections.TryAdd(collection, movie.Name);
+                }
+            }
+
+            var episodes = _libraryManager.GetItemList(new InternalItemsQuery(user)
+            {
+                IncludeItemTypes = new[] { BaseItemKind.Episode },
+                IsPlayed = true,
+                Recursive = true,
+                OrderBy = new[] { (ItemSortBy.DatePlayed, SortOrder.Descending) },
+                Limit = MaxPlayed
+            });
+            foreach (var group in episodes.OfType<Episode>().Where(e => e.SeriesId != Guid.Empty).GroupBy(e => e.SeriesId))
+            {
+                if (_libraryManager.GetItemById(group.Key) is Series show)
+                {
+                    var data = _userDataManager.GetUserData(user, show);
+                    Count(show, Math.Min(3, group.Count() / 3.0) + (data?.IsFavorite == true ? 1 : 0));
+                }
+            }
+
+            var max = counts.Count == 0 ? 1 : Math.Max(1, counts.Values.Max());
+            var genres = counts.Where(c => c.Value > 0).ToDictionary(c => c.Key, c => c.Value / max, StringComparer.OrdinalIgnoreCase);
+            var terms = _behavior == null || !_behavior.IsEnabled(user.Id)
+                ? new List<string>()
+                : _behavior.Get(user.Id).Searches.Where(s => now - s.At <= SearchWindow).Select(s => s.Term).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            return new TasteProfile(genres, collections, terms);
+        }
+
+        /// <summary>
+        /// Der Geschmack eines Benutzers für fehlende Titel.
+        /// </summary>
+        /// <param name="Genres">Genre → weight (0–1, most watched = 1).</param>
+        /// <param name="Collections">TMDB collection → title of a watched part.</param>
+        /// <param name="SearchTerms">Search terms of the last 60 days.</param>
+        public sealed record TasteProfile(IReadOnlyDictionary<string, double> Genres, IReadOnlyDictionary<int, string> Collections, IReadOnlyList<string> SearchTerms);
+    }
+}

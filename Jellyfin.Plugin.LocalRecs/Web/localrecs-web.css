@@ -3333,3 +3333,13 @@ body.lr-tidy-header #jellyfinEnhancedSettingsLink {
 .lr-missing-badge .lr-icon {
     font-size: 1.1em;
 }
+
+.lr-world-more {
+    grid-column: 1 / -1;
+    justify-self: start;
+}
+
+.lr-missing-reason {
+    font-size: 0.8em;
+    opacity: 0.8;
+}

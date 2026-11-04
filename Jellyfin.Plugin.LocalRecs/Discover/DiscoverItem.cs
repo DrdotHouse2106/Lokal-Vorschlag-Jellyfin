@@ -87,6 +87,27 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
         /// <summary>Gets or sets the position in the world's chronology (titles missing in a world), or null.</summary>
         public int? ChronologyIndex { get; set; }
 
+        /// <summary>Gets or sets the average TMDB rating (0–10).</summary>
+        public double VoteAverage { get; set; }
+
+        /// <summary>Gets or sets the TMDB collection (film series) of a movie, or null.</summary>
+        public int? CollectionId { get; set; }
+
+        /// <summary>Gets or sets the name of the TMDB collection, or null.</summary>
+        public string? CollectionName { get; set; }
+
+        /// <summary>Gets or sets the section of the world view (missing titles of worlds with sections), or null.</summary>
+        public string? Section { get; set; }
+
+        /// <summary>Gets or sets how well the title fits the user (0–100, missing titles of worlds), or null.</summary>
+        public int? MatchScore { get; set; }
+
+        /// <summary>Gets or sets why it fits, e.g. „Weil du „Halloween“ gesehen hast“, or null.</summary>
+        public string? Reason { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether the title is minor (few votes) and only shown under „Alle anzeigen“.</summary>
+        public bool Minor { get; set; }
+
         /// <summary>
         /// Creates a copy for one user (library state set per user).
         /// </summary>

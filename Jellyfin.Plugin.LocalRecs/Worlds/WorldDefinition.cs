@@ -64,6 +64,9 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         /// <summary>Gets or sets the order by in-story time (field "chronologie"), empty if the world has none.</summary>
         public IReadOnlyList<WorldChronologyEntry> Chronology { get; set; } = Array.Empty<WorldChronologyEntry>();
 
+        /// <summary>Gets or sets the sections of the normal world view in display order (field "abschnitte"), empty if none.</summary>
+        public IReadOnlyList<WorldSection> Sections { get; set; } = Array.Empty<WorldSection>();
+
         /// <summary>Gets or sets former IDs of the world (e.g. after a rename), still accepted in URLs.</summary>
         public IReadOnlyList<string> Aliases { get; set; } = Array.Empty<string>();
 
@@ -104,6 +107,7 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                     Logos = GetLogos(element),
                     Trailer = GetTrailer(element),
                     Chronology = GetChronology(element),
+                    Sections = GetSections(element),
                     Aliases = GetStrings(element, "aliase").Select(ToId).Where(a => a.Length > 0 && a != id).Distinct().ToList()
                 };
                 if (world.Studios.Count > 0 || world.Collections.Count > 0 || world.Includes.Count > 0)
@@ -353,9 +357,29 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                     Tvdb = GetString(v, "tvdb")?.Trim(),
                     Type = GetString(v, "typ")?.Trim().ToLowerInvariant(),
                     Collection = GetString(v, "sammlung")?.Trim(),
-                    Name = GetString(v, "name")?.Trim()
+                    Name = GetString(v, "name")?.Trim(),
+                    Section = GetString(v, "abschnitt")?.Trim()
                 })
                 .Where(t => !string.IsNullOrEmpty(t.Tmdb) || !string.IsNullOrEmpty(t.Imdb) || !string.IsNullOrEmpty(t.Tvdb) || !string.IsNullOrEmpty(t.Collection))
+                .ToList();
+        }
+
+        private static List<WorldSection> GetSections(JsonElement element)
+        {
+            if (!element.TryGetProperty("abschnitte", out var array) || array.ValueKind != JsonValueKind.Array)
+            {
+                return new List<WorldSection>();
+            }
+
+            return array.EnumerateArray()
+                .Where(v => v.ValueKind == JsonValueKind.Object && !string.IsNullOrWhiteSpace(GetString(v, "name")))
+                .Select(v => new WorldSection
+                {
+                    Name = GetString(v, "name")!.Trim(),
+                    MinMissingVotes = v.TryGetProperty("min_stimmen_fehlend", out var min) && min.ValueKind == JsonValueKind.Number && min.TryGetInt32(out var votes) ? votes : null
+                })
+                .GroupBy(x => x.Name, StringComparer.Ordinal)
+                .Select(g => g.First())
                 .ToList();
         }
 

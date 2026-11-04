@@ -28,6 +28,9 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         /// <summary>Gets the order by in-story time per world: sections and library titles (titles not in the library left out).</summary>
         public Dictionary<string, List<ChronologyItem>> Chronologies { get; } = new Dictionary<string, List<ChronologyItem>>();
 
+        /// <summary>Gets the section of each world member (library item → section name), only for worlds with sections.</summary>
+        public Dictionary<string, Dictionary<Guid, string>> SectionOf { get; } = new Dictionary<string, Dictionary<Guid, string>>();
+
         /// <summary>Gets the titles of each world's list that are not in the library (only with TMDB ID and known type).</summary>
         public Dictionary<string, List<MissingTitle>> Missing { get; } = new Dictionary<string, List<MissingTitle>>();
 
@@ -137,6 +140,22 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                     .Distinct()
                     .ToList();
 
+                // Abschnitte: Titel der Liste über ihren „abschnitt“, übrige Mitglieder (Studio, Sammlung) in den letzten Abschnitt
+                if (world.Sections.Count > 0)
+                {
+                    var names = world.Sections.Select(x => x.Name).ToHashSet(StringComparer.Ordinal);
+                    var fallback = world.Sections[^1].Name;
+                    var sectionOf = new Dictionary<Guid, string>();
+                    foreach (var id in sources.Keys)
+                    {
+                        var item = itemsById[id];
+                        var section = world.Includes.FirstOrDefault(r => r.Section != null && names.Contains(r.Section) && Matches(r, item))?.Section;
+                        sectionOf[id] = section ?? fallback;
+                    }
+
+                    result.SectionOf[world.Id] = sectionOf;
+                }
+
                 result.Sources[world.Id] = sources;
                 result.Members[world.Id] = sources.Keys.ToHashSet();
 
@@ -215,7 +234,10 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
             }
 
             var excluded = world.Excludes.Any(x => Same(x.Tmdb, reference.Tmdb) && (string.IsNullOrEmpty(x.Type) || x.FitsType(series)));
-            return excluded ? null : new MissingTitle(tmdb, series);
+            var section = world.Sections.Count == 0 ? null
+                : world.Sections.Any(x => x.Name == reference.Section) ? reference.Section
+                : world.Includes.FirstOrDefault(r => Same(r.Tmdb, reference.Tmdb) && r.FitsType(series) && r.Section != null)?.Section ?? world.Sections[^1].Name;
+            return excluded ? null : new MissingTitle(tmdb, series, section);
         }
 
         private static bool Same(string? a, string? b) =>
@@ -275,6 +297,7 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         /// </summary>
         /// <param name="TmdbId">TMDB ID.</param>
         /// <param name="Series">True for a series.</param>
-        public sealed record MissingTitle(int TmdbId, bool Series);
+        /// <param name="Section">Section of the world view, or null.</param>
+        public sealed record MissingTitle(int TmdbId, bool Series, string? Section = null);
     }
 }

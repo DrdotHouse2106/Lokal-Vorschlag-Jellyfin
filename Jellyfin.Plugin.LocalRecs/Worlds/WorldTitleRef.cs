@@ -25,6 +25,9 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         /// <summary>Gets or sets the title (only for readability).</summary>
         public string? Name { get; set; }
 
+        /// <summary>Gets or sets the section of the world view (field "abschnitt"), or null.</summary>
+        public string? Section { get; set; }
+
         /// <summary>
         /// Checks whether the type allows movies or series.
         /// </summary>

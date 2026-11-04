@@ -73,8 +73,16 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                 PosterPath = Text(root, "poster_path"),
                 BackdropPath = Text(root, "backdrop_path"),
                 Popularity = root.TryGetProperty("popularity", out var pop) && pop.ValueKind == JsonValueKind.Number ? pop.GetDouble() : 0,
-                VoteCount = root.TryGetProperty("vote_count", out var votes) && votes.ValueKind == JsonValueKind.Number ? votes.GetInt32() : 0
+                VoteCount = root.TryGetProperty("vote_count", out var votes) && votes.ValueKind == JsonValueKind.Number ? votes.GetInt32() : 0,
+                VoteAverage = root.TryGetProperty("vote_average", out var average) && average.ValueKind == JsonValueKind.Number ? average.GetDouble() : 0
             };
+            if (root.TryGetProperty("belongs_to_collection", out var collection) && collection.ValueKind == JsonValueKind.Object
+                && collection.TryGetProperty("id", out var collectionId) && collectionId.ValueKind == JsonValueKind.Number)
+            {
+                item.CollectionId = collectionId.GetInt32();
+                item.CollectionName = Text(collection, "name");
+            }
+
             item.PosterUrl = item.PosterPath == null ? null : ImageBase + "w342" + item.PosterPath;
             item.BackdropUrl = item.BackdropPath == null ? null : ImageBase + "w1280" + item.BackdropPath;
             if (root.TryGetProperty("genres", out var genres) && genres.ValueKind == JsonValueKind.Array)
