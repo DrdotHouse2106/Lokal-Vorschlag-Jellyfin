@@ -66,6 +66,29 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         private static PluginConfiguration Config => Plugin.Instance?.Configuration ?? new PluginConfiguration();
 
         /// <summary>
+        /// Gets a value indicating whether a missing title can be offered for requesting: no placeholder („Untitled …“ or
+        /// without a real name), a known date or year, and no short film (movies under 40 minutes – otherwise Disney and
+        /// Pixar would list endless shorts).
+        /// </summary>
+        /// <param name="item">The title from TMDB.</param>
+        /// <returns>True if it is shown.</returns>
+        public static bool IsRequestable(Discover.DiscoverItem item)
+        {
+            ArgumentNullException.ThrowIfNull(item);
+            if (string.IsNullOrWhiteSpace(item.Title) || System.Text.RegularExpressions.Regex.IsMatch(item.Title, @"^\s*untitled\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            {
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(item.ReleaseDate) && item.Year == null)
+            {
+                return false;
+            }
+
+            return item.MediaType == "tv" || item.RuntimeMinutes is not (> 0 and < 40);
+        }
+
+        /// <summary>
         /// Orders the worlds: recently watched first (most recent first), then by number of titles.
         /// </summary>
         /// <param name="worlds">Worlds with title count and last watched time.</param>
@@ -226,8 +249,9 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 ? await _discover!.GetTitlesAsync(missing.Select(m => (m.TmdbId, m.Series)).ToList(), cancellationToken).ConfigureAwait(false)
                 : Array.Empty<Discover.DiscoverItem>();
 
-            // Altersfreigabe wie bei den Entdecken-Reihen
+            // Nur anfragbare Titel (kein Platzhalter, mit Datum, kein Kurzfilm); Altersfreigabe wie bei den Entdecken-Reihen
             var byKey = details
+                .Where(IsRequestable)
                 .Where(d => (d.MediaType == "tv" ? new MediaBrowser.Controller.Entities.TV.Series { Name = d.Title, OfficialRating = d.OfficialRating } as BaseItem : new MediaBrowser.Controller.Entities.Movies.Movie { Name = d.Title, OfficialRating = d.OfficialRating }).IsParentalAllowed(user, true))
                 .GroupBy(d => (d.TmdbId, d.MediaType == "tv"))
                 .ToDictionary(g => g.Key, g => g.First());

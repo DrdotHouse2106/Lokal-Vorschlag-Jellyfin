@@ -73,6 +73,20 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
         }
 
         [Theory]
+        [InlineData("Untitled X-Men Film", "movie", "2028-05-05", 120, false)]
+        [InlineData("untitled Shang-Chi Sequel", "movie", null, null, false)]
+        [InlineData("Neuer Film ohne Termin", "movie", null, null, false)]
+        [InlineData("Lamp Life", "movie", "2020-01-31", 7, false)]
+        [InlineData("Bambi", "movie", "1942-08-13", 70, true)]
+        [InlineData("Star Wars: Ewoks", "tv", "1985-09-07", 22, true)]
+        [InlineData("Neuer Kinofilm", "movie", "2027-03-01", null, true)]
+        public void IsRequestable_NoPlaceholdersDatelessOrShorts(string title, string type, string? date, int? runtime, bool expected)
+        {
+            var item = new Jellyfin.Plugin.LocalRecs.Discover.DiscoverItem { Title = title, MediaType = type, ReleaseDate = date, RuntimeMinutes = runtime };
+            Jellyfin.Plugin.LocalRecs.Api.WorldsController.IsRequestable(item).Should().Be(expected);
+        }
+
+        [Theory]
         [InlineData(false, "2026-12-17", null, "2026-11-04", false, "Kinostart am Do. 17.12.")]
         [InlineData(false, "1979-12-07", null, "2026-11-04", true, "Erschienen 1979")]
         [InlineData(false, "2026-09-12", null, "2026-11-04", true, "Erschienen am 12.09.")]

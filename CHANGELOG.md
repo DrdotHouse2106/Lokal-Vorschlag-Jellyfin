@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.60.1] - 2026-11-04
+
+### Changed
+
+- Missing titles of worlds (`/LocalRecs/Worlds/{id}/Missing`): no placeholders („Untitled X-Men Film“), no titles without date or year, no short films (movies under 40 minutes) – so Disney and Pixar do not list endless shorts.
+
 ## [12.60.0] - 2026-11-04
 
 ### Added
