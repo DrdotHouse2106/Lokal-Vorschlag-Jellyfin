@@ -84,6 +84,9 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
         /// <summary>Gets or sets the popularity at TMDB (for ordering).</summary>
         public double Popularity { get; set; }
 
+        /// <summary>Gets or sets the position in the world's chronology (titles missing in a world), or null.</summary>
+        public int? ChronologyIndex { get; set; }
+
         /// <summary>
         /// Creates a copy for one user (library state set per user).
         /// </summary>

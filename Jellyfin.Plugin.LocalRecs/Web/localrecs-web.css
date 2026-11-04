@@ -3304,3 +3304,32 @@ body.lr-tidy-header #jellyfinEnhancedSettingsLink {
     font-size: 0.9em;
     opacity: 0.85;
 }
+
+/* Fehlende Titel einer Welt (nicht in der Bibliothek, anfragbar über Jellyseerr) */
+.lr-card-missing .lr-card-frame {
+    position: relative;
+}
+
+.lr-card-missing .lr-card-img,
+.lr-card-missing .lr-card-title {
+    opacity: 0.45;
+    filter: grayscale(0.6);
+}
+
+.lr-missing-badge {
+    position: absolute;
+    left: 0.4em;
+    bottom: 0.4em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    padding: 0.15em 0.5em;
+    border-radius: 1em;
+    font-size: 0.8em;
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+}
+
+.lr-missing-badge .lr-icon {
+    font-size: 1.1em;
+}

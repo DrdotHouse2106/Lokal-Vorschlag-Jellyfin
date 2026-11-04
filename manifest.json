@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.60.0.0",
+        "changelog": "Welten: fehlende Titel\n- Filme und Serien der Welt, die noch nicht in der Bibliothek sind, erscheinen als „Fehlt“ (auch in der Chronologie)\n- Anfragen über Jellyseerr und Trailer wie bei Entdecken\n- API /LocalRecs/Worlds/{id}/Missing für die Apps\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.60.0.zip",
+        "checksum": "95e7185f9255740ca6e9b293722bf546",
+        "timestamp": "2026-11-04T18:00:00Z"
+      },
+      {
         "version": "12.59.0.0",
         "changelog": "Sicherheit\n- Welt-Logos nur von erlaubten Hosts, keine lokalen Adressen, kein SVG, nosniff\n- Radarr-Bilder: keine Weiterleitungen, Größenlimit, nur Rasterbilder\n- Private Daten (Suchen, Erinnerungen, Kalender, Weniger davon) nur für den Benutzer selbst\n- Weniger davon: Längen- und Mengenlimits, Sichtbarkeit geprüft\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

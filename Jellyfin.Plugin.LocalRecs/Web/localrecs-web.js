@@ -2821,6 +2821,32 @@
 
     // ---------------------------------------------------------------- Welten-Seite
 
+    // Karte eines fehlenden Titels: Plakat abgedunkelt mit „Fehlt“, öffnet den Entdecken-Dialog (Stand, Anfragen, Trailer)
+    function missingCard(entry) {
+        var item = discoverEntry(entry);
+        var card = el('div', 'lr-card lr-card-poster lr-card-missing');
+        var frame = el('div', 'lr-card-frame lr-poster');
+        if (item.LrPoster) {
+            var img = el('img', 'lr-card-img');
+            img.loading = 'lazy';
+            img.alt = item.Name;
+            img.src = item.LrPoster;
+            frame.appendChild(img);
+        } else {
+            frame.appendChild(el('div', 'lr-card-title', item.Name));
+        }
+        var badge = el('span', 'lr-missing-badge');
+        badge.appendChild(icon('add_circle_outline'));
+        badge.appendChild(el('span', null, 'Fehlt'));
+        frame.appendChild(badge);
+        card.appendChild(frame);
+        card.title = item.Name + (entry.ReleaseText ? ' – ' + entry.ReleaseText : '') + ' (nicht in der Bibliothek)';
+        onActivate(card, function () {
+            openDiscoverTitle(item);
+        });
+        return card;
+    }
+
     function openWorld(world) {
         var dialog = overlayShell('lr-world-page');
         var heroItem = { Id: world.ImageItemId || '', Name: world.Name, Type: 'World', TrailerId: world.TrailerId };
@@ -2869,6 +2895,8 @@
         var sortOptions = [['year', 'Neueste zuerst'], ['year-asc', 'Älteste zuerst'], ['added', 'Neu hinzugefügt'], ['rating', 'Bewertung'], ['name', 'Name']];
         // Handlungszeit nur, wenn die Welt eine Chronologie mitbringt
         var chronology = world.Chronology && world.Chronology.length ? world.Chronology : null;
+        // Fehlende Titel der Welt (nur mit Jellyseerr über Jellyfin Enhanced): abgedunkelt mit „Fehlt“, zum Anfragen
+        var missing = null;
         if (chronology) {
             sortOptions.push(['chrono', 'Chronologisch (Handlungszeit)']);
         }
@@ -2907,7 +2935,12 @@
             grid.innerHTML = '';
             grid.appendChild(el('div', 'lr-spinner'));
             var ids = [];
-            chronology.forEach(function (entry) {
+            var entries = missing && missing.Chronology && missing.Chronology.length ? missing.Chronology : chronology;
+            var missingByKey = {};
+            (missing ? missing.Items : []).forEach(function (d) {
+                missingByKey[d.MediaType + '-' + d.TmdbId] = d;
+            });
+            entries.forEach(function (entry) {
                 if (entry.ItemId && ids.indexOf(entry.ItemId) < 0) {
                     ids.push(entry.ItemId);
                 }
@@ -2921,20 +2954,22 @@
                 grid.innerHTML = '';
                 var pendingSection = null;
                 var shown = 0;
-                chronology.forEach(function (entry) {
-                    if (!entry.ItemId) {
-                        pendingSection = entry.Section || null;
+                entries.forEach(function (entry) {
+                    if (entry.Section) {
+                        pendingSection = entry.Section;
                         return;
                     }
-                    var item = byId[entry.ItemId];
-                    if (!item || (filter === 'movies' && item.Type !== 'Movie') || (filter === 'series' && item.Type !== 'Series')) {
+                    var absent = entry.Missing ? missingByKey[entry.MediaType + '-' + entry.TmdbId] : null;
+                    var item = absent ? null : byId[entry.ItemId];
+                    var isMovie = absent ? absent.MediaType === 'movie' : item && item.Type === 'Movie';
+                    if ((!item && !absent) || (filter === 'movies' && !isMovie) || (filter === 'series' && isMovie)) {
                         return;
                     }
                     if (pendingSection) {
                         grid.appendChild(el('h3', 'lr-world-section', pendingSection));
                         pendingSection = null;
                     }
-                    var card = posterCard(item);
+                    var card = absent ? missingCard(absent) : posterCard(item);
                     var caption = [entry.Label, seasonText(entry.Seasons)].filter(Boolean).join(' · ');
                     if (caption) {
                         card.appendChild(el('div', 'lr-card-sub lr-chrono-label', caption));
@@ -2988,6 +3023,16 @@
                 items.forEach(function (item) {
                     grid.appendChild(posterCard(item));
                 });
+                // Fehlende Titel hinter den vorhandenen
+                var absent = (missing ? missing.Items : []).filter(function (d) {
+                    return filter === 'all' || (filter === 'movies') === (d.MediaType === 'movie');
+                });
+                if (absent.length) {
+                    grid.appendChild(el('h3', 'lr-world-section', 'Noch nicht in der Bibliothek'));
+                    absent.forEach(function (d) {
+                        grid.appendChild(missingCard(d));
+                    });
+                }
             }).catch(function () {
                 grid.innerHTML = '';
                 grid.appendChild(el('div', 'lr-empty', 'Die Welt konnte nicht geladen werden.'));
@@ -2995,6 +3040,24 @@
         }
 
         load();
+        seerrUsable().then(function (usable) {
+            if (!usable) {
+                return null;
+            }
+            return getJson('LocalRecs/Worlds/' + world.Id + '/Missing').then(function (result) {
+                if (!result || !result.Enabled || !result.Items || !result.Items.length) {
+                    return;
+                }
+                missing = result;
+                var meta = hero.querySelector('.lr-hero-meta');
+                if (meta) {
+                    meta.textContent = world.ItemCount + ' Titel · ' + result.Items.length + ' ' + (result.Items.length === 1 ? 'fehlt' : 'fehlen');
+                }
+                load();
+            });
+        }).catch(function (err) {
+            diagStep('Fehlende Titel der Welt nicht abrufbar: ' + errorText(err), false, true);
+        });
     }
 
     // ---------------------------------------------------------------- Daten der Startseite

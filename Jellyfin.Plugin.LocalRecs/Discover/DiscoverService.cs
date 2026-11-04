@@ -67,6 +67,7 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
         private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _send;
         private readonly SemaphoreSlim _refresh = new SemaphoreSlim(1, 1);
         private readonly System.Collections.Concurrent.ConcurrentDictionary<(bool Series, int Id), (DateTime ValidUntil, string? Key, string? Name, string? Language)> _kinoCheck = new();
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<(int TmdbId, bool Series), (DateTime ValidUntil, DiscoverItem? Item)> _titles = new();
         private (string Signature, DateTime ValidUntil, IReadOnlyList<Row> Rows)? _snapshot;
 
         /// <summary>
@@ -151,6 +152,101 @@ namespace Jellyfin.Plugin.LocalRecs.Discover
                 .Select(r => r.Item)
                 .DistinctBy(i => i.TmdbId)
                 .Take(MaxItems)
+                .ToList();
+        }
+
+        /// <summary>
+        /// Sets date, „Released“ and the line of a single title (e.g. missing in a world): German cinema start in the
+        /// future „Kinostart am …“; otherwise the German release (series: first air date) – this year „Erschienen am 12.09.“
+        /// / „Erscheint am …“, earlier years „Erschienen 1979“ / „Serie seit 1987“.
+        /// </summary>
+        /// <param name="item">The title.</param>
+        /// <param name="releases">Release dates.</param>
+        /// <param name="series">True for a series.</param>
+        /// <param name="today">Today.</param>
+        public static void ApplyRelease(DiscoverItem item, IReadOnlyList<(int Type, DateOnly Date)> releases, bool series, DateOnly today)
+        {
+            ArgumentNullException.ThrowIfNull(item);
+            ArgumentNullException.ThrowIfNull(releases);
+            var cinema = series ? null : TmdbDiscover.CinemaStart(releases);
+            var day = series ? releases.Where(r => r.Type == 0).Select(r => (DateOnly?)r.Date).FirstOrDefault() : TmdbDiscover.LocalRelease(releases);
+            if (cinema is DateOnly start && start > today)
+            {
+                item.ReleaseDate = start.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                item.Released = false;
+                item.ReleaseText = UpcomingService.Label(UpcomingEntry.Cinema, start, today);
+                return;
+            }
+
+            if (day is not DateOnly date)
+            {
+                item.Released = item.Year is int year && year < today.Year;
+                item.ReleaseText = item.Released && item.Year != null ? (series ? "Serie seit " : "Erschienen ") + item.Year : string.Empty;
+                return;
+            }
+
+            item.ReleaseDate = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            item.Released = date <= today;
+            item.ReleaseText = date.Year == today.Year || date > today
+                ? TmdbDiscover.NewText(date, today, series)
+                : (series ? "Serie seit " : "Erschienen ") + date.Year.ToString(CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Gets single titles from TMDB with the same fields as the discover rows (German title and overview, date and line,
+        /// FSK, genres, runtime, providers, German trailer incl. KinoCheck). Each title is remembered 24 hours (failures 1 hour),
+        /// so TMDB is not asked on every request. Without TMDB key: empty. Returns copies (library state is set by the caller).
+        /// </summary>
+        /// <param name="titles">TMDB IDs with type.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The titles found, in the given order.</returns>
+        public async Task<IReadOnlyList<DiscoverItem>> GetTitlesAsync(IReadOnlyList<(int TmdbId, bool Series)> titles, CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(titles);
+            var (key, _) = ExternalSimilarityService.ResolveTmdbKeyWithSource(Config);
+            if (string.IsNullOrEmpty(key) || titles.Count == 0)
+            {
+                return Array.Empty<DiscoverItem>();
+            }
+
+            var server = _serverConfig?.Configuration;
+            var country = string.IsNullOrWhiteSpace(server?.MetadataCountryCode) ? "DE" : server!.MetadataCountryCode.ToUpperInvariant();
+            var language = (string.IsNullOrWhiteSpace(server?.PreferredMetadataLanguage) ? "de" : server!.PreferredMetadataLanguage) + "-" + country;
+            var today = DateOnly.FromDateTime(DateTime.UtcNow.AddMinutes(Behavior.BehaviorService.ResolveOffset(null)));
+            var now = DateTime.UtcNow;
+            var wanted = titles.Distinct().ToList();
+            var fresh = wanted.Where(t => !_titles.TryGetValue(t, out var hit) || hit.ValidUntil <= now).ToList();
+            if (fresh.Count > 0)
+            {
+                var fetched = new List<DiscoverItem>();
+                await InParallel(fresh, 4, async title =>
+                {
+                    var append = title.Series ? "content_ratings,videos,watch/providers" : "release_dates,videos,watch/providers";
+                    var (json, gone) = await GetAsync(key, (title.Series ? "tv/" : "movie/") + title.TmdbId.ToString(CultureInfo.InvariantCulture) + "?language=" + language + "&append_to_response=" + append + "&include_video_language=" + language.Split('-')[0] + ",en", cancellationToken).ConfigureAwait(false);
+                    var parsed = json == null ? null : TmdbDiscover.ParseDetails(json, title.Series, country);
+                    if (parsed is { } detail)
+                    {
+                        ApplyRelease(detail.Item, detail.Releases, title.Series, today);
+                        lock (fetched)
+                        {
+                            fetched.Add(detail.Item);
+                        }
+                    }
+
+                    _titles[title] = (DateTime.UtcNow.Add(parsed != null || gone ? TimeSpan.FromHours(24) : TimeSpan.FromHours(1)), parsed?.Item);
+                    return (bool?)true;
+                }).ConfigureAwait(false);
+
+                if (Config.DiscoverKinoCheck)
+                {
+                    await GermanTrailersAsync(fetched, cancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            return wanted
+                .Select(t => _titles.TryGetValue(t, out var hit) ? hit.Item : null)
+                .Where(i => i != null)
+                .Select(i => i!.Copy())
                 .ToList();
         }
 

@@ -173,6 +173,14 @@
                             <div class="fieldDescription checkboxFieldDescription">Hat TMDB zu einem Titel nur fremdsprachige Trailer, wird bei KinoCheck (api.kinocheck.de) nach einem deutschen Trailer gesucht. Gesendet wird nur die TMDB-ID des Titels (KinoCheck speichert die IP-Adresse des Servers 60 Tage); Antworten werden 24 Stunden zwischengespeichert.</div>
                         </div>
 
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="worldsShowMissing" />
+                                <span>Welten: fehlende Titel zeigen</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Filme und Serien der Welten-Liste, die noch nicht in der Bibliothek sind, erscheinen auf der Welt-Seite als „fehlt“ (auch an ihrer Stelle in der Chronologie) – zum Anfragen über Jellyseerr. Die Apps zeigen sie nur, wenn Jellyseerr (über Jellyfin Enhanced) für den Benutzer eingerichtet ist. Braucht einen TMDB-Schlüssel; Angaben werden 24 Stunden zwischengespeichert.</div>
+                        </div>
+
                         <h3>Demnächst (Sonarr und Radarr)</h3>
                         <div class="checkboxContainer checkboxContainer-withDescription">
                             <label>
@@ -1368,6 +1376,7 @@
                             page.querySelector('#enableUpcoming').checked = config.EnableUpcoming !== false;
                             page.querySelector('#enableDiscoverRows').checked = config.EnableDiscoverRows !== false;
                             page.querySelector('#discoverKinoCheck').checked = config.DiscoverKinoCheck !== false;
+                            page.querySelector('#worldsShowMissing').checked = config.WorldsShowMissing !== false;
                             page.querySelector('#sonarrUrl').value = config.SonarrUrl || '';
                             page.querySelector('#sonarrApiKey').value = config.SonarrApiKey || '';
                             page.querySelector('#radarrUrl').value = config.RadarrUrl || '';
@@ -1518,6 +1527,7 @@
                             config.EnableUpcoming = page.querySelector('#enableUpcoming').checked;
                             config.EnableDiscoverRows = page.querySelector('#enableDiscoverRows').checked;
                             config.DiscoverKinoCheck = page.querySelector('#discoverKinoCheck').checked;
+                            config.WorldsShowMissing = page.querySelector('#worldsShowMissing').checked;
                             config.SonarrUrl = page.querySelector('#sonarrUrl').value.trim();
                             config.SonarrApiKey = page.querySelector('#sonarrApiKey').value.trim();
                             config.RadarrUrl = page.querySelector('#radarrUrl').value.trim();

@@ -37,6 +37,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         private readonly IDtoService _dtoService;
         private readonly WorldListSource _listSource;
         private readonly WorldLogoService _logos;
+        private readonly Discover.DiscoverService? _discover;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WorldsController"/> class.
@@ -48,9 +49,11 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         /// <param name="dtoService">DTO service.</param>
         /// <param name="listSource">Maintained world list.</param>
         /// <param name="logos">World logos.</param>
+        /// <param name="discover">TMDB titles for missing titles, optional.</param>
         /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
-        public WorldsController(WorldService worlds, RecommendationStore store, IUserManager userManager, ILibraryManager libraryManager, IDtoService dtoService, WorldListSource listSource, WorldLogoService logos)
+        public WorldsController(WorldService worlds, RecommendationStore store, IUserManager userManager, ILibraryManager libraryManager, IDtoService dtoService, WorldListSource listSource, WorldLogoService logos, Discover.DiscoverService? discover = null)
         {
+            _discover = discover;
             _logos = logos ?? throw new ArgumentNullException(nameof(logos));
             _listSource = listSource ?? throw new ArgumentNullException(nameof(listSource));
             _worlds = worlds ?? throw new ArgumentNullException(nameof(worlds));
@@ -187,6 +190,64 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             var page = all.Skip(Math.Max(0, startIndex ?? 0)).Take(Math.Clamp(limit ?? 100, 1, 500)).ToList();
             var result = ToResult(user, page);
             return Ok(new QueryResult<BaseItemDto>(startIndex, all.Count, result.Items));
+        }
+
+        /// <summary>
+        /// Gets the titles of the world list that are not in the library (with TMDB data like the discover rows: German
+        /// title, line, FSK, genres, providers, German trailer), for requesting via Jellyseerr. Titles above the user's
+        /// parental rating are left out. <c>Chronology</c> is the world's in-universe order with the missing titles at
+        /// their place (<c>Missing: true</c>); every entry has its <c>Index</c>, each missing title its <c>ChronologyIndex</c>.
+        /// </summary>
+        /// <param name="worldId">World ID.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The missing titles; <c>Enabled</c> is false if switched off.</returns>
+        [HttpGet("{worldId}/Missing")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async System.Threading.Tasks.Task<ActionResult<MissingResult>> GetMissing([FromRoute] string worldId, System.Threading.CancellationToken cancellationToken)
+        {
+            var user = CurrentUser();
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            var membership = _worlds.GetMembership();
+            var world = membership.Worlds.FirstOrDefault(w => w.HasId(worldId));
+            if (world == null)
+            {
+                return NotFound();
+            }
+
+            var accessible = _worlds.AccessibleItems(user);
+            var missing = membership.Missing.TryGetValue(world.Id, out var list) ? list : new List<WorldMembership.MissingTitle>();
+            var enabled = Config.WorldsShowMissing && _discover != null;
+            var details = enabled && missing.Count > 0
+                ? await _discover!.GetTitlesAsync(missing.Select(m => (m.TmdbId, m.Series)).ToList(), cancellationToken).ConfigureAwait(false)
+                : Array.Empty<Discover.DiscoverItem>();
+
+            // Altersfreigabe wie bei den Entdecken-Reihen
+            var byKey = details
+                .Where(d => (d.MediaType == "tv" ? new MediaBrowser.Controller.Entities.TV.Series { Name = d.Title, OfficialRating = d.OfficialRating } as BaseItem : new MediaBrowser.Controller.Entities.Movies.Movie { Name = d.Title, OfficialRating = d.OfficialRating }).IsParentalAllowed(user, true))
+                .GroupBy(d => (d.TmdbId, d.MediaType == "tv"))
+                .ToDictionary(g => g.Key, g => g.First());
+
+            var chronology = BuildMissingChronology(membership, world.Id, accessible.Keys.ToHashSet(), byKey);
+            foreach (var entry in chronology ?? new List<MissingChronologyEntry>())
+            {
+                if (entry.TmdbId is int tmdb && byKey.TryGetValue((tmdb, entry.MediaType == "tv"), out var item) && item.ChronologyIndex == null)
+                {
+                    item.ChronologyIndex = entry.Index;
+                }
+            }
+
+            // Reihenfolge: nach Chronologie, sonst nach Jahr
+            var items = byKey.Values
+                .OrderBy(i => i.ChronologyIndex ?? int.MaxValue)
+                .ThenBy(i => i.Year ?? int.MaxValue)
+                .ThenBy(i => i.Title, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            return new MissingResult { Enabled = enabled, Items = items, Chronology = chronology };
         }
 
         /// <summary>
@@ -334,6 +395,57 @@ namespace Jellyfin.Plugin.LocalRecs.Api
 
         private static DateTime? ReleaseDate(BaseItem item) =>
             item.PremiereDate ?? (item.ProductionYear is int year and > 0 ? new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Utc) : null);
+
+        // Chronologie mit vorhandenen (sichtbaren) und fehlenden Titeln, jeder Eintrag mit Index; Abschnitte ohne Titel fallen weg
+        private static List<MissingChronologyEntry>? BuildMissingChronology(
+            WorldMembership membership,
+            string worldId,
+            HashSet<Guid> visible,
+            Dictionary<(int TmdbId, bool Series), Discover.DiscoverItem> missing)
+        {
+            if (!membership.Chronologies.TryGetValue(worldId, out var chronology))
+            {
+                return null;
+            }
+
+            var result = new List<MissingChronologyEntry>();
+            string? pendingSection = null;
+            foreach (var entry in chronology)
+            {
+                if (entry.Section != null)
+                {
+                    pendingSection = entry.Section;
+                    continue;
+                }
+
+                MissingChronologyEntry? title = null;
+                var seasons = entry.Seasons.Count > 0 ? entry.Seasons.ToList() : null;
+                if (entry.ItemId is Guid id && visible.Contains(id))
+                {
+                    title = new MissingChronologyEntry { ItemId = id.ToString("N"), Label = entry.Label, Seasons = seasons };
+                }
+                else if (entry.Missing is { } absent && missing.ContainsKey((absent.TmdbId, absent.Series)))
+                {
+                    title = new MissingChronologyEntry { Missing = true, TmdbId = absent.TmdbId, MediaType = absent.Series ? "tv" : "movie", Label = entry.Label, Seasons = seasons };
+                }
+
+                if (title == null)
+                {
+                    continue;
+                }
+
+                if (pendingSection != null)
+                {
+                    result.Add(new MissingChronologyEntry { Index = result.Count, Section = pendingSection });
+                    pendingSection = null;
+                }
+
+                title.Index = result.Count;
+                result.Add(title);
+            }
+
+            return result.Count > 0 ? result : null;
+        }
 
         private AdminTitle? ToAdminTitle(WorldMembership membership, Guid itemId, string reason)
         {
@@ -523,6 +635,50 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             /// The order of the list is the story order; a series may appear several times with different seasons.
             /// </summary>
             public List<ChronologyEntry>? Chronology { get; set; }
+        }
+
+        /// <summary>Titles of a world that are not in the library.</summary>
+        public class MissingResult
+        {
+            /// <summary>Gets or sets a value indicating whether the feature is switched on (setting „Welten: fehlende Titel zeigen“).</summary>
+            public bool Enabled { get; set; }
+
+            /// <summary>Gets or sets the missing titles (same fields as the discover rows, plus <c>ChronologyIndex</c>).</summary>
+            public IReadOnlyList<Discover.DiscoverItem> Items { get; set; } = Array.Empty<Discover.DiscoverItem>();
+
+            /// <summary>Gets or sets the in-universe order with present and missing titles, or null.</summary>
+            public IReadOnlyList<MissingChronologyEntry>? Chronology { get; set; }
+
+            /// <summary>Gets the number of missing titles.</summary>
+            public int TotalRecordCount => Items.Count;
+        }
+
+        /// <summary>An entry of the chronology with missing titles: section, library title or missing title.</summary>
+        public class MissingChronologyEntry
+        {
+            /// <summary>Gets or sets the position in the list (0-based).</summary>
+            public int Index { get; set; }
+
+            /// <summary>Gets or sets the section heading (only for sections).</summary>
+            public string? Section { get; set; }
+
+            /// <summary>Gets or sets the Jellyfin ID (titles in the library).</summary>
+            public string? ItemId { get; set; }
+
+            /// <summary>Gets or sets a value indicating whether the title is missing in the library.</summary>
+            public bool Missing { get; set; }
+
+            /// <summary>Gets or sets the TMDB ID (missing titles).</summary>
+            public int? TmdbId { get; set; }
+
+            /// <summary>Gets or sets the media type „movie“ or „tv“ (missing titles).</summary>
+            public string? MediaType { get; set; }
+
+            /// <summary>Gets or sets the time label, e.g. „2151“.</summary>
+            public string? Label { get; set; }
+
+            /// <summary>Gets or sets the seasons (series), null for the whole series.</summary>
+            public List<int>? Seasons { get; set; }
         }
 
         /// <summary>

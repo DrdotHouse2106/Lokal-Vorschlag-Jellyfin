@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using Jellyfin.Plugin.LocalRecs.Worlds;
@@ -34,7 +35,7 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
         }
 
         [Fact]
-        public void Compute_MapsToLibraryItems_SeriesMayRepeat_MissingTitlesLeftOut()
+        public void Compute_MapsToLibraryItems_SeriesMayRepeat_MissingTitlesKeepTheirPlace()
         {
             var worlds = WorldDefinition.ParseJson(Json);
             var enterprise = new WorldMembership.LibraryEntry { Id = Guid.NewGuid(), IsSeries = true, Tmdb = "314" };
@@ -44,13 +45,56 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             var membership = WorldMembership.Compute(worlds, new[] { wrongType, enterprise, discovery, kelvin }, Array.Empty<WorldMembership.CollectionEntry>());
 
             var chronology = membership.Chronologies[worlds[0].Id];
-            chronology.Select(c => c.Section ?? c.Label).Should().Equal("Hauptzeitlinie", "2151", "2256–2258", "Kelvin-Zeitlinie (alternativ)", "2258", "3188");
+            chronology.Select(c => c.Section ?? c.Label).Should().Equal("Hauptzeitlinie", "2151", "2256–2258", "Kelvin-Zeitlinie (alternativ)", "2258", "nicht vorhanden", "3188");
             chronology[1].ItemId.Should().Be(enterprise.Id, "der Typ muss passen (Serie, nicht der Film mit derselben TMDB-ID)");
             chronology[2].ItemId.Should().Be(discovery.Id);
-            chronology[5].ItemId.Should().Be(discovery.Id);
-            chronology[5].Seasons.Should().Equal(3, 4, 5);
+            chronology[5].ItemId.Should().BeNull("fehlt in der Bibliothek");
+            chronology[5].Missing.Should().Be(new WorldMembership.MissingTitle(999999, false));
+            chronology[6].ItemId.Should().Be(discovery.Id);
+            chronology[6].Seasons.Should().Equal(3, 4, 5);
             chronology[4].Seasons.Should().BeEmpty("Filme haben keine Staffeln");
             membership.Chronologies.Should().NotContainKey(worlds[1].Id);
+                }
+
+        [Fact]
+        public void Missing_OnlyListTitlesNotInLibrary_WithTmdbAndType_NotExcluded()
+        {
+            const string json = "{\"welten\":[{\"name\":\"Star Trek\","
+                + "\"titel\":[{\"tmdb\":\"314\",\"typ\":\"serie\"},{\"tmdb\":\"152\",\"typ\":\"film\"},{\"tmdb\":\"67198\",\"typ\":\"serie\"},"
+                + "{\"tmdb\":\"500\",\"typ\":\"film\"},{\"imdb\":\"tt0000001\",\"typ\":\"film\"},{\"tmdb\":\"777\"}],"
+                + "\"ausschluss\":[{\"tmdb\":\"500\",\"typ\":\"film\"}]}]}";
+            var worlds = WorldDefinition.ParseJson(json);
+            var enterprise = new WorldMembership.LibraryEntry { Id = Guid.NewGuid(), IsSeries = true, Tmdb = "314" };
+            var membership = WorldMembership.Compute(worlds, new[] { enterprise }, Array.Empty<WorldMembership.CollectionEntry>());
+
+            membership.Missing[worlds[0].Id].Should().Equal(
+                new WorldMembership.MissingTitle(152, false),
+                new WorldMembership.MissingTitle(67198, true));
+        }
+
+        [Theory]
+        [InlineData(false, "2026-12-17", null, "2026-11-04", false, "Kinostart am Do. 17.12.")]
+        [InlineData(false, "1979-12-07", null, "2026-11-04", true, "Erschienen 1979")]
+        [InlineData(false, "2026-09-12", null, "2026-11-04", true, "Erschienen am 12.09.")]
+        [InlineData(true, null, "1987-09-28", "2026-11-04", true, "Serie seit 1987")]
+        [InlineData(true, null, "2027-01-15", "2026-11-04", false, "Startet am Fr. 15.01.")]
+        public void ApplyRelease_TextsForSingleTitles(bool series, string? cinema, string? firstAir, string today, bool released, string text)
+        {
+            var releases = new List<(int Type, DateOnly Date)>();
+            if (cinema != null)
+            {
+                releases.Add((3, DateOnly.Parse(cinema, System.Globalization.CultureInfo.InvariantCulture)));
+            }
+
+            if (firstAir != null)
+            {
+                releases.Add((0, DateOnly.Parse(firstAir, System.Globalization.CultureInfo.InvariantCulture)));
+            }
+
+            var item = new Jellyfin.Plugin.LocalRecs.Discover.DiscoverItem { MediaType = series ? "tv" : "movie" };
+            Jellyfin.Plugin.LocalRecs.Discover.DiscoverService.ApplyRelease(item, releases, series, DateOnly.Parse(today, System.Globalization.CultureInfo.InvariantCulture));
+            item.Released.Should().Be(released);
+            item.ReleaseText.Should().Be(text);
         }
     }
 }

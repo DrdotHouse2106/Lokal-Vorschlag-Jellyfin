@@ -105,6 +105,7 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
             EnableUpcoming = true;
             EnableDiscoverRows = true;
             DiscoverKinoCheck = true;
+            WorldsShowMissing = true;
             SonarrUrl = string.Empty;
             SonarrApiKey = string.Empty;
             RadarrUrl = string.Empty;
@@ -221,6 +222,9 @@ namespace Jellyfin.Plugin.LocalRecs.Configuration
 
         /// <summary>Gets or sets a value indicating whether German trailers are looked up at KinoCheck when TMDB has none (since 12.57.0).</summary>
         public bool DiscoverKinoCheck { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether worlds also list titles of the world list that are not in the library (to request via Jellyseerr, since 12.60.0).</summary>
+        public bool WorldsShowMissing { get; set; }
 
         /// <summary>Gets or sets Sonarr's address, e.g. http://host:8989.</summary>
         public string SonarrUrl { get; set; }

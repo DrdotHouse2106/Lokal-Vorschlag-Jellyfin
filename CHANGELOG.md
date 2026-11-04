@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.60.0] - 2026-11-04
+
+### Added
+
+- Worlds: titles of the world list that are in no library. `GET /LocalRecs/Worlds/{id}/Missing` returns them with the same fields as the discover rows (German title, line incl. cinema note, FSK, genres, providers, German trailer incl. KinoCheck) plus `ChronologyIndex`, and the chronology with present and missing entries (`Index`, `Missing: true`, `TmdbId`, `MediaType`). Parental rating respected; TMDB data cached 24 hours per title. Setting „Welten: fehlende Titel zeigen“ (default on).
+- Web module: missing titles dimmed with „Fehlt“ on the world page (below the titles, and at their place in the chronology), „x Titel · y fehlen“; a click opens the discover view (Jellyseerr state, „Anfragen“, trailer). Only when Jellyseerr is usable via Jellyfin Enhanced.
+
 ## [12.59.0] - 2026-11-04
 
 ### Security

@@ -28,6 +28,9 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         /// <summary>Gets the order by in-story time per world: sections and library titles (titles not in the library left out).</summary>
         public Dictionary<string, List<ChronologyItem>> Chronologies { get; } = new Dictionary<string, List<ChronologyItem>>();
 
+        /// <summary>Gets the titles of each world's list that are not in the library (only with TMDB ID and known type).</summary>
+        public Dictionary<string, List<MissingTitle>> Missing { get; } = new Dictionary<string, List<MissingTitle>>();
+
         /// <summary>Gets the collections of the library (for suggestions).</summary>
         public IReadOnlyList<CollectionEntry> Collections { get; private set; } = Array.Empty<CollectionEntry>();
 
@@ -115,10 +118,24 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                         {
                             chronology.Add(new ChronologyItem(null, match.Id, entry.Label, match.IsSeries ? entry.Seasons : Array.Empty<int>()));
                         }
+                        else if (entry.Title != null && MissingOf(entry.Title, world) is { } absent)
+                        {
+                            // Fehlt in der Bibliothek: Platz in der Reihenfolge behalten (die Apps zeigen ihn als „fehlt“)
+                            chronology.Add(new ChronologyItem(null, null, entry.Label, absent.Series ? entry.Seasons : Array.Empty<int>(), absent));
+                        }
                     }
 
                     result.Chronologies[world.Id] = chronology;
                 }
+
+                // Titel der Liste, die in keiner Bibliothek liegen (für „fehlt noch“ mit Anfragen über Jellyseerr)
+                result.Missing[world.Id] = world.Includes
+                    .Where(r => !items.Any(i => Matches(r, i)))
+                    .Select(r => MissingOf(r, world))
+                    .Where(m => m != null)
+                    .Select(m => m!)
+                    .Distinct()
+                    .ToList();
 
                 result.Sources[world.Id] = sources;
                 result.Members[world.Id] = sources.Keys.ToHashSet();
@@ -182,6 +199,25 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
             return result.Select(kv => (kv.Key, kv.Value)).ToList();
         }
 
+        // Eintrag der Liste als fehlender Titel: nur mit TMDB-ID und bekanntem Typ, nicht ausgeschlossen
+        private static MissingTitle? MissingOf(WorldTitleRef reference, WorldDefinition world)
+        {
+            if (!int.TryParse(reference.Tmdb?.Trim(), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var tmdb) || tmdb <= 0
+                || string.IsNullOrEmpty(reference.Type))
+            {
+                return null;
+            }
+
+            var series = reference.FitsType(true);
+            if (series == reference.FitsType(false))
+            {
+                return null;
+            }
+
+            var excluded = world.Excludes.Any(x => Same(x.Tmdb, reference.Tmdb) && (string.IsNullOrEmpty(x.Type) || x.FitsType(series)));
+            return excluded ? null : new MissingTitle(tmdb, series);
+        }
+
         private static bool Same(string? a, string? b) =>
             !string.IsNullOrWhiteSpace(a) && !string.IsNullOrWhiteSpace(b) && string.Equals(a.Trim(), b.Trim(), StringComparison.OrdinalIgnoreCase);
 
@@ -231,6 +267,14 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         /// <param name="ItemId">Library item, or null for a section.</param>
         /// <param name="Label">Ready text, or null.</param>
         /// <param name="Seasons">Seasons (series), empty for all.</param>
-        public sealed record ChronologyItem(string? Section, Guid? ItemId, string? Label, IReadOnlyList<int> Seasons);
+        /// <param name="Missing">The title if it is not in the library, else null.</param>
+        public sealed record ChronologyItem(string? Section, Guid? ItemId, string? Label, IReadOnlyList<int> Seasons, MissingTitle? Missing = null);
+
+        /// <summary>
+        /// Ein Titel der Welten-Liste, der in keiner Bibliothek liegt.
+        /// </summary>
+        /// <param name="TmdbId">TMDB ID.</param>
+        /// <param name="Series">True for a series.</param>
+        public sealed record MissingTitle(int TmdbId, bool Series);
     }
 }
