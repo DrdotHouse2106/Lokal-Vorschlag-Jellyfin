@@ -95,7 +95,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult Later([FromBody] LaterRequest request)
         {
-            var user = RequestUser.Resolve(this, _userManager);
+            var user = RequestUser.ResolveSelf(this, _userManager);
             if (user == null)
             {
                 return RequestUser.Missing(this);

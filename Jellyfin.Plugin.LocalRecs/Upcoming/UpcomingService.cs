@@ -38,6 +38,7 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
         private readonly IUserDataManager _userDataManager;
         private readonly ArrClient _client;
         private readonly SemaphoreSlim _refresh = new SemaphoreSlim(1, 1);
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<(int Id, bool Fanart), Task<(byte[] Data, string ContentType)?>> _imageFetches = new();
         private Snapshot _snapshot = new Snapshot();
 
         /// <summary>
@@ -259,25 +260,10 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
                 }
             }
 
-            (byte[] Data, string ContentType)? image = null;
-            try
-            {
-                image = await _client.GetImageAsync(baseUrl, Config.RadarrApiKey.Trim(), radarrId, fanart, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (ex is System.Net.Http.HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
-            {
-                _logger.LogDebug("Radarr-Bild nicht abrufbar: {Type}", ex.GetType().Name);
-            }
-
-            lock (snapshot.Images)
-            {
-                if (snapshot.Images.Count < 200)
-                {
-                    snapshot.Images[key] = image;
-                }
-            }
-
-            return image;
+            // Gleichzeitige Anfragen nach demselben Bild teilen sich einen Abruf (läuft unabhängig vom einzelnen Aufrufer)
+            var apiKey = Config.RadarrApiKey.Trim();
+            var fetch = _imageFetches.GetOrAdd(key, _ => FetchImageAsync(snapshot, key, baseUrl, apiKey));
+            return await fetch.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -390,6 +376,33 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
             {
                 _refresh.Release();
             }
+        }
+
+        private async Task<(byte[] Data, string ContentType)?> FetchImageAsync(Snapshot snapshot, (int Id, bool Fanart) key, string baseUrl, string apiKey)
+        {
+            (byte[] Data, string ContentType)? image = null;
+            try
+            {
+                image = await _client.GetImageAsync(baseUrl, apiKey, key.Id, key.Fanart, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is System.Net.Http.HttpRequestException || ex is TaskCanceledException)
+            {
+                _logger.LogDebug("Radarr-Bild nicht abrufbar: {Type}", ex.GetType().Name);
+            }
+            finally
+            {
+                _imageFetches.TryRemove(key, out _);
+            }
+
+            lock (snapshot.Images)
+            {
+                if (snapshot.Images.Count < 200)
+                {
+                    snapshot.Images[key] = image;
+                }
+            }
+
+            return image;
         }
 
         // Je Serie die nächste Folge (weitere im Zeitraum werden gezählt); nur Serien, die der Benutzer in Jellyfin sehen darf

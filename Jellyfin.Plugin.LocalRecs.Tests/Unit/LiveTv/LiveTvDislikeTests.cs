@@ -94,6 +94,34 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit.LiveTv
             LiveTvDislikes.MainGenre(genres).Should().Be(expected);
         }
 
+        [Fact]
+        public void Store_ShortensTextsAndKeepsAtMostMaxEntries()
+        {
+            var path = Path.Combine(Path.GetTempPath(), "lr-livetv-weniger-" + Guid.NewGuid().ToString("N") + ".json");
+            var user = Guid.NewGuid();
+            try
+            {
+                var store = new LiveTvFeedbackStore(NullLogger<LiveTvFeedbackStore>.Instance, path);
+                store.MarkTitle(user, new string('a', 500), new string('T', 500), LiveTvDislikes.Less, Now);
+                store.GetMarks(user)[0].Title!.Length.Should().Be(LiveTvFeedbackStore.MaxTextLength);
+                store.GetMarks(user)[0].Key.Length.Should().Be(LiveTvFeedbackStore.MaxTextLength);
+
+                for (var i = 0; i < LiveTvFeedbackStore.MaxGenres + 10; i++)
+                {
+                    store.MarkGenre(user, "genre" + i, "Genre " + i, Now.AddMinutes(i));
+                }
+
+                var genres = store.GetDislikes(user).Genres;
+                genres.Should().HaveCount(LiveTvFeedbackStore.MaxGenres);
+                genres.Should().NotContain("genre0", "die ältesten fallen weg");
+                genres.Should().Contain("genre" + (LiveTvFeedbackStore.MaxGenres + 9));
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
         private static TvInterestProfile Profile()
         {
             var profile = new TvInterestProfile();

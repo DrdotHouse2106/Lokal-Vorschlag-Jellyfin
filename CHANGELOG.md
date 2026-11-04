@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.59.0] - 2026-11-04
+
+### Security
+
+- World logos: only from `image.tmdb.org`, `assets.fanart.tv`, `raw.githubusercontent.com` and the host of the configured world list; addresses resolving to loopback/private/link-local networks are refused (SSRF); no redirects; only PNG, JPEG, WebP or GIF detected from the bytes (SVG refused, also for cached and local logos). Served with `X-Content-Type-Options: nosniff` and `Content-Security-Policy: default-src 'none'; sandbox`.
+- Radarr posters: no redirects for Radarr/Sonarr requests (the `X-Api-Key` header never follows a redirect), at most 10 MB, only raster images detected from the bytes, one shared fetch per image, same response headers.
+- Private data only for the token's own user: behaviour (`Search`, `View`, `Me`), reminders and calendar link, „Später ansehen“ and „Weniger davon“ ignore `userId`, also for administrators; server API keys get nothing there.
+- „Weniger davon“: titles and genres at most 80 characters, at most 300 shows and 50 genres per user (oldest dropped); `ProgramId`/`SeriesId` only resolve live TV programs (with live TV permission) and series visible to the user.
+
 ## [12.58.2] - 2026-11-02
 
 ### Fixed

@@ -51,7 +51,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         public ActionResult Search([FromBody] SearchRequest request)
         {
-            var user = RequestUser.Resolve(this, _userManager);
+            var user = RequestUser.ResolveSelf(this, _userManager);
             if (user == null)
             {
                 return RequestUser.Missing(this);
@@ -83,7 +83,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         public ActionResult View([FromBody] ViewRequest request)
         {
-            var user = RequestUser.Resolve(this, _userManager);
+            var user = RequestUser.ResolveSelf(this, _userManager);
             if (user == null)
             {
                 return RequestUser.Missing(this);
@@ -109,7 +109,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<BehaviorState> Get([FromQuery] int? utcOffsetMinutes = null)
         {
-            var user = RequestUser.Resolve(this, _userManager);
+            var user = RequestUser.ResolveSelf(this, _userManager);
             if (user == null)
             {
                 return RequestUser.Missing(this);

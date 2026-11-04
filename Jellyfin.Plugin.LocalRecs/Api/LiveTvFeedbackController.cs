@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Jellyfin.Data;
+using Jellyfin.Database.Implementations.Entities;
+using Jellyfin.Database.Implementations.Enums;
 using Jellyfin.Plugin.LocalRecs.LiveTv;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.LiveTv;
 using Microsoft.AspNetCore.Authorization;
@@ -49,7 +53,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public ActionResult<IReadOnlyList<LiveTvFeedbackStore.Mark>> Get()
         {
-            var user = RequestUser.Resolve(this, _userManager);
+            var user = RequestUser.ResolveSelf(this, _userManager);
             return user == null ? RequestUser.Missing(this) : Ok(_store.GetMarks(user.Id));
         }
 
@@ -64,7 +68,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public ActionResult<LiveTvFeedbackStore.Mark> Post([FromBody] FeedbackRequest request)
         {
-            var user = RequestUser.Resolve(this, _userManager);
+            var user = RequestUser.ResolveSelf(this, _userManager);
             if (user == null)
             {
                 return RequestUser.Missing(this);
@@ -76,7 +80,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                 return BadRequest("Art muss „weniger“, „genre_weniger“ oder „nie“ sein.");
             }
 
-            var (title, genres) = Describe(request!);
+            var (title, genres) = Describe(request!, user);
             var now = DateTime.UtcNow;
             if (kind == LiveTvDislikes.GenreLess)
             {
@@ -86,20 +90,23 @@ namespace Jellyfin.Plugin.LocalRecs.Api
                     return BadRequest("Kein Genre: bitte Genre angeben oder eine Sendung mit Genre.");
                 }
 
-                _store.MarkGenre(user.Id, LiveTvText.NormalizeFeature(genre), genre, now);
+                genre = LiveTvFeedbackStore.Shorten(genre);
+                var genreKey = LiveTvText.NormalizeFeature(genre);
+                _store.MarkGenre(user.Id, genreKey, genre, now);
                 _recommendations.Invalidate(user.Id);
-                return Ok(new LiveTvFeedbackStore.Mark { Kind = kind, Key = LiveTvText.NormalizeFeature(genre), Genre = genre, At = now });
+                return Ok(new LiveTvFeedbackStore.Mark { Kind = kind, Key = genreKey, Genre = genre, At = now });
             }
 
-            var titleKey = LiveTvText.NormalizeTitle(title);
+            var shortTitle = string.IsNullOrWhiteSpace(title) ? string.Empty : LiveTvFeedbackStore.Shorten(title);
+            var titleKey = LiveTvFeedbackStore.Shorten(LiveTvText.NormalizeTitle(shortTitle));
             if (string.IsNullOrEmpty(titleKey))
             {
                 return BadRequest("Keine Sendung: bitte ProgramId, SeriesId oder Title angeben.");
             }
 
-            _store.MarkTitle(user.Id, titleKey, title!.Trim(), kind, now);
+            _store.MarkTitle(user.Id, titleKey, shortTitle, kind, now);
             _recommendations.Invalidate(user.Id);
-            return Ok(new LiveTvFeedbackStore.Mark { Kind = kind, Key = titleKey, Title = title.Trim(), At = now });
+            return Ok(new LiveTvFeedbackStore.Mark { Kind = kind, Key = titleKey, Title = shortTitle, At = now });
         }
 
         /// <summary>
@@ -118,7 +125,7 @@ namespace Jellyfin.Plugin.LocalRecs.Api
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult Delete([FromQuery] Guid? programId, [FromQuery] Guid? seriesId, [FromQuery] string? title, [FromQuery] string? genre, [FromQuery] string? key)
         {
-            var user = RequestUser.Resolve(this, _userManager);
+            var user = RequestUser.ResolveSelf(this, _userManager);
             if (user == null)
             {
                 return RequestUser.Missing(this);
@@ -137,8 +144,8 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             }
             else
             {
-                var (name, _) = Describe(new FeedbackRequest { ProgramId = programId, SeriesId = seriesId, Title = title });
-                var titleKey = LiveTvText.NormalizeTitle(name);
+                var (name, _) = Describe(new FeedbackRequest { ProgramId = programId, SeriesId = seriesId, Title = title }, user);
+                var titleKey = LiveTvFeedbackStore.Shorten(LiveTvText.NormalizeTitle(name is null ? null : LiveTvFeedbackStore.Shorten(name)));
                 if (string.IsNullOrEmpty(titleKey))
                 {
                     return BadRequest("Bitte programId, seriesId, title, genre oder key angeben.");
@@ -155,15 +162,26 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             return removed ? NoContent() : NotFound();
         }
 
-        // Titel (Serienname, sonst Sendungsname) und Genres der genannten Sendung
-        private (string? Title, IReadOnlyList<string> Genres) Describe(FeedbackRequest request)
+        // Titel (Serienname, sonst Sendungsname) und Genres der genannten Sendung. Nur Live-TV-Sendungen (mit
+        // Live-TV-Recht) und Serien, die der Benutzer sehen darf – sonst ließen sich Namen gesperrter Titel abfragen.
+        private (string? Title, IReadOnlyList<string> Genres) Describe(FeedbackRequest request, User user)
         {
             foreach (var id in new[] { request.ProgramId, request.SeriesId })
             {
-                if (id is Guid itemId && itemId != Guid.Empty && _libraryManager.GetItemById(itemId) is BaseItem item)
+                if (id is not Guid itemId || itemId == Guid.Empty)
                 {
-                    var name = item is LiveTvProgram program && !string.IsNullOrWhiteSpace(program.SeriesName) ? program.SeriesName : item.Name;
-                    return (name, item.Genres ?? Array.Empty<string>());
+                    continue;
+                }
+
+                var item = _libraryManager.GetItemById(itemId);
+                if (item is LiveTvProgram program && user.HasPermission(PermissionKind.EnableLiveTvAccess))
+                {
+                    return (string.IsNullOrWhiteSpace(program.SeriesName) ? program.Name : program.SeriesName, program.Genres ?? Array.Empty<string>());
+                }
+
+                if (item is Series series && series.IsVisibleStandalone(user))
+                {
+                    return (series.Name, series.Genres ?? Array.Empty<string>());
                 }
             }
 

@@ -13,6 +13,15 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
     /// </summary>
     public class LiveTvFeedbackStore
     {
+        /// <summary>Maximum length of a title or genre (longer ones are shortened).</summary>
+        public const int MaxTextLength = 80;
+
+        /// <summary>Maximum number of show marks per user (the oldest are dropped).</summary>
+        public const int MaxTitles = 300;
+
+        /// <summary>Maximum number of genre marks per user (the oldest are dropped).</summary>
+        public const int MaxGenres = 50;
+
         private readonly ILogger<LiveTvFeedbackStore> _logger;
         private readonly string _path;
         private readonly object _lock = new object();
@@ -27,6 +36,18 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _path = path ?? throw new ArgumentNullException(nameof(path));
+        }
+
+        /// <summary>
+        /// Shortens a title or genre to <see cref="MaxTextLength"/> characters.
+        /// </summary>
+        /// <param name="text">The text.</param>
+        /// <returns>The shortened text.</returns>
+        public static string Shorten(string text)
+        {
+            ArgumentNullException.ThrowIfNull(text);
+            var trimmed = text.Trim();
+            return trimmed.Length <= MaxTextLength ? trimmed : trimmed[..MaxTextLength];
         }
 
         /// <summary>
@@ -82,7 +103,11 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         /// <param name="now">Time (UTC).</param>
         public void MarkTitle(Guid userId, string titleKey, string title, string kind, DateTime now)
         {
-            Change(userId, data => data.Titles[titleKey] = new Entry { Kind = kind, Name = title, At = now });
+            Change(userId, data =>
+            {
+                data.Titles[Shorten(titleKey)] = new Entry { Kind = kind, Name = Shorten(title), At = now };
+                Trim(data.Titles, MaxTitles);
+            });
         }
 
         /// <summary>
@@ -94,7 +119,11 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         /// <param name="now">Time (UTC).</param>
         public void MarkGenre(Guid userId, string genreKey, string genre, DateTime now)
         {
-            Change(userId, data => data.Genres[genreKey] = new Entry { Kind = LiveTvDislikes.GenreLess, Name = genre, At = now });
+            Change(userId, data =>
+            {
+                data.Genres[Shorten(genreKey)] = new Entry { Kind = LiveTvDislikes.GenreLess, Name = Shorten(genre), At = now };
+                Trim(data.Genres, MaxGenres);
+            });
         }
 
         /// <summary>
@@ -106,7 +135,7 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         public bool RemoveTitle(Guid userId, string titleKey)
         {
             var removed = false;
-            Change(userId, data => removed = data.Titles.Remove(titleKey));
+            Change(userId, data => removed = data.Titles.Remove(Shorten(titleKey)));
             return removed;
         }
 
@@ -119,8 +148,17 @@ namespace Jellyfin.Plugin.LocalRecs.LiveTv
         public bool RemoveGenre(Guid userId, string genreKey)
         {
             var removed = false;
-            Change(userId, data => removed = data.Genres.Remove(genreKey));
+            Change(userId, data => removed = data.Genres.Remove(Shorten(genreKey)));
             return removed;
+        }
+
+        // Älteste Einträge verwerfen, wenn es zu viele sind (Datei und Speicher bleiben klein)
+        private static void Trim(Dictionary<string, Entry> entries, int max)
+        {
+            foreach (var old in entries.OrderBy(e => e.Value.At).Take(entries.Count - max).Select(e => e.Key).ToList())
+            {
+                entries.Remove(old);
+            }
         }
 
         private UserData? Find(Guid userId)

@@ -16,7 +16,11 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
     /// </summary>
     public class ArrClient
     {
-        private static readonly HttpClient SharedClient = new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(10) })
+        /// <summary>Maximum size of a poster or fanart from Radarr.</summary>
+        public const int MaxImageBytes = 10 * 1024 * 1024;
+
+        // Keine Weiterleitungen: der Kopf X-Api-Key soll nie an eine andere Adresse gehen
+        private static readonly HttpClient SharedClient = new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(10), AllowAutoRedirect = false })
         {
             Timeout = TimeSpan.FromSeconds(20)
         };
@@ -268,7 +272,7 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
         /// <param name="radarrId">Radarr's movie ID.</param>
         /// <param name="fanart">True for fanart, false for poster.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>Image bytes and content type, or null.</returns>
+        /// <returns>Image bytes and content type (detected from the bytes), or null.</returns>
         public async Task<(byte[] Data, string ContentType)?> GetImageAsync(string baseUrl, string apiKey, int radarrId, bool fanart, CancellationToken cancellationToken)
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, baseUrl + "/api/v3/mediacover/" + radarrId.ToString(CultureInfo.InvariantCulture) + (fanart ? "/fanart.jpg" : "/poster.jpg"));
@@ -279,13 +283,8 @@ namespace Jellyfin.Plugin.LocalRecs.Upcoming
                 return null;
             }
 
-            var type = response.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
-            if (!type.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-            {
-                return null;
-            }
-
-            return (await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false), type);
+            // Nur PNG, JPEG, WebP oder GIF (am Inhalt erkannt, kein SVG), höchstens MaxImageBytes
+            return await Security.ImageSafety.ReadImageAsync(response.Content, MaxImageBytes, cancellationToken).ConfigureAwait(false);
         }
 
         private static string Iso(DateTime utc) => Uri.EscapeDataString(utc.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture));

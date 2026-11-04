@@ -12,7 +12,8 @@ namespace Jellyfin.Plugin.LocalRecs.Api
     /// <summary>
     /// Für wen eine Anfrage an <c>/LocalRecs</c> gilt: den angemeldeten Benutzer des Tokens. Mit einem Server-API-Schlüssel
     /// (ohne Benutzer) gilt stattdessen der Parameter <c>userId</c>, als Administrator nur bei lesenden Anfragen (GET).
-    /// Andere Benutzer können ihn nicht nutzen, um fremde Daten zu sehen – für sie zählt immer das eigene Profil.
+    /// Andere Benutzer können ihn nicht nutzen, um fremde Daten zu sehen – für sie zählt immer das eigene Profil. Private
+    /// Daten (<see cref="ResolveSelf"/>) gibt es nur für den angemeldeten Benutzer selbst.
     /// </summary>
     public static class RequestUser
     {
@@ -53,6 +54,22 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             var apiKey = controller.User?.Claims.Any(c => string.Equals(c.Type, ApiKeyClaim, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(c.Value, "true", StringComparison.OrdinalIgnoreCase)) == true;
             return apiKey && requested != Guid.Empty ? userManager.GetUserById(requested) : null;
+        }
+
+        /// <summary>
+        /// Gets the signed-in user of the token only – for private data (search terms, viewed titles, reminders and
+        /// calendar link, „Weniger davon“, „Später ansehen“). <c>userId</c> is ignored, also for administrators and server
+        /// API keys (those have no user and get none).
+        /// </summary>
+        /// <param name="controller">The controller.</param>
+        /// <param name="userManager">User manager.</param>
+        /// <returns>The user, or null.</returns>
+        public static User? ResolveSelf(ControllerBase controller, IUserManager userManager)
+        {
+            ArgumentNullException.ThrowIfNull(controller);
+            ArgumentNullException.ThrowIfNull(userManager);
+            var tokenId = RecommendationsController.GetUserId(controller.User);
+            return tokenId == Guid.Empty ? null : userManager.GetUserById(tokenId);
         }
 
         /// <summary>

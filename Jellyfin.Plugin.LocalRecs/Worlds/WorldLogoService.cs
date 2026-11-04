@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.LocalRecs.Security;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.LocalRecs.Worlds
@@ -27,7 +28,13 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
         private static readonly System.Text.RegularExpressions.Regex FanartPattern =
             new System.Text.RegularExpressions.Regex("^fanart:(collection|movie|tv)/([0-9]+)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
-        private static readonly string[] ImageExtensions = { ".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif" };
+        // Nur Rasterbilder – SVG kann Skript enthalten
+        private static readonly string[] ImageExtensions = { ".png", ".jpg", ".jpeg", ".webp", ".gif" };
+
+        private static readonly HttpClient NoRedirectClient = new HttpClient(new SocketsHttpHandler { AllowAutoRedirect = false, PooledConnectionLifetime = TimeSpan.FromMinutes(10) })
+        {
+            Timeout = TimeSpan.FromSeconds(20)
+        };
 
         private readonly ILogger<WorldLogoService> _logger;
         private readonly IHttpClientFactory? _httpClientFactory;
@@ -71,7 +78,8 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
 
             if (Uri.TryCreate(logo, UriKind.Absolute, out var absolute) && (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps || absolute.IsFile))
             {
-                return absolute.Scheme == Uri.UriSchemeHttps ? absolute.ToString() : null;
+                // Nur bekannte Bild-Hosts (TMDB, fanart.tv, GitHub) und der Host der eingestellten Liste
+                return ImageSafety.IsAllowedHost(absolute, AllowedHosts(listSource)) ? absolute.ToString() : null;
             }
 
             if (string.IsNullOrWhiteSpace(listSource) || Path.IsPathRooted(logo))
@@ -82,7 +90,7 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
             if (Uri.TryCreate(listSource, UriKind.Absolute, out var listUri) && (listUri.Scheme == Uri.UriSchemeHttp || listUri.Scheme == Uri.UriSchemeHttps))
             {
                 var combined = new Uri(listUri, logo);
-                return combined.Scheme == Uri.UriSchemeHttps ? combined.ToString() : null;
+                return ImageSafety.IsAllowedHost(combined, AllowedHosts(listSource)) ? combined.ToString() : null;
             }
 
             // Lokale Liste: nur Bilder innerhalb ihres Ordners
@@ -112,6 +120,22 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                 .Select(l => l!)
                 .Distinct(StringComparer.Ordinal)
                 .ToList();
+        }
+
+        /// <summary>
+        /// Gets the hosts logos may come from: <see cref="ImageSafety.LogoHosts"/> and the host of an https world list.
+        /// </summary>
+        /// <param name="listSource">The world list (URL or file path).</param>
+        /// <returns>The hosts.</returns>
+        public static IReadOnlyList<string> AllowedHosts(string? listSource)
+        {
+            var hosts = ImageSafety.LogoHosts.ToList();
+            if (Uri.TryCreate(listSource, UriKind.Absolute, out var list) && list.Scheme == Uri.UriSchemeHttps)
+            {
+                hosts.Add(list.IdnHost);
+            }
+
+            return hosts;
         }
 
         /// <summary>
@@ -237,15 +261,6 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
             }
         }
 
-        private static string ContentTypeFor(string path) => Path.GetExtension(path).ToLowerInvariant() switch
-        {
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".webp" => "image/webp",
-            ".svg" => "image/svg+xml",
-            ".gif" => "image/gif",
-            _ => "image/png"
-        };
-
         private static string StableHash(string text)
         {
             var hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text));
@@ -282,8 +297,13 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                         return null;
                     }
 
-                    var image = await FetchAsync(url, null, cancellationToken).ConfigureAwait(false);
-                    return image == null ? null : image with { Source = source };
+                    if (!ImageSafety.IsAllowedHost(new Uri(url), ImageSafety.LogoHosts))
+                    {
+                        return null;
+                    }
+
+                    var fanartImage = await FetchAsync(url, null, cancellationToken).ConfigureAwait(false);
+                    return fanartImage == null ? null : fanartImage with { Source = source };
                 }
 
                 if (!source.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
@@ -294,35 +314,34 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                         return null;
                     }
 
-                    return new Logo(source, await File.ReadAllBytesAsync(source, cancellationToken).ConfigureAwait(false), ContentTypeFor(source), DateTime.UtcNow);
+                    var bytes = await File.ReadAllBytesAsync(source, cancellationToken).ConfigureAwait(false);
+                    var localType = ImageSafety.DetectType(bytes);
+                    return localType == null ? null : new Logo(source, bytes, localType, DateTime.UtcNow);
                 }
 
-                var client = _httpClientFactory?.CreateClient() ?? new HttpClient();
-                client.Timeout = TimeSpan.FromSeconds(20);
-                using var response = await client.GetAsync(new Uri(source), HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-                response.EnsureSuccessStatusCode();
-                var contentType = response.Content.Headers.ContentType?.MediaType ?? ContentTypeFor(source);
-                if (!contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) || response.Content.Headers.ContentLength > MaxBytes)
+                // Keine Adressen im lokalen Netz (auch nicht über DNS), keine Weiterleitungen
+                var uri = new Uri(source);
+                if (!await ImageSafety.ResolvesToPublicAsync(uri, cancellationToken).ConfigureAwait(false))
                 {
-                    _logger.LogWarning("Logo abgelehnt (kein Bild oder zu groß): {Source}", source);
+                    _logger.LogWarning("Logo abgelehnt (lokale oder private Adresse): {Host}", uri.IdnHost);
                     return null;
                 }
 
-                using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-                using var memory = new MemoryStream();
-                var buffer = new byte[81920];
-                int read;
-                while ((read = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+                using var response = await NoRedirectClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
                 {
-                    memory.Write(buffer, 0, read);
-                    if (memory.Length > MaxBytes)
-                    {
-                        _logger.LogWarning("Logo abgelehnt (zu groß): {Source}", source);
-                        return null;
-                    }
+                    _logger.LogWarning("Logo nicht geladen (HTTP {Status}): {Source}", (int)response.StatusCode, source);
+                    return null;
                 }
 
-                return new Logo(source, memory.ToArray(), contentType, DateTime.UtcNow);
+                var image = await ImageSafety.ReadImageAsync(response.Content, MaxBytes, cancellationToken).ConfigureAwait(false);
+                if (image == null)
+                {
+                    _logger.LogWarning("Logo abgelehnt (kein PNG/JPEG/WebP/GIF oder zu groß): {Source}", source);
+                    return null;
+                }
+
+                return new Logo(source, image.Value.Data, image.Value.ContentType, DateTime.UtcNow);
             }
             catch (Exception ex) when (ex is HttpRequestException || ex is IOException || ex is TaskCanceledException || ex is UnauthorizedAccessException || ex is UriFormatException || ex is JsonException)
             {
@@ -343,12 +362,15 @@ namespace Jellyfin.Plugin.LocalRecs.Worlds
                 }
 
                 var meta = JsonSerializer.Deserialize<LogoMeta>(File.ReadAllText(metaPath));
-                if (meta == null || meta.Source != source || string.IsNullOrEmpty(meta.ContentType))
+                if (meta == null || meta.Source != source)
                 {
                     return null;
                 }
 
-                return new Logo(source, File.ReadAllBytes(dataPath), meta.ContentType, meta.Fetched);
+                // Typ aus dem Inhalt, nicht aus der gespeicherten Angabe (ältere Stände konnten SVG enthalten)
+                var data = File.ReadAllBytes(dataPath);
+                var type = ImageSafety.DetectType(data);
+                return type == null ? null : new Logo(source, data, type, meta.Fetched);
             }
             catch (Exception ex) when (ex is IOException || ex is JsonException || ex is UnauthorizedAccessException)
             {

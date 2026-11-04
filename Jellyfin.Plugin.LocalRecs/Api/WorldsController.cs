@@ -216,6 +216,11 @@ namespace Jellyfin.Plugin.LocalRecs.Api
             }
 
             Response.Headers.CacheControl = "public, max-age=86400";
+            foreach (var (name, value) in Security.ImageSafety.ResponseHeaders)
+            {
+                Response.Headers[name] = value;
+            }
+
             return File(logo.Data, logo.ContentType);
         }
 
