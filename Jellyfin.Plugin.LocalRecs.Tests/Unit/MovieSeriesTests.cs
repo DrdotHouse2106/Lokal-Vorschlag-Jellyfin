@@ -111,19 +111,29 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             lookup.GetSeries("2344")!.Name.Should().Be("Matrix Filmreihe");
         }
 
+        private static readonly byte[] Png = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3 };
+
         [Fact]
         public async Task Image_OnlyForKnownSeriesWithSafePath()
         {
             var lookup = new MovieSeriesLookup(
                 NullLogger<MovieSeriesLookup>.Instance,
-                Path.Combine(Path.GetTempPath(), "lr-reihen-" + Guid.NewGuid().ToString("N") + ".json"),
-                (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(new byte[] { 1, 2, 3 }) }),
+                Path.Combine(Path.GetTempPath(), "lr-reihen-" + Guid.NewGuid().ToString("N"), "filmreihen.json"),
+                (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(Png) }),
                 (_, _) => Task.CompletedTask);
             lookup.Store("1", new MovieSeriesLookup.SeriesInfo { Id = "10", Name = "A", PosterPath = "/a.jpg", BackdropPath = "/../x.jpg" }, DateTime.UtcNow);
 
-            (await lookup.GetImageAsync("10", false, CancellationToken.None))!.Value.Data.Should().Equal(1, 2, 3);
+            (await lookup.GetImageAsync("10", false, CancellationToken.None))!.Value.Data.Should().Equal(Png);
             (await lookup.GetImageAsync("10", true, CancellationToken.None)).Should().BeNull("Pfad mit ..");
             (await lookup.GetImageAsync("99", false, CancellationToken.None)).Should().BeNull("unbekannte Reihe");
+
+            var svg = new MovieSeriesLookup(
+                NullLogger<MovieSeriesLookup>.Instance,
+                Path.Combine(Path.GetTempPath(), "lr-reihen-" + Guid.NewGuid().ToString("N"), "filmreihen.json"),
+                (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("<svg><script>alert(1)</script></svg>") }),
+                (_, _) => Task.CompletedTask);
+            svg.Store("1", new MovieSeriesLookup.SeriesInfo { Id = "10", Name = "A", PosterPath = "/a.svg" }, DateTime.UtcNow);
+            (await svg.GetImageAsync("10", false, CancellationToken.None)).Should().BeNull("kein Rasterbild");
         }
 
         private static MovieSeriesService.MovieSeries Series(string name, bool started, double taste = 0, DateTime lastPlayed = default, bool inWorld = false, int next = 1)

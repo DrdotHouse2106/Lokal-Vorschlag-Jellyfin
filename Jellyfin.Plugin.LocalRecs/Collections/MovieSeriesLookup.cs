@@ -447,30 +447,32 @@ namespace Jellyfin.Plugin.LocalRecs.Collections
             }
 
             var file = Path.Combine(_imageFolder, seriesId + (backdrop ? "-hintergrund" : "-poster") + Path.GetExtension(path));
-            var contentType = path.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ? "image/png" : "image/jpeg";
             try
             {
+                // Typ immer aus dem Inhalt (nur PNG, JPEG, WebP, GIF), auch für schon gespeicherte Bilder
                 if (File.Exists(file))
                 {
-                    return (await File.ReadAllBytesAsync(file, cancellationToken).ConfigureAwait(false), contentType);
+                    var cached = await File.ReadAllBytesAsync(file, cancellationToken).ConfigureAwait(false);
+                    var cachedType = Security.ImageSafety.DetectType(cached);
+                    return cachedType == null ? null : (cached, cachedType);
                 }
 
                 using var request = new HttpRequestMessage(HttpMethod.Get, ImageBase + (backdrop ? "w1280" : "w500") + path);
                 using var response = await _send(request, cancellationToken).ConfigureAwait(false);
-                if (!response.IsSuccessStatusCode || response.Content.Headers.ContentLength > MaxImageBytes)
+                if (!response.IsSuccessStatusCode)
                 {
                     return null;
                 }
 
-                var data = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
-                if (data.Length == 0 || data.Length > MaxImageBytes)
+                var image = await Security.ImageSafety.ReadImageAsync(response.Content, MaxImageBytes, cancellationToken).ConfigureAwait(false);
+                if (image == null)
                 {
                     return null;
                 }
 
                 Directory.CreateDirectory(_imageFolder);
-                await File.WriteAllBytesAsync(file, data, cancellationToken).ConfigureAwait(false);
-                return (data, contentType);
+                await File.WriteAllBytesAsync(file, image.Value.Data, cancellationToken).ConfigureAwait(false);
+                return image;
             }
             catch (Exception ex) when (ex is HttpRequestException || ex is IOException || ex is UnauthorizedAccessException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
             {
