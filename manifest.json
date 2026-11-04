@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Jellyfin-Plugins/main/images/quallenkino.png",
     "versions": [
       {
+        "version": "12.61.1.0",
+        "changelog": "Welten: bessere persönliche Sortierung\n- Suchbegriffe nur als ganze Wörter, ohne Tippzwischenstände\n- Genre-Grund nur bei Hauptgenres\n- Weit entfernte Neuerscheinungen ohne Bezug weiter hinten\n- BENÖTIGT Jellyfin 12.0 oder neuer",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/DrdotHouse2106/Lokal-Vorschlag-Jellyfin/main/release/jellyfin-plugin-localrecs-v12.61.1.zip",
+        "checksum": "19f48a03951f5adbb4c5434e6105f66b",
+        "timestamp": "2026-11-05T16:00:00Z"
+      },
+      {
         "version": "12.61.0.0",
         "changelog": "Welten in Abschnitten, fehlende Titel persönlich sortiert\n- Abschnitte wie die Marken-Kacheln bei Disney+ (z. B. Animation, Realverfilmungen, MCU, Horror je Reihe)\n- Fehlende Titel nach Geschmack, gesehenen Reihen und Suchen sortiert, mit Grund\n- Wenig bekannte Titel unter „Alle anzeigen“\n- BENÖTIGT Jellyfin 12.0 oder neuer",
         "targetAbi": "12.0.0.0",

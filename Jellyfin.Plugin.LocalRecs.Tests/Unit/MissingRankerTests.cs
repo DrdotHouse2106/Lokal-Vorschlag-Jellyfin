@@ -48,6 +48,41 @@ namespace Jellyfin.Plugin.LocalRecs.Tests.Unit
             ranked.Select(i => i.TmdbId).Should().Equal(2, 1);
         }
 
+        [Theory]
+        [InlineData("clev", "Mac Millionär - Zu clever für ’nen Blanko-Scheck", false)]
+        [InlineData("sword", "Merlin und Mim", false)]
+        [InlineData("sword", "The Sword in the Stone", true)]
+        [InlineData("conjuring", "Conjuring 4", true)]
+        [InlineData("halloween", "Halloween II", true)]
+        [InlineData("der weisse hai", "Der weiße Hai 2", true)]
+        [InlineData("the", "The Thing", false)]
+        public void Fits_OnlyWholeWordsOrTitleStart(string term, string title, bool expected)
+        {
+            MissingRanker.Fits(term, title).Should().Be(expected);
+        }
+
+        [Fact]
+        public void FinalTerms_OnlyTheLongestTypingState()
+        {
+            MissingRanker.FinalTerms(new[] { "clevatess", "cleva", "clev", "cl", "Halloween", "the" })
+                .Should().Equal("clevatess", "Halloween");
+        }
+
+        [Fact]
+        public void Reason_OnlyMainGenres_AndFarFutureTitlesGoBack()
+        {
+            var profile = new MissingRanker.TasteProfile(new Dictionary<string, double> { ["Komödie"] = 1.0, ["Horror"] = 0.2 }, new Dictionary<int, string> { [111751] = "Blutgericht in Texas" }, Array.Empty<string>());
+            var texas2 = Item(1, "The Texas Chainsaw Massacre Part 2", 1986, new[] { "Horror", "Thriller", "Komödie" }, 900, 5.9, 15);
+            MissingRanker.Score(texas2, profile, Today).Reason.Should().BeNull("Komödie ist nicht das Hauptgenre");
+
+            var fantasy = new MissingRanker.TasteProfile(new Dictionary<string, double> { ["Fantasy"] = 1.0, ["Action"] = 0.9 }, new Dictionary<int, string> { [9] = "Blade" }, Array.Empty<string>());
+            var ghostRider = Item(2, "Ghost Rider", 2028, new[] { "Fantasy", "Action" }, 0, 0, 40);
+            ghostRider.Released = false;
+            ghostRider.ReleaseDate = "2028-03-01";
+            var blade2 = Item(3, "Blade II", 2002, new[] { "Action", "Horror" }, 4000, 6.5, 25, collection: 9);
+            MissingRanker.Rank(new[] { ghostRider, blade2 }, fantasy, Today).Select(i => i.TmdbId).Should().Equal(3, 2);
+        }
+
         [Fact]
         public void Sections_LibraryTitlesBySectionMissingTitlesKeepTheirs()
         {

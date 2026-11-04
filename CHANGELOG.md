@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [12.61.1] - 2026-11-05
+
+### Fixed
+
+- Personal order of missing world titles: search terms only count as whole words or title start (at least 4 letters; of typing states only the longest; German title more than original title) – „clev“ no longer matches „clever“, „sword“ no longer „Merlin und Mim“. The genre reason only names the first two (main) genres. Unreleased titles without a series or search relation come after released ones with relation; release dates more than a year ahead are clearly lowered.
+
 ## [12.61.0] - 2026-11-05
 
 ### Added
